@@ -1,3 +1,5 @@
 spring:
   application:
     name: cardigan
+  config:
+    import: optional:file:.env[.properties]
