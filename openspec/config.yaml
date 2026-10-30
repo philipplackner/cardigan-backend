@@ -1,5 +1,9 @@
 schema: spec-driven
 
+references:
+  - id: cardigan-shared-specs
+    remote: https://github.com/philipplackner/cardigan-specs.git
+
 # Project context (optional)
 # Add only constraints that should guide OpenSpec artifacts and workflows.
 # Include constraints an agent cannot infer by reading the code.
