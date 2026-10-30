@@ -4,33 +4,17 @@ references:
   - id: cardigan-shared-specs
     remote: https://github.com/philipplackner/cardigan-specs.git
 
-# Project context (optional)
-# Add only constraints that should guide OpenSpec artifacts and workflows.
-# Include constraints an agent cannot infer by reading the code.
-# Keep general project documentation and discoverable codebase facts out.
-# Example:
-#   context: |
-#     Designs and tasks must cover Windows, macOS, and Linux
-#     Write all artifacts in Spanish
+context: |
+  Cardigan is built as three products in separate repos: this backend, a mobile app
+  (Android and iOS), and a web frontend.
+  Product behavior shared across all three is specified in the
+  cardigan-shared-specs reference. Read it before planning a change, and
+  don't restate it here.
+  Specs in this repo cover only what is specific to the backend.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always state what is out of scope
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
-
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+rules:
+  proposal:
+    - List every shared-spec requirement this change implements or depends on with its spec ID and requirement name
+  specs:
+    - Never copy a shared requirement into this repo, but reference by spec ID and requirement name
+    - Only specify behavior that differs per platform or exists only on backend
