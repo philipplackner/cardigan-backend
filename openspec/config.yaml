@@ -1,4 +1,4 @@
-schema: spec-driven
+schema: careful-planning
 
 references:
   - id: cardigan-shared-specs
