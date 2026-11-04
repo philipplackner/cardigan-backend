@@ -1,9 +1,9 @@
 ---
-name: spec-review
-description: Interview the user with single- and multiple-choice questions until every decision behind a feature or change is settled, then record the result in decisions.md. Use before writing OpenSpec proposals or specs, when a feature should be planned in detail, or when the user says "spec review".
+name: careful-planning
+description: Interview the user with single- and multiple-choice questions until every decision behind a feature or change is settled, then record the result in decisions.md. Use before writing OpenSpec proposals or specs, when a feature should be planned in detail, or when the user says "careful planning".
 ---
 
-# Spec Review
+# Careful Planning
 
 Your goal is a shared understanding of the change with nothing left silently
 assumed. You find the facts; the user makes the decisions. This skill does not

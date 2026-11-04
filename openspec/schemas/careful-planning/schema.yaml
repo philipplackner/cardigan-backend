@@ -7,11 +7,11 @@ artifacts:
     description: Decisions settled by interviewing the user before any planning is written
     template: decisions.md
     instruction: |
-      Run the spec-review skill for this change. The skill interviews the user
+      Run the careful-planning skill for this change. The skill interviews the user
       in rounds with the AskUserQuestion tool, looks up facts itself, and
       writes decisions.md only after the user has confirmed the shared
       understanding. Do not write the file by hand and do not answer questions
-      on the user's behalf. If the spec-review skill is not available, stop
+      on the user's behalf. If the careful-planning skill is not available, stop
       and tell the user instead of writing decisions.md yourself.
 
       This workflow leads to real implementation work, so the interview
@@ -34,7 +34,7 @@ artifacts:
 
       Base the proposal on decisions.md. Do not introduce behavior that
       contradicts it or that it does not cover; if something is missing,
-      stop and run the spec-review skill again for the open point.
+      stop and run the careful-planning skill again for the open point.
 
       Sections:
       - **Why**: 1-2 sentences on the problem or opportunity. What problem does this solve? Why now?
@@ -86,7 +86,7 @@ artifacts:
 
       Base the specs on the proposal and decisions.md. Do not introduce behavior that
       contradicts decisions.md or that it does not cover; if something is
-      missing, stop and run the spec-review skill again for the open point.
+      missing, stop and run the careful-planning skill again for the open point.
 
       Good spec content:
       - Observable behavior users or downstream systems rely on
@@ -204,7 +204,7 @@ artifacts:
       technical choice decisions.md settles must appear here as decided; do
       not reopen or contradict it. If the design needs a decision that
       decisions.md does not cover and that would change the approach, the
-      specs, or the task breakdown, stop and run the spec-review skill again
+      specs, or the task breakdown, stop and run the careful-planning skill again
       for that point instead of picking a default.
 
       When to include design.md (create only if any apply):
