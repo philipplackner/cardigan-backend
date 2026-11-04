@@ -87,7 +87,7 @@ This change replaces the single-module Initializr skeleton with the agreed modul
 
 ### D12 — CI
 - **Question**: What should the GitHub Actions pipeline do?
-- **Decision**: `./gradlew build` on JDK 25 with Gradle caching, on pull requests and pushes to `master`. No image build and no deployment.
+- **Decision**: `./gradlew build` on JDK 25 with Gradle caching, on pull requests and pushes to any branch. No image build and no deployment. Changed from pushes to `master` only on 2026-11-04, because the user doesn't work with PRs.
 - **Alternatives**: Also run `docker build` without pushing.
 - **Why**: The user wants a very light pipeline, adjusted later. The accepted trade-off is that the Dockerfile is only checked locally and can break unnoticed.
 - **Depends on**: D11

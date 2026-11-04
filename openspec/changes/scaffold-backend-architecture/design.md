@@ -108,7 +108,7 @@ The profile and health scenarios that need a real restart or a stopped database 
 
 ### CI
 
-`.github/workflows/ci.yml` runs on `pull_request` and on `push` to `master`:
+`.github/workflows/ci.yml` runs on `pull_request` and on `push` to any branch:
 
 - Runner: `ubuntu-latest`, which includes Docker for Testcontainers.
 - Steps: checkout, `actions/setup-java` with Temurin 25, `gradle/actions/setup-gradle`, then `./gradlew build`.

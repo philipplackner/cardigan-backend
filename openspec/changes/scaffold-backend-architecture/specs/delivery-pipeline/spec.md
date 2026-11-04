@@ -7,14 +7,14 @@ Defines the automated checks every change goes through and the container image t
 ## ADDED Requirements
 
 ### Requirement: CI builds and tests every change
-CI SHALL run the full build, including all tests, on every pull request and every push to `master`. A failing build or test SHALL fail the CI run.
+CI SHALL run the full build, including all tests, on every pull request and every push to any branch. A failing build or test SHALL fail the CI run.
 
 #### Scenario: Pull request
 - **WHEN** a pull request is opened or updated
 - **THEN** CI compiles all modules and runs all tests
 
-#### Scenario: Push to master
-- **WHEN** a commit is pushed to `master`
+#### Scenario: Push to any branch
+- **WHEN** a commit is pushed to any branch
 - **THEN** CI compiles all modules and runs all tests
 
 #### Scenario: Failing test
