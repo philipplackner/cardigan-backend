@@ -87,6 +87,7 @@ There's no logging config beyond Boot's defaults (D10).
 - `DB_URL` has the form `jdbc:postgresql://<pooler-host>:5432/postgres`. Supabase's dashboard strings don't fit as they are: the URI form lacks `jdbc:`, and the JDBC form includes the password. The session pooler user is `postgres.<project-ref>`.
 - `SPRING_PROFILES_ACTIVE` must come from the shell or the IDE run configuration: `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun`. A key with that name in `.env` wouldn't work, because Spring only maps that upper-case form from real environment variables.
 - The `Test` task keeps its default working directory (`app/`), so tests never see the root `.env`. That prevents local tests from picking up Supabase credentials, and from reading the named pipe.
+- `.env` is a named pipe served by a secret manager, confirmed by the user on 2026-11-04. It holds `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` for the Supabase dev session pooler. The app reads it through the existing `optional:file:.env[.properties]` import. If Spring can't read the pipe, `DB_*` are passed as real environment variables from the shell or IDE run configuration instead, which needs no code change. A pipe with no writer blocks whoever opens it, so `.env` is only read through `bootRun` or an IDE run from the repo root.
 
 ### Test setup
 
