@@ -17,7 +17,7 @@ Commit after each group once `./gradlew build` passes, naming only that group's 
 ## 3. Runtime configuration, health and the smoke test
 
 - [x] 3.1 Add the base, `dev` and `prod` settings to `application.yaml` and the new profile files as described in `design.md`, including the health settings. Verify that no connection value or secret appears in any committed file.
-- [ ] 3.2 Set the `bootRun` working directory to the repo root in `app/build.gradle.kts`. Verify `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun` picks up the `DB_*` values.
+- [x] 3.2 Set the `bootRun` working directory to the repo root in `app/build.gradle.kts`. Verify `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun` picks up the `DB_*` values.
 - [x] 3.3 Add `PostgresTestConfig` to `:common` test fixtures, add `application-test.yaml`, and replace `CardiganApplicationTests` with the health smoke test on Postgres 17. Verify `./gradlew :app:test` passes with no `DB_*` values set. If the local Docker version is too old for Testcontainers, stop and tell the user.
 - [x] 3.4 Run `./gradlew build`. Verify it passes.
 
@@ -25,7 +25,7 @@ Commit after each group once `./gradlew build` passes, naming only that group's 
 
 Except for 4.1, run from a directory with no `.env`, never through `bootRun`: `./gradlew :app:bootJar`, then from an empty temp directory run `$(/usr/libexec/java_home -v 25)/bin/java -jar <repo>/app/build/libs/<jar>` with `DB_*` set in that command. Run `bootJar` again after adding or removing the temporary entity.
 
-- [ ] 4.1 Start with the `dev` profile against the Supabase dev branch. Verify the app boots, `GET /actuator/health` returns 200 with only `status: UP`, `GET /actuator`, `GET /actuator/env` and `GET /api/v1/actuator/health` return 404, and logs appear only on the console. Check with the Supabase MCP that no `flyway_schema_history` table and no new schema exist.
+- [x] 4.1 Start with the `dev` profile against the Supabase dev branch. Verify the app boots, `GET /actuator/health` returns 200 with only `status: UP`, `GET /actuator`, `GET /actuator/env` and `GET /api/v1/actuator/health` return 404, and logs appear only on the console. Check with the Supabase MCP that no `flyway_schema_history` table and no new schema exist.
 - [x] 4.2 Start with no profile against a fresh throwaway Postgres 17 container, with one temporary entity on a local, uncommitted edit. Verify `dev` isn't active, startup fails on schema validation, and the table doesn't exist. Remove the entity.
 - [x] 4.3 Against a throwaway Postgres with password authentication, start once each with `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` missing, then with a wrong password. Verify startup fails each time, and that the password never appears in the log.
 - [x] 4.4 Start with the `dev` profile against the throwaway Postgres, with one temporary entity on a local, uncommitted edit. Verify the table and its schema are created, no Flyway history table exists, and a row inserted by hand survives a restart. Add a column to the entity and restart. Verify the column exists and the row is unchanged, and then remove the temporary entity.
