@@ -4,15 +4,15 @@ Commit after each group once `./gradlew build` passes, naming only that group's 
 
 ## 1. Settle the open prerequisites
 
-- [ ] 1.1 Ask the user how `.env` is provided (it's a named pipe) and whether it holds `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` for the Supabase dev session pooler, asking for names only, never values. Verify by recording the answer in `design.md`, including how the app will read it if Spring can't read the pipe.
+- [x] 1.1 Ask the user how `.env` is provided (it's a named pipe) and whether it holds `DB_URL`, `DB_USERNAME` and `DB_PASSWORD` for the Supabase dev session pooler, asking for names only, never values. Verify by recording the answer in `design.md`, including how the app will read it if Spring can't read the pipe.
 
 ## 2. Multi-module build
 
-- [ ] 2.1 Add `gradle/libs.versions.toml` and `gradle.properties` with versions from `design.md`, looking up the latest stable version of each new library. Verify that no version string appears in any `build.gradle.kts`.
-- [ ] 2.2 Add `build-logic/` with the four `cardigan.*` convention plugins. Verify with `./gradlew -p build-logic build`.
-- [ ] 2.3 Replace the root build files, and add `:app`, `:common`, `:user` and `:board` with the plugins and dependencies from `design.md`, removing Spring Data JDBC, the dependency-management plugin, the security starters and the restclient starter. Verify `./gradlew projects` lists exactly those four modules, and `./gradlew :user:dependencies :board:dependencies` shows only `:common` as a project dependency.
-- [ ] 2.4 Move `CardiganApplication` to `:app`, add `@ConfigurationPropertiesScan`, move `application.yaml` unchanged to `app/src/main/resources/`, and delete the old root `src/`. Verify with `./gradlew :app:compileKotlin`.
-- [ ] 2.5 Add `.gitkeep` files for the layer packages and `db/migration/user` and `db/migration/board`, with no source files in `:user`, `:board` or `:common`. Verify with `git ls-files` on those modules.
+- [x] 2.1 Add `gradle/libs.versions.toml` and `gradle.properties` with versions from `design.md`, looking up the latest stable version of each new library. Verify that no version string appears in any `build.gradle.kts`.
+- [x] 2.2 Add `build-logic/` with the four `cardigan.*` convention plugins. Verify with `./gradlew -p build-logic build`.
+- [x] 2.3 Replace the root build files, and add `:app`, `:common`, `:user` and `:board` with the plugins and dependencies from `design.md`, removing Spring Data JDBC, the dependency-management plugin, the security starters and the restclient starter. Verify `./gradlew projects` lists exactly those four modules, and `./gradlew :user:dependencies :board:dependencies` shows only `:common` as a project dependency.
+- [x] 2.4 Move `CardiganApplication` to `:app`, add `@ConfigurationPropertiesScan`, move `application.yaml` unchanged to `app/src/main/resources/`, and delete the old root `src/`. Verify with `./gradlew :app:compileKotlin`.
+- [x] 2.5 Add `.gitkeep` files for the layer packages and `db/migration/user` and `db/migration/board`, with no source files in `:user`, `:board` or `:common`. Verify with `git ls-files` on those modules.
 
 ## 3. Runtime configuration, health and the smoke test
 
