@@ -20,7 +20,7 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 | API contract | OpenAPI, generated code-first with springdoc-openapi |
 | Tests | JUnit 5, AssertK, hand-written fakes, Testcontainers (Postgres), WireMock, Awaitility |
 
-**Current state:** the repo is still the Spring Initializr skeleton. It is a single module and uses `spring-boot-starter-data-jdbc` and the `io.spring.dependency-management` plugin. It has to be migrated to the layout below. Don't build features on the old layout.
+**Current state:** the multi-module layout below exists with the modules `:app`, `:common`, `:user` and `:board`. There are no entities, endpoints or migration files yet, and only `GET /actuator/health` is served. Security, springdoc and the Modulith event registry are described below but not wired in yet. They arrive with the first feature that needs them.
 
 ---
 
@@ -40,13 +40,14 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 cardigan/
 ├── app/                      :app       – @SpringBootApplication, SecurityConfig, config, E2E tests
 ├── common/                   :common    – shared kernel (IDs, cross-module events, error contract, JWT decoding)
-├── <feature>/                :<feature> – one module per business capability
+├── user/                     :user      – users and everything auth-related (schema user_service)
+├── board/                    :board     – boards, columns, cards, labels, import/export (schema board_service)
 ├── build-logic/              convention plugins (cardigan.kotlin.jvm, cardigan.spring.module, ...)
 ├── gradle/libs.versions.toml every version, library, and plugin
 └── settings.gradle.kts
 ```
 
-`<feature>` is a placeholder. Don't create a business module that hasn't been agreed on.
+`<feature>` below stands for `user` or `board`. Don't create a business module that hasn't been agreed on. Labels and import/export stay inside `:board`, because they change the same data in one transaction.
 
 ### Business module (`com.plcoding.cardigan.<feature>`)
 
@@ -140,7 +141,7 @@ app/src/
 | A format/length/range check | Bean Validation on the request DTO (`api/validation` for reusable constraints) |
 | A rule that needs data or state | `<feature>/service` |
 | A failure clients must handle | Exception in `<feature>/domain/exception`, mapped in `<Feature>ExceptionHandler` with its own `code` |
-| A table, column, or index | Flyway migration in `<feature>/src/main/resources/db/migration/<feature>`, then entity in `infra/database/entity` |
+| A table, column, or index | Entity in `infra/database/entity`. Dev and tests build their schema from it. Once the baseline migration exists, also a Flyway migration in `<feature>/src/main/resources/db/migration/<feature>` |
 | A query | `SpringData<Model>Repository`, exposed through the domain interface and `Jpa<Model>Repository` |
 | A call to a third-party API | Domain interface in `domain`, `@HttpExchange` client + adapter in `infra/http/<provider>` |
 | Something another module must react to | Event subtype in `common/domain/event/<publisher>`, listener in the consumer's `api/event` |
@@ -157,9 +158,25 @@ app/src/
 ### Database: Supabase as plain Postgres
 
 - Supabase is only the hosted Postgres. No Supabase Auth, no Supabase client SDKs, no PostgREST or direct database access from clients, no RLS-based authorization. All access goes through this backend.
-- Flyway owns the schema. `spring.jpa.hibernate.ddl-auto: validate` in every environment.
+- Schema handling depends on the profile. This overrides the Flyway and `validate` rules in the `spring-*` skills.
+
+  | Profile | `ddl-auto` | Flyway |
+  |---|---|---|
+  | `dev` | `update`: creates missing schemas, tables and columns and keeps data. It never drops anything, so wipe a drifted dev schema by hand. | Off |
+  | `prod` | `validate` | On |
+  | none | `validate`. It never falls back to dev settings. | On |
+  | `test` | `create-drop` | Off |
+
+- **There are no migration files yet. Writing the baseline migration from the entities is required before the first production deploy.** Once entities exist, `prod` won't start without it. Tests move to real migrations with `validate` at the same point.
 - One schema per module (`<feature>_service`). Migrations use timestamp versions and are never edited after they are committed.
-- Connection details and secrets come only from environment variables or the git-ignored `.env` file, which `application.yaml` imports. Never commit them.
+- No profile is active by default. Set `SPRING_PROFILES_ACTIVE` explicitly: `dev` locally, `prod` in the Docker image.
+- The connection comes from `DB_URL`, `DB_USERNAME` and `DB_PASSWORD`, with no defaults. `DB_URL` is a JDBC URL with no credentials in it: `jdbc:postgresql://<pooler-host>:5432/postgres?sslmode=require`. Dev uses the Supabase session pooler, whose user is `postgres.<project-ref>`. Pointing `DB_*` at any other Postgres also works. The role must be allowed to create schemas.
+- Connection details and secrets come only from environment variables or the git-ignored `.env` file, which `application.yaml` imports. `.env` is a named pipe served by a secret manager. Never commit them.
+
+### Running locally
+
+- `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun`. `bootRun` runs from the repo root so it finds `.env`. An IDE run configuration must also set its working directory to the repo root and set the profile itself. A `SPRING_PROFILES_ACTIVE` key in `.env` doesn't work.
+- Only start from the repo root when you want `.env`. Tests run from `app/`, so they never see it.
 
 ### Authentication: self-issued tokens
 
@@ -180,7 +197,7 @@ app/src/
 ### Events: in-process only
 
 - Cross-module communication uses Spring's `ApplicationEventPublisher`, as described in `spring-service-layer`. **No message broker** (RabbitMQ, Kafka, SQS, ...). The reason is complexity, not that a broker is wrong. Introducing one is the user's decision.
-- The Spring Modulith event publication registry (JPA) persists events, so an `@Async @TransactionalEventListener` event survives a crash and is replayed on restart. Its table is created by a Flyway migration like every other table.
+- The Spring Modulith event publication registry (JPA) persists events, so an `@Async @TransactionalEventListener` event survives a crash and is replayed on restart. Its table is part of the schema like every other table, so on `prod` it comes from a Flyway migration.
 - Because events can be replayed, every listener must be idempotent.
 
 ### API contract: OpenAPI, type-safe
@@ -211,7 +228,8 @@ You may freely use the MCP on the dev branch to:
 
 Rules:
 
-- Schema changes still go through Flyway migration files in the repo. Use the MCP to verify a migration's effect, not to replace it. Changing the schema by hand makes Flyway's history and `ddl-auto: validate` drift.
+- Dev schema changes come from the entities through `ddl-auto: update`. Use the MCP to inspect the result, not to change the schema by hand. The one exception is wiping a drifted dev schema.
+- The dev branch has no Flyway history table. Production schema changes go only through Flyway migration files in the repo.
 - Never use the Supabase database for automated tests. Tests use Testcontainers.
 - The production branch is off-limits. Never point `.mcp.json` or any tool call at it. Production only changes through deployments (Flyway on startup).
 - Never run branch operations (`create_branch`, `merge_branch`, `rebase_branch`, `reset_branch`, `delete_branch`) unless the user explicitly asks.
@@ -225,12 +243,13 @@ All test types are expected. See `spring-unit-testing` and `spring-integration-t
 | Type | Where | What's real |
 |---|---|---|
 | Unit | module `src/test` | Pure logic, in memory. Fakes for domain interfaces, `MutableClock`. No Spring, no I/O. |
-| Persistence | module `src/test`, `@DataJpaTest` | Postgres, Flyway, entities, adapters |
+| Persistence | module `src/test`, `@DataJpaTest` | Postgres, entities, adapters, plus Flyway once the baseline migration exists |
 | Module integration | module `src/test`, `@SpringBootTest` with the module's test app | Services, transactions, events, Postgres |
 | HTTP client | module `src/test` | Our client against WireMock |
 | E2E | `:app` `src/test`, `@SpringBootTest(RANDOM_PORT)` + `RestTestClient` | The whole app over HTTP, real tokens from register → login |
 
-- Every test that needs a database uses a **Testcontainers Postgres** with the same major version as Supabase. Never the Supabase instance, never H2.
+- Every test that needs a database uses a **Testcontainers Postgres** with the same major version as Supabase (17). Never the Supabase instance, never H2.
+- Until the baseline migration exists, tests use the `test` profile: Hibernate `create-drop` with Flyway off. After that they use real migrations with `validate`, as `spring-integration-testing` describes.
 - Fakes, not mocks. No Mockito, no MockK.
 - Write unit tests the adversarial way: list the break vectors first, then one test per distinct angle.
 - Docker must be running for Testcontainers.
