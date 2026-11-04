@@ -3,3 +3,40 @@ spring:
     name: cardigan
   config:
     import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    schemas:
+      - user_service
+      - board_service
+    locations:
+      - classpath:db/migration/user
+      - classpath:db/migration/board
+  threads:
+    virtual:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+      discovery:
+        enabled: false
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: false
+  health:
+    defaults:
+      enabled: false
+    ping:
+      enabled: true

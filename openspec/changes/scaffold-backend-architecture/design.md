@@ -71,13 +71,15 @@ management:
   endpoints.web:
     exposure.include: health
     discovery.enabled: false
-  endpoint.health.show-details: never
+  endpoint.health:
+    show-details: never
+    probes.enabled: false
   health:
     defaults.enabled: false
     ping.enabled: true
 ```
 
-Only the built-in ping indicator remains, so the response stays `UP` while the process lives (D9).
+Only the built-in ping indicator remains, so the response stays `UP` while the process lives (D9). Boot 4 enables the probe groups by default, which adds a `groups` field to the response and the `/actuator/health/liveness` and `/readiness` paths, so they're turned off.
 
 There's no logging config beyond Boot's defaults (D10).
 

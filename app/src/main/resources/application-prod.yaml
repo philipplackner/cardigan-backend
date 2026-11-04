@@ -1,0 +1,7 @@
+# Repeats the base values on purpose: prod must not change if the base defaults change.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true

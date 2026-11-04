@@ -1,0 +1,14 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        hbm2ddl:
+          # Hibernate update doesn't create Postgres schemas unless told to, and Flyway is off on dev.
+          create_namespaces: true
+  flyway:
+    enabled: false
+  datasource:
+    hikari:
+      maximum-pool-size: 5

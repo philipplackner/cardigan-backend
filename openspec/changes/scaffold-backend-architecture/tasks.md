@@ -16,10 +16,10 @@ Commit after each group once `./gradlew build` passes, naming only that group's 
 
 ## 3. Runtime configuration, health and the smoke test
 
-- [ ] 3.1 Add the base, `dev` and `prod` settings to `application.yaml` and the new profile files as described in `design.md`, including the health settings. Verify that no connection value or secret appears in any committed file.
+- [x] 3.1 Add the base, `dev` and `prod` settings to `application.yaml` and the new profile files as described in `design.md`, including the health settings. Verify that no connection value or secret appears in any committed file.
 - [ ] 3.2 Set the `bootRun` working directory to the repo root in `app/build.gradle.kts`. Verify `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun` picks up the `DB_*` values.
-- [ ] 3.3 Add `PostgresTestConfig` to `:common` test fixtures, add `application-test.yaml`, and replace `CardiganApplicationTests` with the health smoke test on Postgres 17. Verify `./gradlew :app:test` passes with no `DB_*` values set. If the local Docker version is too old for Testcontainers, stop and tell the user.
-- [ ] 3.4 Run `./gradlew build`. Verify it passes.
+- [x] 3.3 Add `PostgresTestConfig` to `:common` test fixtures, add `application-test.yaml`, and replace `CardiganApplicationTests` with the health smoke test on Postgres 17. Verify `./gradlew :app:test` passes with no `DB_*` values set. If the local Docker version is too old for Testcontainers, stop and tell the user.
+- [x] 3.4 Run `./gradlew build`. Verify it passes.
 
 ## 4. Verify against real databases
 
