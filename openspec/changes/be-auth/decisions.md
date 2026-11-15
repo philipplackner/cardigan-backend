@@ -141,6 +141,27 @@ This change adds register, login, refresh and logout under `/api/v1/auth`, all p
 - **Why**: —
 - **Depends on**: D1–D17
 
+### D19 — A failed cookie refresh clears the cookie (AUTH-28)
+- **Question**: Does a failed refresh with the `COOKIE` transport clear the stale refresh cookie?
+- **Decision**: Yes. A refresh with `COOKIE` that answers 401 `INVALID_REFRESH_TOKEN` sends an expired `cardigan_refresh_token` cookie with the same `Path` and attributes. Settled on 2026-11-15 after the first confirmation, when the first draft of the artifacts left the cookie untouched.
+- **Alternatives**: Send no `Set-Cookie` header on a failed refresh.
+- **Why**: The shared spec `api-auth-tokens` is silent on this case.
+- **Depends on**: D16
+
+### D20 — The refresh cookie is not an OpenAPI parameter (AUTH-29)
+- **Question**: Is the refresh cookie listed as a parameter of refresh and logout in the OpenAPI document?
+- **Decision**: No. The operation descriptions name the cookie, and generated clients get no cookie argument. Settled on 2026-11-15 after the first confirmation.
+- **Alternatives**: Document it as an optional cookie parameter.
+- **Why**: The cookie is `HttpOnly`; the browser sends it, not client code.
+- **Depends on**: D16
+
+### D21 — Parsing errors come before the rate limit (review of the artifacts)
+- **Question**: Is it acceptable that 413, 415 and `MALFORMED_REQUEST` come before 429 on login and register?
+- **Decision**: Yes, accepted as is. 429 still wins over field validation, credentials and 409.
+- **Alternatives**: —
+- **Why**: The limit key is the email in the body, so the body must be read first.
+- **Depends on**: D10
+
 ## Facts
 
 - Lifetimes (15 minutes, 30 days), rotation, session revocation on reuse, single-session logout, the `COOKIE`/`BODY` transports and the cookie attributes are fixed — source: shared spec `api-auth-tokens`.
@@ -169,5 +190,7 @@ This change adds register, login, refresh and logout under `/api/v1/auth`, all p
 ## Deferred
 
 - Shared-spec change in `cardigan-shared-specs`: `api-auth-tokens` "Auth endpoints are rate limited" and "What rate limits count" must change to email-only limits without a refresh limit. This repo's specs state the deviation until then — settle before: `mob-auth-connect` and `web-auth-connect` rely on the shared text.
+- Shared-spec change in `cardigan-shared-specs`: `api-auth-tokens` says nothing about the refresh cookie after a failed refresh. It should state that the backend clears it (D19) — settle before: `web-auth-connect`.
+- Shared-spec change in `cardigan-shared-specs`: `api-errors` "Error precedence" lists the rate limit before size, media type and parsing, which doesn't hold for login and register (D21) — settle before: the shared rate limiting change above, as part of it.
 - `CLAUDE.md` "Rate limiting" section and tech stack row still describe per-IP limits — settle before: implementation is finished (a task of this change).
 - Baseline Flyway migration including `sessions` and `refresh_tokens` — settle before: the first production deploy.

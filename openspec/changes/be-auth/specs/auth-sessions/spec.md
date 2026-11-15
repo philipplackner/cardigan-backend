@@ -173,6 +173,36 @@ With the `COOKIE` transport, the backend SHALL set the refresh token in a cookie
 - **WHEN** a client registers, logs in or refreshes with `BODY`
 - **THEN** the response has no `Set-Cookie` header
 
+### Requirement: A failed cookie refresh clears the cookie
+A refresh with the `COOKIE` transport that answers 401 `INVALID_REFRESH_TOKEN` SHALL send a `Set-Cookie` header for `cardigan_refresh_token` with the same attributes and `Max-Age=0`, whatever the reason for the failure. A failed refresh with `BODY`, and a refresh that fails with any other status, SHALL NOT send a `Set-Cookie` header.
+
+#### Scenario: Expired cookie token
+- **WHEN** a client refreshes with `COOKIE` and a refresh cookie whose token has expired
+- **THEN** the response is 401 `INVALID_REFRESH_TOKEN` with a `Set-Cookie` header for `cardigan_refresh_token` with `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1/auth` and `Max-Age=0`
+
+#### Scenario: Reused cookie token
+- **WHEN** a client refreshes with `COOKIE` and a refresh cookie whose token was already rotated
+- **THEN** the response is 401 `INVALID_REFRESH_TOKEN` with the clearing `Set-Cookie` header
+
+#### Scenario: No cookie sent
+- **WHEN** a client refreshes with `COOKIE` and no refresh cookie
+- **THEN** the response is 401 `INVALID_REFRESH_TOKEN` with the clearing `Set-Cookie` header
+
+#### Scenario: Failed body refresh
+- **WHEN** a client refreshes with `BODY`, an unknown `refreshToken` and a valid refresh cookie
+- **THEN** the response is 401 `INVALID_REFRESH_TOKEN` with no `Set-Cookie` header
+
+#### Scenario: Missing transport
+- **WHEN** a client refreshes with `{}` and a refresh cookie
+- **THEN** the response is 400 `VALIDATION_FAILED` with no `Set-Cookie` header
+
+### Requirement: The refresh cookie is not a documented parameter
+The OpenAPI document SHALL NOT list the refresh cookie as a parameter of any operation. The descriptions of the refresh and logout operations SHALL name the cookie.
+
+#### Scenario: Refresh operation in the document
+- **WHEN** the OpenAPI snapshot is inspected
+- **THEN** the `refresh` and `logout` operations have no parameters, and their descriptions contain `cardigan_refresh_token`
+
 ### Requirement: Logout is public and always succeeds
 Logout SHALL NOT need an access token. A logout with a valid `refreshTokenTransport` SHALL answer 204 whether or not a session was revoked: also when the refresh token is missing, unknown, expired, already revoked, or sent with a transport other than its session's. In those cases no session SHALL change.
 

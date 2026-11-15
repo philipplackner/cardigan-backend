@@ -95,7 +95,7 @@ For register and login:
 
 Step 2 must come before step 3 so that 429 wins over 400, which is why these two methods don't use `@Valid`. Refresh and logout use `@Valid`.
 
-The limit can't come before body parsing as `api-errors` ("Error precedence") lists it, because the key is in the body. The `auth-rate-limiting` spec states this order.
+The limit can't come before body parsing as `api-errors` ("Error precedence") lists it, because the key is in the body. The `auth-rate-limiting` spec states this order, and the user accepted it (D21).
 
 ### Rate limiter
 
@@ -150,7 +150,7 @@ Step 6 is the atomicity the shared spec asks for: of two parallel refreshes, exa
 
 Alternative considered: `select ... for update` on the token row. It works too, but holds a lock across the whole request and needs the same reuse branch anyway.
 
-A failed refresh with `COOKIE` sets no cookie. The client discards its session on `INVALID_REFRESH_TOKEN`, and a later login overwrites the cookie.
+A failed refresh with `COOKIE` clears the cookie (D19). The controller adds the clearing cookie to the `HttpServletResponse` before it throws `InvalidRefreshTokenException`, so the header is on the 401 that `CommonExceptionHandler` writes. This covers every failure reason, including a missing cookie. With `BODY`, and on a 400, no cookie header is sent.
 
 ### Register, login and logout flows
 
@@ -161,7 +161,7 @@ A failed refresh with `COOKIE` sets no cookie. The client discards its session o
 ### Cookie handling
 
 - `RefreshTokenCookie` builds a `ResponseCookie`: name `cardigan_refresh_token`, `httpOnly`, `secure`, `sameSite("Strict")`, `path("/api/v1/auth")`, `maxAge` of the refresh-token TTL, no domain. The clearing cookie is the same with an empty value and `maxAge(0)`.
-- The controller reads the cookie with `@CookieValue(required = false)`, annotated `@Parameter(hidden = true)`, so generated clients get no cookie parameter. The operation descriptions name the cookie.
+- The controller reads the cookie with `@CookieValue(required = false)`, annotated `@Parameter(hidden = true)`, so generated clients get no cookie parameter (D20). The descriptions of `refresh` and `logout` name the cookie.
 - With `COOKIE`, the body token is ignored. With `BODY`, the cookie is ignored.
 - `Secure` is always set. Browsers accept `Secure` cookies from `http://localhost`, so local web development works through the dev proxy.
 
