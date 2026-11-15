@@ -18,3 +18,10 @@ rules:
   specs:
     - Never copy a shared requirement into this repo, but reference by spec ID and requirement name
     - Only specify behavior that differs per platform or exists only on backend
+
+operations:
+  archive:
+    guidance:
+      - Before applying the delta, read this change's created date from .openspec.yaml. Find every change in openspec/changes/archive/ whose date prefix is on or after that date.
+      - For each capability in this change's delta, collect its requirement names from ADDED, MODIFIED, REMOVED and RENAMED (both old and new names). Do the same for those archived changes.
+      - If a name appears in both, another change touched that requirement after this one was written. Do not write anything yet. Show the archived change's version, the current main spec and this change's delta, propose a merged delta, and ask the user to confirm or choose. If the edits contradict each other, ask which behavior wins.
