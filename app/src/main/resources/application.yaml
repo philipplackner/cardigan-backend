@@ -44,6 +44,9 @@ springdoc:
   api-docs:
     enabled: false
     version: openapi_3_0
+  # Error responses are documented by CardiganOpenApiCustomizer, not taken from the exception handlers.
+  override-with-generic-response: false
+  default-produces-media-type: application/json
 
 management:
   endpoints:

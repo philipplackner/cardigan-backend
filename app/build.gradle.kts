@@ -20,3 +20,14 @@ dependencies {
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
     workingDir = rootDir
 }
+
+tasks.register<Test>("updateOpenApiSnapshot") {
+    description = "Rewrites app/src/test/resources/openapi/openapi.json from the current code."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform()
+    filter { includeTestsMatching("com.plcoding.cardigan.OpenApiSnapshotTest.generated*") }
+    systemProperty("openapi.update", "true")
+    outputs.upToDateWhen { false }
+}
