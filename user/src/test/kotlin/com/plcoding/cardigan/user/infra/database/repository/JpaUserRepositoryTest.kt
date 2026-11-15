@@ -1,0 +1,117 @@
+package com.plcoding.cardigan.user.infra.database.repository
+
+import assertk.assertFailure
+import assertk.assertThat
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFalse
+import assertk.assertions.isInstanceOf
+import assertk.assertions.isNull
+import assertk.assertions.isTrue
+import com.plcoding.cardigan.common.MutableClock
+import com.plcoding.cardigan.common.PostgresTestConfig
+import com.plcoding.cardigan.user.domain.model.User
+import org.hibernate.exception.ConstraintViolationException
+import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
+import org.springframework.context.annotation.Import
+import org.springframework.test.context.ActiveProfiles
+import java.sql.Timestamp
+import java.time.Instant
+import java.util.Locale
+import java.util.UUID
+
+@DataJpaTest
+@ActiveProfiles("test")
+@Import(PostgresTestConfig::class, JpaUserRepository::class)
+class JpaUserRepositoryTest @Autowired constructor(
+    private val repository: JpaUserRepository,
+    private val entityManager: TestEntityManager,
+) {
+
+    private val clock = MutableClock(Instant.parse("2026-11-15T09:15:30.123456Z"))
+
+    private fun user(email: String = "ann@example.com"): User {
+        val now = clock.instant()
+        return User(UUID.randomUUID(), email, "hash", now, now)
+    }
+
+    private fun flushAndClear() {
+        entityManager.flush()
+        entityManager.clear()
+    }
+
+    @Test
+    fun `saved user reads back equal`() {
+        val user = repository.save(user())
+        flushAndClear()
+
+        assertThat(repository.findById(user.id)).isEqualTo(user)
+    }
+
+    @Test
+    fun `unknown id reads back null`() {
+        assertThat(repository.findById(UUID.randomUUID())).isNull()
+    }
+
+    @Test
+    fun `existsByEmail matches the stored email only`() {
+        repository.save(user("ann@example.com"))
+        flushAndClear()
+
+        assertThat(repository.existsByEmail("ann@example.com")).isTrue()
+        assertThat(repository.existsByEmail("bob@example.com")).isFalse()
+    }
+
+    @Test
+    fun `exact duplicate email is rejected`() {
+        repository.save(user("ann@example.com"))
+        flushAndClear()
+
+        repository.save(user("ann@example.com"))
+
+        assertFailure { entityManager.flush() }.isInstanceOf<ConstraintViolationException>()
+    }
+
+    @Test
+    fun `mixed-case input lowercased before storing is rejected as a duplicate`() {
+        repository.save(user("ann@example.com"))
+        flushAndClear()
+
+        repository.save(user("Ann@EXAMPLE.com".lowercase(Locale.ROOT)))
+
+        assertFailure { entityManager.flush() }.isInstanceOf<ConstraintViolationException>()
+    }
+
+    @Test
+    fun `database rejects an uppercase email inserted directly`() {
+        val insert = entityManager.entityManager.createNativeQuery(
+            """
+            INSERT INTO user_service.users (id, email, password_hash, created_at, updated_at)
+            VALUES (?1, 'Ann@Example.com', 'hash', now(), now())
+            """,
+        ).setParameter(1, UUID.randomUUID())
+
+        assertFailure { insert.executeUpdate() }.isInstanceOf<ConstraintViolationException>()
+    }
+
+    @Test
+    fun `created_at is stored at millisecond precision`() {
+        val user = repository.save(user())
+        flushAndClear()
+
+        val stored = entityManager.entityManager
+            .createNativeQuery("SELECT created_at FROM user_service.users WHERE id = ?1")
+            .setParameter(1, user.id)
+            .singleResult
+
+        val storedInstant = when (stored) {
+            is Instant -> stored
+            is Timestamp -> stored.toInstant()
+            is java.time.OffsetDateTime -> stored.toInstant()
+            else -> error("Unexpected type ${stored::class}")
+        }
+        assertThat(storedInstant).isEqualTo(Instant.parse("2026-11-15T09:15:30.123Z"))
+    }
+}

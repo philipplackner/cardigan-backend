@@ -5,7 +5,5 @@ plugins {
 }
 
 dependencies {
-    testFixturesImplementation(projects.common)
-
     testImplementation(libs.spring.boot.starter.data.jpa.test)
 }
