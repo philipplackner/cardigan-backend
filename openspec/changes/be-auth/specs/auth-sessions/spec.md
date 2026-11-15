@@ -174,7 +174,7 @@ With the `COOKIE` transport, the backend SHALL set the refresh token in a cookie
 - **THEN** the response has no `Set-Cookie` header
 
 ### Requirement: A failed cookie refresh clears the cookie
-A refresh with the `COOKIE` transport that answers 401 `INVALID_REFRESH_TOKEN` SHALL send a `Set-Cookie` header for `cardigan_refresh_token` with the same attributes and `Max-Age=0`, whatever the reason for the failure. A failed refresh with `BODY`, and a refresh that fails with any other status, SHALL NOT send a `Set-Cookie` header.
+As the shared spec `api-auth-tokens` ("A failed cookie refresh clears the cookie") requires, a refresh with the `COOKIE` transport that answers 401 `INVALID_REFRESH_TOKEN` SHALL send a `Set-Cookie` header for `cardigan_refresh_token` with the same attributes and `Max-Age=0`. This SHALL hold whatever the reason for the failure, also when no cookie was sent. A failed refresh with `BODY`, and a refresh that fails with any other status, SHALL NOT send a `Set-Cookie` header.
 
 #### Scenario: Expired cookie token
 - **WHEN** a client refreshes with `COOKIE` and a refresh cookie whose token has expired

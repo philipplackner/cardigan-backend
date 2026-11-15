@@ -145,7 +145,7 @@ This change adds register, login, refresh and logout under `/api/v1/auth`, all p
 - **Question**: Does a failed refresh with the `COOKIE` transport clear the stale refresh cookie?
 - **Decision**: Yes. A refresh with `COOKIE` that answers 401 `INVALID_REFRESH_TOKEN` sends an expired `cardigan_refresh_token` cookie with the same `Path` and attributes. Settled on 2026-11-15 after the first confirmation, when the first draft of the artifacts left the cookie untouched.
 - **Alternatives**: Send no `Set-Cookie` header on a failed refresh.
-- **Why**: The shared spec `api-auth-tokens` is silent on this case.
+- **Why**: The shared spec `api-auth-tokens` was silent on this case when it was decided. It now has the requirement "A failed cookie refresh clears the cookie".
 - **Depends on**: D16
 
 ### D20 — The refresh cookie is not an OpenAPI parameter (AUTH-29)
@@ -177,6 +177,8 @@ This change adds register, login, refresh and logout under `/api/v1/auth`, all p
 - Web and API are planned on the same domain behind one reverse proxy — source: shared repo `docs/breakdown/chunks/41-infra-vps.md`.
 - There are no migration files; dev uses `ddl-auto: update`, tests `create-drop` — source: `CLAUDE.md`.
 
+- The shared specs were changed after this review to match D10, D12, D19 and D21 (shared change `auth-email-rate-limits`): `api-auth-tokens` "Auth endpoints are rate limited", "Rate limits count per email", "Requests without an email are not rate limited", "A failed cookie refresh clears the cookie", and `api-errors` "Error precedence" with the rate limit after parsing. The facts above about per-IP limits describe the shared spec as it was during the review — source: `cardigan-shared-specs`, commit 64c3c09.
+
 ## Out of scope
 
 - IP-based rate limiting and forwarded-header handling
@@ -189,8 +191,5 @@ This change adds register, login, refresh and logout under `/api/v1/auth`, all p
 
 ## Deferred
 
-- Shared-spec change in `cardigan-shared-specs`: `api-auth-tokens` "Auth endpoints are rate limited" and "What rate limits count" must change to email-only limits without a refresh limit. This repo's specs state the deviation until then — settle before: `mob-auth-connect` and `web-auth-connect` rely on the shared text.
-- Shared-spec change in `cardigan-shared-specs`: `api-auth-tokens` says nothing about the refresh cookie after a failed refresh. It should state that the backend clears it (D19) — settle before: `web-auth-connect`.
-- Shared-spec change in `cardigan-shared-specs`: `api-errors` "Error precedence" lists the rate limit before size, media type and parsing, which doesn't hold for login and register (D21) — settle before: the shared rate limiting change above, as part of it.
 - `CLAUDE.md` "Rate limiting" section and tech stack row still describe per-IP limits — settle before: implementation is finished (a task of this change).
 - Baseline Flyway migration including `sessions` and `refresh_tokens` — settle before: the first production deploy.

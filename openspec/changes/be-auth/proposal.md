@@ -13,7 +13,7 @@ The backend can verify access tokens but can't issue them to real users: there i
 - Sessions and refresh tokens are stored in two new tables in `user_service` (`sessions`, `refresh_tokens`), from JPA entities only. Refresh tokens are 32 random bytes, stored as SHA-256 hashes, rotated on every refresh. Reuse of a rotated token revokes its session.
 - The `COOKIE` transport uses the cookie `cardigan_refresh_token` with `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1/auth` and a 30-day `Max-Age`.
 - Logout takes the same request shape as refresh, always answers 204 for a valid request, and also revokes the session when given a rotated older token.
-- Rate limiting per email only: login and register each allow 5 requests per minute per submitted email, in separate buckets. Every request counts. Over the limit: 429 `RATE_LIMITED` with `Retry-After`. Refresh and logout are not rate limited, and no client IP is read. **This deviates from the shared spec `api-auth-tokens`** (per-IP limits, refresh limited) on the user's decision.
+- Rate limiting per email only: login and register each allow 5 requests per minute per submitted email, in separate buckets. Every request counts. Over the limit: 429 `RATE_LIMITED` with `Retry-After`. Refresh and logout are not rate limited, and no client IP is read, as the shared spec `api-auth-tokens` defines.
 - A scheduled job deletes ended sessions and their tokens daily at 03:00 UTC.
 - No events, no emails, no Flyway migration, no session cap.
 - New dependencies: bucket4j and Caffeine.
@@ -38,8 +38,11 @@ The backend can verify access tokens but can't issue them to real users: there i
 | `api-auth-tokens` | Web uses a protected refresh cookie | Backend part implemented |
 | `api-auth-tokens` | Mobile uses the body transport | Backend part implemented |
 | `api-auth-tokens` | Logout ends only the current session | Implemented |
-| `api-auth-tokens` | Auth endpoints are rate limited | **Deviation**: login and register only, refresh is not limited |
-| `api-auth-tokens` | What rate limits count | **Deviation**: per email only, no client IP |
+| `api-auth-tokens` | Auth endpoints are rate limited | Implemented; the backend sets the values |
+| `api-auth-tokens` | Rate limits count per email | Implemented |
+| `api-auth-tokens` | Requests without an email are not rate limited | Implemented |
+| `api-auth-tokens` | A failed cookie refresh clears the cookie | Implemented |
+| `api-auth-tokens` | Clients end the session on a rejected refresh | Depended on (clients discard tokens on `INVALID_REFRESH_TOKEN`) |
 | `domain-user` | Users have a backend-assigned identifier | Implemented at registration |
 | `domain-user` | Email is stored lowercased and identifies one user | Implemented for register and login |
 | `domain-user` | Email follows the RFC 5322 address format | Implemented |
@@ -50,7 +53,7 @@ The backend can verify access tokens but can't issue them to real users: there i
 | `api-errors` | Field error codes | `PASSWORD_TOO_WEAK`, `INVALID_FORMAT` for email raised |
 | `api-errors` | Login failures look the same | Implemented |
 | `api-errors` | Uniqueness clashes are conflicts | Implemented for a used email |
-| `api-errors` | Error precedence | Rate limit, validation, credentials and uniqueness order implemented for auth |
+| `api-errors` | Error precedence | Parsing, rate limit, validation, credentials and uniqueness order implemented for auth |
 | `api-errors` | Rate limit is checked before credentials | Implemented for login and register |
 | `api-conventions` | Documented fields are always present | `refreshToken` is the documented exception |
 
@@ -58,7 +61,7 @@ The backend can verify access tokens but can't issue them to real users: there i
 
 ### New Capabilities
 - `auth-sessions`: the register, login, refresh and logout endpoints, their request and response shapes, session and refresh-token storage, the refresh cookie, and cleanup of ended sessions, where the backend adds to `api-auth-tokens`.
-- `auth-rate-limiting`: which auth endpoints are rate limited, by which key, with which values, and how the backend deviates from the shared spec.
+- `auth-rate-limiting`: the limit values for login and register and how the backend keeps the counters, on top of the shared spec `api-auth-tokens`.
 
 ### Modified Capabilities
 - `user-accounts`: adds how the password hash is produced.
@@ -71,4 +74,4 @@ The backend can verify access tokens but can't issue them to real users: there i
 - `:app`: `@EnableScheduling`, new config values in `application.yaml`, a low BCrypt cost in the test profile, new E2E tests, `E2eTest.signIn`, the OpenAPI snapshot.
 - Database: tables `user_service.sessions` and `user_service.refresh_tokens`. They must be part of the baseline migration before the first production deploy.
 - Dependencies: bucket4j, Caffeine.
-- Other repos: `cardigan-shared-specs` needs a change to `api-auth-tokens` for the rate limiting deviation. Mobile and web can generate their auth clients once the snapshot is updated.
+- Other repos: mobile and web can generate their auth clients once the snapshot is updated.

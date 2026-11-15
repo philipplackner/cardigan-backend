@@ -95,7 +95,7 @@ For register and login:
 
 Step 2 must come before step 3 so that 429 wins over 400, which is why these two methods don't use `@Valid`. Refresh and logout use `@Valid`.
 
-The limit can't come before body parsing as `api-errors` ("Error precedence") lists it, because the key is in the body. The `auth-rate-limiting` spec states this order, and the user accepted it (D21).
+This is the order of the shared spec `api-errors` ("Error precedence"): parsing, then the rate limit, then field validation (D21).
 
 ### Rate limiter
 
@@ -217,7 +217,6 @@ The values live in `:app` `application.yaml`. `application-test.yaml` overrides 
 
 - [Email-only limits don't stop one client trying many emails, and anyone can use up a victim's bucket and block that email's login for up to a minute] → Accepted by the user (D10). The numbers are config values.
 - [Limits are per instance and reset on restart] → Accepted in `CLAUDE.md`. Running more than one instance multiplies the effective limit.
-- [The backend deviates from the shared spec `api-auth-tokens` on rate limiting] → The backend specs state the deviation. A shared-spec change is a listed follow-up. Clients are unaffected in practice: they only react to 429 and `Retry-After`.
 - [SHA-256 pre-hashing means a leaked BCrypt hash could be attacked with hashes from other breaches ("password shucking")] → Low risk at this scale, accepted with D5.
 - [The cleanup job runs on every instance] → The delete is idempotent, so concurrent runs are harmless. No ShedLock.
 - [A lost refresh response logs the user out, because the old token then counts as reuse] → Required by the shared spec ("There is no grace period").

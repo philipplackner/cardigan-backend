@@ -27,7 +27,7 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## 6. Rate limiter
 
-- [ ] 6.1 Add `AuthRateLimiter` in `domain`, `AuthRateLimitedException`, and `Bucket4jAuthRateLimiter` with the clock-driven time source and the bounded Caffeine caches. Verify with unit tests on `MutableClock` for the `auth-rate-limiting` scenarios: the sixth request fails, one more after 12 seconds, separate login and register counts, separate emails, `Retry-After` between 1 and 12 and never 0, an idle bucket is evicted after the period, and the cache never holds more than the configured maximum.
+- [ ] 6.1 Add `AuthRateLimiter` in `domain`, `AuthRateLimitedException`, and `Bucket4jAuthRateLimiter` with the clock-driven time source and the bounded Caffeine caches. Verify with unit tests on `MutableClock` for the `auth-rate-limiting` scenarios and the shared `api-auth-tokens` scenarios of "Rate limits count per email": the sixth request fails, one more after 12 seconds, separate login and register counts, separate emails, `Retry-After` between 1 and 12 and never 0, an idle bucket is evicted after the period, and the cache never holds more than the configured maximum.
 
 ## 7. Auth service
 
@@ -40,7 +40,7 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 - [ ] 8.1 Add `AuthController` with register and login (rate limit, then validation, then service), `AuthSessionDto`, `@ApiErrors`, the `PublicRoutes` bean and `RefreshTokenCookie`. Verify with E2E tests for the `auth-sessions` scenarios on register and login (status codes, body fields per transport, absent `refreshToken`, the returned access token on `/users/me`, validation errors, 409, identical login failures, cookie attributes also over plain HTTP, no cookie for `BODY`) and the new `request-authentication` scenarios (no token, broken token, `GET` on an auth path).
 - [ ] 8.2 Add refresh and logout with `AuthTokensDto`. Verify with E2E tests for the remaining `auth-sessions` scenarios: refresh per transport, missing transport, missing token, cookie refresh without a cookie, wrong transport, the clearing cookie on a failed `COOKIE` refresh (expired, reused, no cookie) and none on a failed `BODY` refresh or a 400, reuse persisted across requests, logout with an expired access token, twice, with an unknown token, with the wrong transport, with a rotated token, the clearing cookie with and without a cookie, and no `Set-Cookie` for `BODY`. Include the shared `api-auth-tokens` scenarios "Idle for 31 days", "Access token after logout" and "Other device unaffected".
-- [ ] 8.3 Verify rate limiting over HTTP with E2E tests for the `auth-rate-limiting` scenarios: the sixth login and register, a correct password over the limit creates no session, 429 before 400 on register, requests without an email, an unparseable body uses no limit, 100 refreshes never answer 429, and the limiter is cleared between tests.
+- [ ] 8.3 Verify rate limiting over HTTP with E2E tests for the `auth-rate-limiting` scenarios and the shared `api-auth-tokens` scenarios of "Auth endpoints are rate limited", "Rate limits count per email" and "Requests without an email are not rate limited": the sixth login and register, a correct password over the limit creates no session, 429 before 400 on register, requests without an email, an unparseable body uses no limit, 100 refreshes never answer 429, and the limiter is cleared between tests.
 - [ ] 8.4 Verify with an E2E test using `OutputCaptureExtension` that a full register, login, refresh, logout flow logs no password, password hash, refresh token, token hash or access token.
 
 ## 9. Cleanup job
@@ -56,6 +56,5 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## Workflow follow-up
 
-- Propose the shared-spec change in `cardigan-shared-specs` for `api-auth-tokens` ("Auth endpoints are rate limited", "What rate limits count"): email-only limits on login and register, no refresh limit. Include that a failed `COOKIE` refresh clears the cookie, and that parsing errors come before the rate limit on login and register. Then remove the deviation notes from `auth-rate-limiting`.
 - Include `sessions` and `refresh_tokens` in the baseline Flyway migration before the first production deploy.
-- Archive the change after review.
+- Don't archive the change after implementation. Archive it only when the user explicitly says so.
