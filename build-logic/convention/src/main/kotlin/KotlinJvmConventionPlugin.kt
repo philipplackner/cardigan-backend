@@ -18,6 +18,8 @@ class KotlinJvmConventionPlugin : Plugin<Project> {
                     freeCompilerArgs.addAll(
                         "-Xjsr305=strict",
                         "-Xannotation-default-target=param-property",
+                        // Bean Validation needs constraints on type arguments, such as List<@ValidUuid String>.
+                        "-Xemit-jvm-type-annotations",
                     )
                 }
             }
