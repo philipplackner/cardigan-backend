@@ -9,14 +9,14 @@ Constraints: no Flyway migration yet (dev uses `ddl-auto: update`, tests `create
 ## Goals / Non-Goals
 
 **Goals:**
-- Label CRUD in `:board` following the existing layer rules, with nothing new in `:common`.
+- Label CRUD in `:board` following the existing layer rules. The only addition to `:common` is the PATCH null check (D8).
 - Name uniqueness that is exact (full case folding) and safe under concurrent requests.
 - A case-folding helper and a color type that `be-cards` and `be-import-export` can reuse.
 
 **Non-Goals:**
 - The card–label link table and the card side of label deletion (`be-cards`).
 - A Flyway migration, events, rate limiting.
-- Changes to `:common` validation or error handling.
+- Changes to `:common` error handling, or to its existing constraints.
 
 ## Decisions
 
@@ -27,7 +27,6 @@ board/
 ├── api/controller/LabelController
 ├── api/dto/           LabelDto, LabelListDto, LabelColorDto, CreateLabelRequest, UpdateLabelRequest
 ├── api/mapper/        LabelDtoMappers.kt
-├── api/validation/    @NotNullWhenPresent and the "sent properties" base type for PATCH requests
 ├── service/           LabelService
 ├── domain/model/      Label, LabelColor, LabelChanges
 ├── domain/text/       CaseFolding.kt (foldCase, codePointOrder)
@@ -94,7 +93,7 @@ Every repository query takes the owner ID (`findByIdAndOwnerId`, `deleteByIdAndO
 
 Shared `api-conventions` wants `{ "name": null }` rejected with `REQUIRED` but an absent `name` accepted. A plain nullable Kotlin constructor property can't tell the two apart, and `:common` has no helper for it yet, because no PATCH endpoint exists. `UpdateLabelRequest` therefore records which properties were present in the JSON, and a class-level constraint `@NotNullWhenPresent` reports `REQUIRED` at the property's path for one that was sent as `null`.
 
-The constraint and the small "sent properties" base type live in `:board` `api/validation`, since every PATCH endpoint of v1 (labels, boards, columns, cards) is in `:board`. `be-boards` needs the same thing; whichever change lands second reuses it. In the OpenAPI document neither property is required and neither is nullable, as the project rules say.
+The constraint and the small "sent properties" base type live in `:common` `api/validation`, next to `@Required` and `@ValidText` (D8). `be-boards` needs the same thing for its PATCH endpoints. Only one change adds it: whichever is implemented first. The other reuses it and drops its own task for it. In the OpenAPI document neither property is required and neither is nullable, as the project rules say; the `:common` customizer needs no change for that, because it only marks `@Required` fields.
 
 *Alternative:* `Optional<String>?` properties, where Jackson maps an explicit `null` to an empty `Optional`. Rejected: the OpenAPI customizer and the `:common` constraints read plain `String` fields, so both would need changes in `:common`.
 
@@ -117,7 +116,7 @@ The constraint and the small "sent properties" base type live in `:board` `api/v
 
 - [The API spells colors `RED` while the shared specs still say `Red`] → Recorded in the spec and the proposal. The change must not be archived before the shared-spec follow-up (D2) has landed.
 - [ICU4J adds about 14 MB to the jar and brings its own Unicode version, which can be newer than the JDK's used for NFC] → Accepted (D7). Folding only depends on case mappings, which are stable for assigned characters.
-- [`be-boards` works in the same module at the same time] → Label code is in its own classes. The shared touch points are `board/build.gradle.kts`, `BoardTestApplication`, the `.gitkeep` files, the `module-boundaries` delta and the snapshot; whichever change lands second merges them. The archive guidance in `openspec/config.yaml` covers the spec delta.
+- [`be-boards` works in the same module at the same time] → Label code is in its own classes. The shared touch points are `@NotNullWhenPresent` in `:common`, `board/build.gradle.kts`, `BoardTestApplication`, the `.gitkeep` files, the `module-boundaries` delta and the snapshot; whichever change lands second merges them. The archive guidance in `openspec/config.yaml` covers the spec delta.
 - [No foreign key from `owner_id` to users] → Accepted by the module rules. No account deletion exists in v1, so no orphaned labels.
 - [A table exists without a migration] → `prod` fails to start until the baseline migration is written, as `CLAUDE.md` already states. Nothing deploys before `infra-vps`.
 - [Hibernate `ddl-auto: update` doesn't add a unique constraint to a table that already exists] → The table is new, so dev gets the constraint on first start. If the constraint name or columns change during implementation, the dev table must be dropped by hand.

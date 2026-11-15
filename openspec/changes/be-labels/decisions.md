@@ -61,6 +61,13 @@ This change adds user-defined labels to the `:board` module (breakdown chunk `be
 - **Why**: ICU is the reference implementation and stays current with Unicode.
 - **Depends on**: —
 
+### D8 — Location of the PATCH null check
+- **Question**: Where does the constraint live that rejects an optional PATCH field sent as `null` with `REQUIRED`, while accepting an absent field? `:common` has no such helper yet.
+- **Decision**: In `:common` `api/validation`, next to `@Required` and `@ValidText`. `be-boards` reuses the same constraint. Only one change adds it: whichever is implemented first. Decided after the first confirmation, when the design raised the point.
+- **Alternatives**: In `:board` `api/validation`, since every PATCH endpoint of v1 is in `:board`.
+- **Why**: —
+- **Depends on**: —
+
 ## Settled by existing rules
 
 Recorded here, not asked again.
