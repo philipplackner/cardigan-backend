@@ -16,11 +16,11 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 | Persistence | JPA/Hibernate + Spring Data, Flyway migrations, Postgres hosted on Supabase |
 | Auth | Spring Security with self-issued JWT access tokens (HS256) + opaque rotating refresh tokens |
 | Events | Spring `ApplicationEventPublisher` + Spring Modulith event publication registry (JPA) |
-| Rate limiting | bucket4j, in-memory buckets in a Caffeine cache, keyed by email |
-| API contract | OpenAPI, generated code-first with springdoc-openapi |
+| Rate limiting | bucket4j, in-memory buckets in a Caffeine cache, keyed by client IP, plus by email for login |
+| API contract | OpenAPI 3.0.1, generated code-first with springdoc-openapi, committed as a JSON snapshot |
 | Tests | JUnit 5, AssertK, hand-written fakes, Testcontainers (Postgres), WireMock, Awaitility |
 
-**Current state:** the multi-module layout below exists with the modules `:app`, `:common`, `:user` and `:board`. There are no entities, endpoints or migration files yet, and only `GET /actuator/health` is served. Security, springdoc and the Modulith event registry are described below but not wired in yet. They arrive with the first feature that needs them.
+**Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users` table and `GET /api/v1/users/me`. Register, login, refresh, logout and rate limiting don't exist yet (`be-auth`). `:board` has no code. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
 
 ---
 
@@ -61,13 +61,12 @@ cardigan/
     │   │   │   ├── controller/      <Resource>Controller
     │   │   │   ├── dto/             <Action><Resource>Request, <Resource>Dto, <Name>Dto enums
     │   │   │   ├── mapper/          <Area>DtoMappers.kt (domain ↔ DTO extension functions)
-    │   │   │   ├── validation/      custom Bean Validation constraints
-    │   │   │   ├── exception/       <Feature>ExceptionHandler (@RestControllerAdvice)
+    │   │   │   ├── validation/      custom Bean Validation constraints used only by this module
     │   │   │   └── event/           listeners for other modules' events (<Publisher>EventListener)
     │   │   ├── service/             <Concept>Service (business rules, @Transactional)
     │   │   ├── domain/
     │   │   │   ├── model/           immutable data classes, no Spring/JPA
-    │   │   │   ├── exception/       <Thing><Problem>Exception
+    │   │   │   ├── exception/       <Thing><Problem>Exception, subclasses of the :common base exceptions
     │   │   │   ├── event/           module-internal events
     │   │   │   └── repository/      <Model>Repository interfaces + other outbound interfaces
     │   │   └── infra/
@@ -76,7 +75,7 @@ cardigan/
     │   │       │   ├── repository/  SpringData<Model>Repository, Jpa<Model>Repository (adapter)
     │   │       │   └── mapper/      <Area>EntityMappers.kt
     │   │       ├── http/            third-party HTTP clients (@HttpExchange + adapter)
-    │   │       └── config/          @Configuration, @ConfigurationProperties
+    │   │       └── config/          @Configuration, @ConfigurationProperties, the module's PublicRoutes bean
     │   └── resources/db/migration/<feature>/
     │       └── V<yyyy_MM_dd_HHmm>__<description>.sql
     └── test/kotlin/com/plcoding/cardigan/<feature>/
@@ -90,14 +89,20 @@ cardigan/
 ```
 common/src/
 ├── main/kotlin/com/plcoding/cardigan/common/
-│   ├── api/              CommonExceptionHandler, problemDetail(), requestUserId
+│   ├── api/              CommonExceptionHandler, problemDetail(), ProblemResponseWriter, ProblemErrorController, requestUserId
+│   │   ├── validation/   @Required, @ValidText, @ValidUuid, @ValidEnum, @ValidRange, RequestValidator
+│   │   ├── web/          Jackson config, RequestSizeLimitFilter, PublicRoutes, content negotiation
+│   │   ├── openapi/      springdoc customizers, @ApiErrors
+│   │   └── security/     authentication entry point, firewall rejection handler
 │   ├── domain/
-│   │   ├── type/         ID typealiases (UserId = UUID, ...)
-│   │   ├── event/        cross-module events, one sealed <Publisher>Event per publishing module
-│   │   └── exception/    shared base exceptions (ForbiddenException, UnauthorizedException, ...)
+│   │   ├── exception/    ErrorCode, FieldErrorCode, base exceptions (ResourceNotFoundException,
+│   │   │                 UniquenessConflictException, UnauthenticatedException). No ForbiddenException.
+│   │   ├── text/         normalizeText, normalizePassword, codePointLength, checkText
+│   │   ├── security/     AccessTokenIssuer
+│   │   └── event/        cross-module events, one sealed <Publisher>Event per publishing module
 │   └── infra/
-│       └── security/     JwtDecoder config, JwtProperties, claim constants
-└── testFixtures/kotlin/  MutableClock, RecordingEventPublisher, PostgresTestConfig, DatabaseCleaner
+│       └── security/     JwtProperties, JwtDecoder/JwtEncoder config, token validators, JwtAccessTokenIssuer, BearerTokenResolver
+└── testFixtures/         MutableClock, PostgresTestConfig, DatabaseCleaner, application-test.yaml
 ```
 
 ### `:app` (`com.plcoding.cardigan`)
@@ -107,15 +112,15 @@ app/src/
 ├── main/
 │   ├── kotlin/com/plcoding/cardigan/
 │   │   ├── CardiganApplication.kt     @SpringBootApplication + @ConfigurationPropertiesScan
-│   │   ├── config/                    ApplicationConfig (Clock, @EnableAsync, @EnableScheduling), OpenAPI config
-│   │   └── api/security/              SecurityConfig (filter chain, public routes)
+│   │   ├── config/                    ApplicationConfig (Clock; later @EnableAsync, @EnableScheduling)
+│   │   └── api/security/              SecurityConfig (filter chain; public routes come from PublicRoutes beans)
 │   └── resources/
 │       ├── application.yaml           shared defaults, imports .env
 │       ├── application-dev.yaml
 │       └── application-prod.yaml
 └── test/
-    ├── kotlin/com/plcoding/cardigan/  E2eTest base class, E2eTestConfig, <Feature>E2eTest, OpenAPI snapshot test
-    └── resources/openapi/             committed OpenAPI spec snapshot
+    ├── kotlin/com/plcoding/cardigan/  E2eTest base class, E2eTestConfig, <Feature>E2eTest, OpenApiSnapshotTest, test-only API
+    └── resources/openapi/             openapi.json, the committed OpenAPI snapshot
 ```
 
 ### Layer rules
@@ -131,16 +136,18 @@ app/src/
 - Services depend on domain interfaces, never on `infra` classes.
 - JPA entities never leave `infra`. HTTP types never leave `api`.
 - Controllers never inject repositories and never hold business rules.
+- Every controller mapping starts with `/api/v1/`. Everything outside `/api/v1` is open to unauthenticated requests, and a test in `:app` fails for any mapping outside it.
 
 ### Where does X go?
 
 | I need to add... | Put it in |
 |---|---|
-| An endpoint | `<feature>/api/controller`, plus the route rule in `:app` `SecurityConfig` if it's public |
-| A request or response body | `<feature>/api/dto`, mapped in `api/mapper` |
-| A format/length/range check | Bean Validation on the request DTO (`api/validation` for reusable constraints) |
+| An endpoint | `<feature>/api/controller` under `/api/v1/`, with an explicit `operationId`, one plural `@Tag` and `@ApiErrors` for its extra error statuses. If it's public, add it to the module's own `PublicRoutes` bean, not to `SecurityConfig` |
+| A request or response body | `<feature>/api/dto`, mapped in `api/mapper`. Request DTOs follow the rules in "API contract" below |
+| A format/length/range check | Bean Validation on the request DTO with the `:common` constraints (`@Required`, `@ValidText`, `@ValidUuid`, `@ValidEnum`, `@ValidRange`) |
 | A rule that needs data or state | `<feature>/service` |
-| A failure clients must handle | Exception in `<feature>/domain/exception`, mapped in `<Feature>ExceptionHandler` with its own `code` |
+| A failure clients must handle | Exception in `<feature>/domain/exception` that subclasses `ResourceNotFoundException`, `UniquenessConflictException` or `UnauthenticatedException` from `:common`. `CommonExceptionHandler` maps it; no feature handler. A new top-level code needs a shared `api-errors` change first |
+| An OpenAPI rule | `:common` `api/openapi` customizers, never per-feature springdoc config |
 | A table, column, or index | Entity in `infra/database/entity`. Dev and tests build their schema from it. Once the baseline migration exists, also a Flyway migration in `<feature>/src/main/resources/db/migration/<feature>` |
 | A query | `SpringData<Model>Repository`, exposed through the domain interface and `Jpa<Model>Repository` |
 | A call to a third-party API | Domain interface in `domain`, `@HttpExchange` client + adapter in `infra/http/<provider>` |
@@ -178,21 +185,27 @@ app/src/
 - `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun`. `bootRun` runs from the repo root so it finds `.env`. An IDE run configuration must also set its working directory to the repo root and set the profile itself. A `SPRING_PROFILES_ACTIVE` key in `.env` doesn't work.
 - Only start from the repo root when you want `.env`. Tests run from `app/`, so they never see it.
 
+### Users
+
+- Emails are stored lowercased, enforced by the `User` domain model and a database check constraint, with a plain unique constraint on `email`. Every response returns the stored form. This deviates from the shared `domain-user` spec until that spec is changed to match (pending).
+- `GET /api/v1/users/me` answers 401 `UNAUTHENTICATED` when the token is valid but the user has no record.
+
 ### Authentication: self-issued tokens
 
 - **The app issues and validates its own tokens.** There is no external identity provider or authorization server (Auth0, Keycloak, Cognito, Supabase Auth, ...). This keeps complexity low for this project. It doesn't mean an external provider is generally wrong. Switching would be a deliberate decision for the user.
-- Access tokens are JWTs signed by our own `JwtEncoder` and checked by our own `JwtDecoder` with the same HMAC secret from the environment. The `spring-boot-starter-security-oauth2-resource-server` dependency is just Spring's JWT validation code, despite its name. Never configure `issuer-uri` or `jwk-set-uri`, and never add OAuth2 login or an authorization server.
+- Access tokens are JWTs signed by our own `JwtEncoder` and checked by our own `JwtDecoder` with the same HMAC secret from `JWT_SECRET` (base64, at least 32 bytes after decoding, required in every environment; startup fails without it). Expiry has no clock skew and is checked against the `Clock` bean. The `spring-boot-starter-security-oauth2-resource-server` dependency is just Spring's JWT validation code, despite its name. Never configure `issuer-uri` or `jwk-set-uri`, and never add OAuth2 login or an authorization server.
 - Access tokens are short-lived and carry only `sub`, `type`, `iat`, `exp`. Refresh tokens are opaque random strings, stored as SHA-256 hashes, and rotated on every refresh. Passwords are hashed with BCrypt.
 - **Auth scope is only: register, login, refresh, logout.** No email verification, no forgot/reset password, no change password. Ignore those flows in `spring-security` and `spring-integration-testing` (for example, the E2E auth helper goes register → login with no verify step). Don't build them unless asked.
-- Every route under `/api/v1/auth/**` that should be public is listed explicitly. Everything else requires authentication.
+- Every public route under `/api/v1` is listed explicitly, by method and exact path, in the owning module's `PublicRoutes` bean. Everything else under `/api/v1` requires authentication. The bearer token is ignored on public routes and outside `/api/v1`.
+- The request user is the token's `sub` (`requestUserId`), with no database lookup.
 
-### Rate limiting: email only
+### Rate limiting: per IP, plus per email for login
 
-- This deliberately differs from `spring-security`: public auth endpoints are rate limited **per normalized email (trimmed, lowercased), not per IP**.
+- Public auth endpoints are rate limited per client IP. Login is additionally limited per normalized email (trimmed, lowercased).
 - bucket4j buckets live in memory in a Caffeine cache with a maximum size and expire-after-access. Limits come from `@ConfigurationProperties`.
-- Exceeding a limit throws a domain exception that maps to `429` with code `RATE_LIMIT_EXCEEDED` and a `Retry-After` header.
-- Accepted trade-offs: limits are per instance and reset on restart, and there is no protection against one client trying many different emails. This is on purpose, to keep things simple. Don't add IP-based or global limits without asking.
-- Still open, so ask before implementing: the concrete limit values, and whether refresh and logout (which carry no email) get any limit.
+- Exceeding a limit throws a domain exception that maps to `429` with code `RATE_LIMITED` and a `Retry-After` header. The rate limit is checked before credentials.
+- Accepted trade-offs: limits are per instance and reset on restart. This is on purpose, to keep things simple. Don't add global limits without asking.
+- Still open, so ask before implementing: the concrete limit values, and whether refresh and logout get any limit.
 
 ### Events: in-process only
 
@@ -205,14 +218,21 @@ app/src/
 The spec is generated code-first by springdoc from controllers and DTOs. Mobile clients generate type-safe code from it, so the spec must be exact:
 
 - All routes live under `/api/v1/<plural-resource>`. This replaces the `/api/...` base path in `spring-api-layer`.
-- Kotlin nullability is the contract: a non-null property with no default is `required`, a nullable one is `nullable`. No default values on request DTO fields unless the user decided on that default.
+- The document is OpenAPI 3.0.1 (`springdoc.api-docs.version: openapi_3_0`), for the best code generator support.
+- Response DTOs: Kotlin nullability is the contract. A non-null property is `required`, a nullable one is `nullable`.
+- Request DTOs deliberately differ: every property is nullable in Kotlin with no default, so missing and `null` fields become `REQUIRED` field errors and all broken fields are reported at once. `@Required` marks the fields the endpoint needs. In the document, only `@Required` properties are `required`, and no request property is `nullable`: optional fields are omitted, never sent as `null`.
+- Request DTOs declare UUIDs as `String` with `@ValidUuid`, enums as `String` with `@ValidEnum(XDto::class)`, and bounded integers such as positions as `BigInteger` with a range check. Mappers convert them after validation. The document still shows `format: uuid`, the enum values and `integer`.
+- Text fields use `@ValidText`. Mappers call `normalizeText` again when building the domain value; the validator never changes the DTO.
+- Endpoints that reference resources in the path or body call `RequestValidator.validate(request)` after the service resolved them, so 404 wins over field errors. `@Valid` is only for endpoints without references. Declare `@RequestBody` before any `@PathVariable`.
 - Every request and response body is a concrete, named DTO. No `Any`, `Map<String, Any>`, `JsonNode`, or untyped lists.
 - API enums are separate `<Name>Dto` enums with stable constant names.
-- IDs are `string` with `format: uuid`. Instants are `string` with `format: date-time` (UTC).
+- IDs are `string` with `format: uuid`, lowercase in responses. Instants are `string` with `format: date-time`, always UTC with milliseconds (`.000Z` for whole seconds).
 - Sealed or polymorphic types get an explicit discriminator property and a named schema per subtype.
-- Every operation documents its error responses as the ProblemDetail schema with the `code` property, and lists the codes it can return.
-- `operationId`s and tags are stable. Renaming them breaks generated clients.
-- The generated spec is committed as a snapshot under `app/src/test/resources/openapi/`. A test in `:app` fails when the generated spec differs from it. Contract changes therefore show up in the diff. Update the snapshot on purpose, never just to make the test pass.
+- Errors are `application/problem+json` with `type` `urn:cardigan:problem:<code in kebab-case>`, a fixed `title` and `detail` per code, `code`, and `fieldErrors`. No `instance`, and never 403 (other users' data is 404). This replaces `about:blank` and `ForbiddenException` in `spring-api-layer`.
+- Every operation documents 500, 401 when protected, 400/413/415 when it has a body, and its `@ApiErrors` statuses, each with the `Problem` schema and its codes in the description. `CardiganOpenApiCustomizer` adds these.
+- The `Accept` header is ignored. Responses are always JSON or problem+json, never 406.
+- `operationId`s (camelCase verb + resource) and tags (one plural PascalCase tag) are stable. Renaming them breaks generated clients.
+- The generated spec is committed as `app/src/test/resources/openapi/openapi.json`, which client repos copy. `OpenApiSnapshotTest` fails when the generated spec differs from it; `./gradlew :app:updateOpenApiSnapshot` rewrites it. Update the snapshot on purpose, never just to make the test pass. No profile serves `/v3/api-docs` or Swagger UI at runtime.
 - No breaking change to a shipped endpoint (removing or renaming fields, making optional fields required, changing types or error codes). It needs a new version or the user's explicit approval.
 
 ### Supabase MCP
@@ -246,11 +266,12 @@ All test types are expected. See `spring-unit-testing` and `spring-integration-t
 | Persistence | module `src/test`, `@DataJpaTest` | Postgres, entities, adapters, plus Flyway once the baseline migration exists |
 | Module integration | module `src/test`, `@SpringBootTest` with the module's test app | Services, transactions, events, Postgres |
 | HTTP client | module `src/test` | Our client against WireMock |
-| E2E | `:app` `src/test`, `@SpringBootTest(RANDOM_PORT)` + `RestTestClient` | The whole app over HTTP, real tokens from register → login |
+| E2E | `:app` `src/test`, `@SpringBootTest(RANDOM_PORT)` + `RestTestClient` | The whole app over HTTP. Until `be-auth` exists, `E2eTest.signIn` creates the user with `UserFixtures` and mints a real token with the issuer; `be-auth` switches it to register → login |
 
 - Every test that needs a database uses a **Testcontainers Postgres** with the same major version as Supabase (17). Never the Supabase instance, never H2.
 - Until the baseline migration exists, tests use the `test` profile: Hibernate `create-drop` with Flyway off. After that they use real migrations with `validate`, as `spring-integration-testing` describes.
 - Fakes, not mocks. No Mockito, no MockK.
+- The test profile config lives in `:common` test fixtures (`application-test.yaml`), including a fixed test `JWT_SECRET`.
 - Write unit tests the adversarial way: list the break vectors first, then one test per distinct angle.
 - Docker must be running for Testcontainers.
 
@@ -272,6 +293,15 @@ Commands:
 - One logical change per commit. Unrelated changes go into separate commits.
 - Commit locally only. **Never push.** The user pushes.
 - Never amend or rewrite existing commits, never skip hooks (`--no-verify`), and never commit `.env` or other secrets.
+
+---
+
+## Review Checklist
+
+- Mappers call `normalizeText` for every text field before it reaches the service.
+- Every controller mapping starts with `/api/v1/`, and public routes are in the module's `PublicRoutes` bean.
+- Client-facing failures subclass the `:common` base exceptions; no feature exception handler, no 403.
+- An API change comes with an updated `openapi.json` snapshot.
 
 ---
 
