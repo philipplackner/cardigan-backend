@@ -38,5 +38,5 @@
 
 ## Workflow follow-up
 
-- Do not archive this change before the shared-spec change that switches `domain-label` and `board-export-format` to upper-case colors has landed in `cardigan-shared-specs` (`decisions.md` D2).
+- The shared-spec dependency (`decisions.md` D2) is met, so this change can be archived once it is implemented and verified.
 - When archiving, follow the archive guidance in `openspec/config.yaml` for the `module-boundaries` delta, which `be-boards` may also touch.

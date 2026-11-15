@@ -12,7 +12,7 @@ Cards carry user-defined labels, and both clients have a label management screen
   - `PATCH /api/v1/labels/{labelId}` (`updateLabel`) renames, recolors or both, and returns 200 with the label.
   - `DELETE /api/v1/labels/{labelId}` (`deleteLabel`) deletes the label and returns 204.
 - A label has `id`, `name`, `color`, `createdAt` and `updatedAt`.
-- Colors are upper-case constants on the wire, `AMBER` ... `YELLOW` (D1). This differs from the shared specs as they stand today (D2).
+- Colors are the upper-case palette names of shared `domain-label` on the wire, `AMBER` ... `YELLOW` (D1, D2).
 - Names are unique per user after full Unicode case folding. The folded name is stored next to the name as entered, and the database enforces the uniqueness, so two racing requests can't both win (D7).
 - A PATCH whose values equal the stored ones leaves `updatedAt` alone (D5).
 - No limit on the number of labels per user (D6).
@@ -31,7 +31,7 @@ Not in this change: attaching labels to cards, and removing a deleted label from
 | `domain-label` | Labels are shared across a user's boards | Labels are stored per user, not per board. Attaching is `be-cards` |
 | `domain-label` | Label name | Implemented |
 | `domain-label` | Label names are unique per user ignoring case | Implemented |
-| `domain-label` | Label color is a palette name | Implemented. **Deviates**: values are upper case (D1). Depends on a pending shared-spec change (D2) |
+| `domain-label` | Label color is a palette name | Implemented, with the upper-case names (D1, D2) |
 | `domain-label` | Label timestamps | Implemented |
 | `domain-label` | Deleting a label removes it from cards | The label is deleted here. The card part is `be-cards` |
 | `domain-user` | Boards and labels belong to exactly one user | Implemented for labels |
@@ -57,13 +57,13 @@ Not in this change: attaching labels to cards, and removing a deleted label from
 | `api-errors` | Error precedence | 404 before field validation before 409 |
 | `api-auth-tokens` | Protected requests use a bearer access token | All four endpoints are protected |
 
-**Dependency on a shared-spec change:** D1 writes colors as `RED`, which contradicts `domain-label` ("Label color is a palette name") and `board-export-format`, both of which use `Red`. A follow-up change in the shared repo switches both to `AMBER` ... `YELLOW` (D2), arranged by the coordinating session. This change can be implemented before that, but must not be archived until the shared specs have been updated. Otherwise the backend and the shared specs disagree.
+**Shared-spec dependency (met):** D1 and D2 needed `domain-label` and `board-export-format` to spell colors in upper case. The shared change `label-color-constants` did that and is archived, so the backend and the shared specs agree and nothing blocks archiving this change after implementation.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `labels`: the backend's label endpoints and their bodies, the color spelling on the wire, how name uniqueness holds under concurrent requests, when a PATCH moves `updatedAt`, and label isolation between users.
+- `labels`: the backend's label endpoints and their bodies, how colors are validated on the wire, how name uniqueness holds under concurrent requests, when a PATCH moves `updatedAt`, and label isolation between users.
 
 ### Modified Capabilities
 
@@ -76,4 +76,4 @@ Not in this change: attaching labels to cards, and removing a deleted label from
 - **Dependencies**: `com.ibm.icu:icu4j` in `gradle/libs.versions.toml`, used by `:board`. About 14 MB more in the app jar.
 - **Database**: table `board_service.labels`. Dev creates it through `ddl-auto: update`. It becomes part of the baseline migration before the first production deploy.
 - **Other chunks**: `be-cards` attaches labels and extends label deletion. `be-import-export` reuses the case-folding helper and the color constants. `mob-labels-connect` and `web-labels-connect` generate from the updated `openapi.json`.
-- **Shared specs**: the upper-case follow-up change in `cardigan-shared-specs` (D2), outside this repo.
+- **Shared specs**: none. The upper-case change (D2) is already in `cardigan-shared-specs`.

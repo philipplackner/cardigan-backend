@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Defines the backend's label endpoints and their request and response bodies, the spelling of label colors on the wire, and the backend-specific behavior around name uniqueness, updates and ownership, on top of the shared spec `domain-label`.
+Defines the backend's label endpoints and their request and response bodies, and the backend-specific behavior around name uniqueness, updates and ownership, on top of the shared spec `domain-label`.
 
 ## ADDED Requirements
 
@@ -13,14 +13,14 @@ A label in a response SHALL have exactly the fields `id`, `name`, `color`, `crea
 - **WHEN** a label named `Bug` with the color `RED` was created at `2026-11-15T09:15:30.123Z` and is returned
 - **THEN** the body has exactly `id` (a lowercase UUID), `name` `Bug`, `color` `RED`, `createdAt` `2026-11-15T09:15:30.123Z` and `updatedAt` `2026-11-15T09:15:30.123Z`
 
-### Requirement: Colors are upper-case constants
-A label color on the wire SHALL be one of `AMBER`, `BLUE`, `BROWN`, `CYAN`, `EMERALD`, `FUCHSIA`, `GREEN`, `INDIGO`, `LIME`, `OLIVE`, `ORANGE`, `PINK`, `PURPLE`, `RED`, `ROSE`, `SKY`, `SLATE`, `TEAL`, `VIOLET`, `YELLOW`. The comparison SHALL be case-sensitive. Any other value SHALL be rejected with the field error `INVALID_VALUE` for `color`. This deviates from shared `domain-label` ("Label color is a palette name"), which spells them `Red`, until that spec is changed to match.
+### Requirement: Colors are validated as palette names
+A label color on the wire SHALL be a string holding one of the palette names of shared `domain-label` ("Label color is a palette name"), unchanged and compared case-sensitively. Any other string SHALL be rejected with the field error `INVALID_VALUE` for `color`. A value that is not a string SHALL make the request malformed.
 
-#### Scenario: Upper-case color accepted
+#### Scenario: Palette name accepted
 - **WHEN** a label is created with the color `TEAL`
 - **THEN** the response is 201 and `color` is `TEAL`
 
-#### Scenario: Shared-spec spelling rejected
+#### Scenario: Mixed-case color rejected
 - **WHEN** a label is created with the color `Red`
 - **THEN** the response is 400 `VALIDATION_FAILED` with the field error `{ "field": "color", "code": "INVALID_VALUE" }`
 

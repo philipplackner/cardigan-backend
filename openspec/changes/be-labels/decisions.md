@@ -4,20 +4,21 @@ Confirmed with Philipp Lackner on 2026-11-15, through the `cardigan-cd` planning
 
 ## Summary
 
-This change adds user-defined labels to the `:board` module (breakdown chunk `be-labels`): create, list, rename, recolor and delete, with names unique per user after Unicode case folding and colors from the fixed palette. Labels belong to one user and are invisible to everyone else. The API writes palette colors as upper-case constants, which differs from the current shared specs, so a follow-up change in the shared repo switches them to upper case. Attaching labels to cards, and removing a deleted label from cards, stays in `be-cards`.
+This change adds user-defined labels to the `:board` module (breakdown chunk `be-labels`): create, list, rename, recolor and delete, with names unique per user after Unicode case folding and colors from the fixed palette. Labels belong to one user and are invisible to everyone else. The API writes palette colors as upper-case constants, and the shared specs were changed to the same spelling. Attaching labels to cards, and removing a deleted label from cards, stays in `be-cards`.
 
 ## Decisions
 
 ### D1 — Color format on the wire
 - **Question**: How is a label's color written on the wire (the chunk's open question, names vs. ids)?
-- **Decision**: Upper-case constants: `AMBER`, `BLUE`, `BROWN`, `CYAN`, `EMERALD`, `FUCHSIA`, `GREEN`, `INDIGO`, `LIME`, `OLIVE`, `ORANGE`, `PINK`, `PURPLE`, `RED`, `ROSE`, `SKY`, `SLATE`, `TEAL`, `VIOLET`, `YELLOW`. The value is case-sensitive. Anything else, including `Red` or `red`, is rejected with `INVALID_VALUE` on `color`. This deviates from shared `domain-label` ("Label color is a palette name") and `board-export-format`, which use `Red`; D2 resolves it.
+- **Decision**: Upper-case constants: `AMBER`, `BLUE`, `BROWN`, `CYAN`, `EMERALD`, `FUCHSIA`, `GREEN`, `INDIGO`, `LIME`, `OLIVE`, `ORANGE`, `PINK`, `PURPLE`, `RED`, `ROSE`, `SKY`, `SLATE`, `TEAL`, `VIOLET`, `YELLOW`. The value is case-sensitive. Anything else, including `Red` or `red`, is rejected with `INVALID_VALUE` on `color`. When this was decided, shared `domain-label` ("Label color is a palette name") and `board-export-format` used `Red`; D2 resolved that, and they now match.
 - **Alternatives**: The palette names exactly as in the shared spec (`Red`); numeric ids.
 - **Why**: —
 - **Depends on**: —
 
 ### D2 — Shared specs follow the upper-case spelling
 - **Question**: How is the mismatch between `"RED"` in the API and `Red` in the shared specs resolved?
-- **Decision**: Upper case everywhere. A follow-up change in the shared specs repo switches `domain-label` and `board-export-format` to `AMBER` ... `YELLOW`, so the API, the export file and the specs use one spelling and import/export needs no translation. `be-labels` depends on that change and does not edit the shared repo itself.
+- **Decision**: Upper case everywhere. A follow-up change in the shared specs repo switches `domain-label` and `board-export-format` to `AMBER` ... `YELLOW`, so the API, the export file and the specs use one spelling and import/export needs no translation. `be-labels` does not edit the shared repo itself.
+- **Status**: Met. The shared change `label-color-constants` is archived in `cardigan-shared-specs`. `domain-label` now lists `AMBER` ... `YELLOW`, compared case-sensitively, and `board-export-format` uses the same values. Nothing blocks archiving `be-labels` after implementation.
 - **Alternatives**: Change only the API side in the shared specs and keep `Red` in the export file, with translation in `be-import-export`; no shared-spec change, with the deviation recorded only in this repo.
 - **Why**: Nothing has shipped, so the export format can still change without a new `formatVersion`.
 - **Depends on**: D1
@@ -93,14 +94,14 @@ Recorded here, not asked again.
 - `:board` has no code yet and applies the `spring.module` and `spring.jpa` convention plugins. ICU4J is not in the version catalog — source: `board/build.gradle.kts`, `gradle/libs.versions.toml`.
 - `UniquenessConflictException`, `ResourceNotFoundException`, `RequestValidator`, `@Required`, `@ValidText`, `@ValidEnum`, `requestUserId` and `E2eTest.signIn` already exist — source: `common/src/main`, `CLAUDE.md`.
 - No account deletion exists in v1, so labels are never orphaned by a deleted user — source: breakdown `OVERVIEW.md`, scope; `be-common` D3.
-- The shared specs that still spell colors as `Red`: `domain-label` ("Label color is a palette name" and its scenarios) and `board-export-format` (file label colors such as `Teal`, `Blue`, `Red`, `Magenta`) — source: `cardigan-shared-specs/openspec/specs`.
+- Shared `domain-label` ("Label color is a palette name") lists `AMBER` ... `YELLOW` and compares them case-sensitively, and `board-export-format` uses the same values, since the shared change `label-color-constants` — source: `cardigan-shared-specs/openspec/specs`.
 
 ## Out of scope
 
 - Attaching labels to cards, and removing a deleted label from cards with their `updatedAt` change (`be-cards`). Delete in this change removes only the label.
 - Import and export of labels (`be-import-export`).
 - A get-by-id endpoint (D3) and a label limit (D6).
-- Editing the shared specs repo. The upper-case follow-up change (D2) is arranged by the coordinating session.
+- Editing the shared specs repo. The upper-case change (D2) was made there by the coordinating session.
 - Events, rate limiting and public routes. Labels need none.
 - A Flyway migration (arrives with the baseline migration).
 

@@ -114,7 +114,6 @@ The constraint and the small "sent properties" base type live in `:common` `api/
 
 ## Risks / Trade-offs
 
-- [The API spells colors `RED` while the shared specs still say `Red`] → Recorded in the spec and the proposal. The change must not be archived before the shared-spec follow-up (D2) has landed.
 - [ICU4J adds about 14 MB to the jar and brings its own Unicode version, which can be newer than the JDK's used for NFC] → Accepted (D7). Folding only depends on case mappings, which are stable for assigned characters.
 - [`be-boards` works in the same module at the same time] → Label code is in its own classes. The shared touch points are `@NotNullWhenPresent` in `:common`, `board/build.gradle.kts`, `BoardTestApplication`, the `.gitkeep` files, the `module-boundaries` delta and the snapshot; whichever change lands second merges them. The archive guidance in `openspec/config.yaml` covers the spec delta.
 - [No foreign key from `owner_id` to users] → Accepted by the module rules. No account deletion exists in v1, so no orphaned labels.
