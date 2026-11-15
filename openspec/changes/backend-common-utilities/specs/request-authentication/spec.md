@@ -13,12 +13,27 @@ The service SHALL read the access-token signing secret from `JWT_SECRET` as base
 - **WHEN** the service starts without `JWT_SECRET`
 - **THEN** startup fails and the service does not begin serving requests
 
+#### Scenario: No shipped default
+- **WHEN** the main `application*.yaml` files are loaded with no `JWT_SECRET` in the environment
+- **THEN** `cardigan.security.jwt.secret` does not resolve to a value and startup fails
+
 #### Scenario: Secret too short
 - **WHEN** `JWT_SECRET` decodes to 31 bytes
 - **THEN** startup fails and the log names the problem without printing the secret
 
 #### Scenario: Valid secret
 - **WHEN** `JWT_SECRET` decodes to 32 bytes
+- **THEN** startup completes
+
+### Requirement: The signing secret is decoded strictly and never logged
+Base64 SHALL mean the standard alphabet of RFC 4648 section 4, with optional padding. Leading and trailing whitespace SHALL be removed before decoding. Inner whitespace and the URL-safe alphabet SHALL be invalid. No log output, including the startup failure analysis, SHALL contain the secret value.
+
+#### Scenario: Secret not base64
+- **WHEN** `JWT_SECRET` is `not*base64!`
+- **THEN** startup fails and the log output does not contain the value
+
+#### Scenario: Trailing newline
+- **WHEN** `JWT_SECRET` is a valid base64 value of 32 bytes followed by a newline
 - **THEN** startup completes
 
 ### Requirement: Access tokens are signed JWTs with fixed claims
@@ -44,14 +59,26 @@ The backend SHALL truncate the issue time of an access token to whole seconds, s
 - **THEN** the request is accepted
 
 ### Requirement: Verification accepts only valid access tokens
-A protected request SHALL be authenticated only when its bearer token has an HS256 signature that verifies with the configured secret, `type` `access`, a `sub` that is a UUID, and a current time before `exp`, with no clock-skew allowance. Any other bearer value SHALL produce 401 `UNAUTHENTICATED`.
+A protected request SHALL be authenticated only when its bearer token has an HS256 signature that verifies with the configured secret, `type` `access`, a `sub` that is a UUID, and an `exp` with a current time before it, with no clock-skew allowance. A token missing any of these claims, or any other bearer value, SHALL produce 401 `UNAUTHENTICATED`.
 
 #### Scenario: alg none
 - **WHEN** a token with header `alg` `none` and valid-looking claims is sent
 - **THEN** the response is 401 `UNAUTHENTICATED`
 
+#### Scenario: Other HMAC algorithm
+- **WHEN** a token with valid claims is signed with HS512 and the configured secret
+- **THEN** the response is 401 `UNAUTHENTICATED`
+
 #### Scenario: Other type claim
 - **WHEN** a correctly signed token has `type` `refresh`
+- **THEN** the response is 401 `UNAUTHENTICATED`
+
+#### Scenario: Missing type
+- **WHEN** a correctly signed token has `sub`, `iat` and `exp` but no `type`
+- **THEN** the response is 401 `UNAUTHENTICATED`
+
+#### Scenario: Missing expiry
+- **WHEN** a correctly signed token has `sub`, `type` `access` and `iat` but no `exp`
 - **THEN** the response is 401 `UNAUTHENTICATED`
 
 #### Scenario: Signed with another secret
@@ -60,6 +87,10 @@ A protected request SHALL be authenticated only when its bearer token has an HS2
 
 #### Scenario: Subject is not a UUID
 - **WHEN** a correctly signed access token has `sub` `admin`
+- **THEN** the response is 401 `UNAUTHENTICATED`
+
+#### Scenario: Missing subject
+- **WHEN** a correctly signed token has `type` `access`, `iat` and `exp` but no `sub`
 - **THEN** the response is 401 `UNAUTHENTICATED`
 
 #### Scenario: One second after expiry
@@ -78,7 +109,7 @@ Every 401 `UNAUTHENTICATED` response SHALL carry the header `WWW-Authenticate: B
 - **THEN** the `WWW-Authenticate` header is `Bearer` with no `error` or `error_description`
 
 ### Requirement: Public routes are listed explicitly
-Every path under `/api/v1` SHALL require an access token unless it is on an explicit list of public routes, each given by method and exact path. This change adds no public route under `/api/v1`. Paths outside `/api/v1` SHALL NOT require a token.
+Every path under `/api/v1` SHALL require an access token unless it is on an explicit list of public routes, each given by method and exact path. This change adds no public route under `/api/v1`. Paths outside `/api/v1` SHALL NOT require a token. On public routes and on paths outside `/api/v1`, the backend SHALL ignore the `Authorization` header: a missing, invalid, expired or non-bearer value SHALL NOT produce 401. Every endpoint mapping SHALL be under `/api/v1/`.
 
 #### Scenario: Unknown API path without a token
 - **WHEN** a client without a token calls `GET /api/v1/does-not-exist`
@@ -92,12 +123,20 @@ Every path under `/api/v1` SHALL require an access token unless it is on an expl
 - **WHEN** a client without a token calls `GET /actuator/env`
 - **THEN** the response is 404, not 401
 
+#### Scenario: Health with an expired token
+- **WHEN** a client calls `GET /actuator/health` with an expired access token
+- **THEN** the response is 200 with `status` `UP`
+
+#### Scenario: No endpoint outside the API base path
+- **WHEN** the application's request mappings are listed
+- **THEN** every controller mapping starts with `/api/v1/`
+
 ### Requirement: The request user comes from the token subject
 The user acting in an authenticated request SHALL be the UUID in the access token's `sub`. The backend SHALL NOT look the user up in the database to authenticate the request, and SHALL NOT take the acting user from the request path, query or body.
 
 #### Scenario: Token of a user with no row
-- **WHEN** a valid access token names a user ID that has no user record
-- **THEN** authentication succeeds, and the endpoint decides the outcome
+- **WHEN** a valid access token names a user ID that has no user record and calls an authenticated endpoint that only returns the request user ID
+- **THEN** the response is 200 and contains that user ID
 
 ### Requirement: Sessions are stateless
 Authenticated requests SHALL NOT create a server-side session or set a session cookie.

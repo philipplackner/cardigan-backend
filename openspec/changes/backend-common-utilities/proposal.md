@@ -39,7 +39,7 @@ The wave-3 backend chunks (`be-auth`, `be-boards`, `be-labels`) should run in pa
 | `api-errors` | One field error per field | Implemented |
 | `api-errors` | Limit errors carry the limit | Implemented |
 | `api-errors` | Validation errors report all broken fields | Implemented |
-| `api-errors` | Error precedence | Implemented for 401, 413, 415, 400, 404 route; rate limit in `be-auth` |
+| `api-errors` | Error precedence | Implemented for 401, 413, 415, 400, 404 route and references before field validation; rate limit in `be-auth` |
 | `api-errors` | Uniqueness clashes are conflicts | Mapping implemented; raised by feature chunks |
 | `api-errors` | Other users' data is not found, never forbidden | Mapping implemented; no 403 handler |
 | `api-conventions` | Generated OpenAPI is authoritative for wire shape | Implemented (snapshot) |
@@ -79,6 +79,7 @@ The wave-3 backend chunks (`be-auth`, `be-boards`, `be-labels`) should run in pa
 ### Modified Capabilities
 
 - `service-health`: "Health is not part of the client API" — the `/api/v1/actuator/health` scenario returns 401 without a token and 404 with one.
+- `module-boundaries`: "Module layer packages exist from the start" — `:common` and `:user` now hold production code, so the "no source files" check applies only to `:board`.
 
 ## Impact
 

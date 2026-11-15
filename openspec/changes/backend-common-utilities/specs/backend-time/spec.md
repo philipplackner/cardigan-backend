@@ -21,8 +21,12 @@ Token issue and expiry checks, stored timestamps and every other use of the curr
 - **THEN** a request with that token fails with 401 `UNAUTHENTICATED`
 
 ### Requirement: Production time is the system time
-Outside tests, the backend's current time SHALL be the system clock in UTC, and no endpoint or setting SHALL change it.
+Outside tests, the backend's current time SHALL be the system clock in UTC, ticking in milliseconds, and no endpoint or setting SHALL change it.
 
 #### Scenario: Running service
 - **WHEN** the service runs with any profile
-- **THEN** no HTTP endpoint or configuration property can change the time it uses
+- **THEN** the `Clock` bean is the system UTC clock ticking in milliseconds, and the test clock is not on the main runtime classpath
+
+#### Scenario: Production clock precision
+- **WHEN** the application's clock is read repeatedly
+- **THEN** every instant has a zero sub-millisecond part, its zone is UTC, and it is within 1 second of the system time

@@ -14,11 +14,15 @@ The backend SHALL store each user with a backend-assigned UUID, the email, a pas
 - **THEN** it has an ID, an email, a password hash, and creation and update times at millisecond precision
 
 ### Requirement: Emails are stored lowercased
-The backend SHALL store every email in lowercase after `text-length` normalization, and SHALL return that stored form everywhere the email appears in a response. A user record with an email that has an uppercase letter SHALL NOT be stored. This deviates from shared `domain-user` ("Email identifies exactly one user") until that spec is changed to match.
+The backend SHALL store every email in lowercase after `text-length` normalization, and SHALL return that stored form everywhere the email appears in a response. A user record with an email that has an uppercase letter SHALL NOT be stored. Both the domain model and the database SHALL enforce this. This deviates from shared `domain-user` ("Email identifies exactly one user") until that spec is changed to match.
 
-#### Scenario: Uppercase email rejected by storage
-- **WHEN** code tries to store a user with the email `Ann@Example.com`
-- **THEN** the record is not stored
+#### Scenario: Uppercase email rejected by the domain model
+- **WHEN** a `User` is built with the email `Ann@Example.com`
+- **THEN** construction fails
+
+#### Scenario: Uppercase email rejected by the database
+- **WHEN** a row with the email `Ann@Example.com` is inserted directly into `user_service.users`
+- **THEN** the database rejects it
 
 #### Scenario: Lowercased email returned
 - **WHEN** a user stored with `ann@example.com` calls `GET /api/v1/users/me`
