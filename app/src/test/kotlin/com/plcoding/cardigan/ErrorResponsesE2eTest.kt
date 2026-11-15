@@ -1,0 +1,189 @@
+package com.plcoding.cardigan
+
+import assertk.assertThat
+import assertk.assertions.contains
+import assertk.assertions.containsExactly
+import assertk.assertions.doesNotContain
+import assertk.assertions.isEmpty
+import assertk.assertions.isEqualTo
+import com.plcoding.cardigan.common.domain.exception.ErrorCode
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
+import org.springframework.boot.test.system.CapturedOutput
+import org.springframework.boot.test.system.OutputCaptureExtension
+import org.springframework.http.HttpMethod
+import java.time.Duration
+
+@ExtendWith(OutputCaptureExtension::class)
+class ErrorResponsesE2eTest : E2eTest() {
+
+    @Test
+    fun `unknown path with a token is ROUTE_NOT_FOUND and the path is not echoed`() {
+        val token = signIn().token
+
+        val body = call(HttpMethod.GET, "/api/v1/zz-marker-zz", token).assertProblem(ErrorCode.ROUTE_NOT_FOUND)
+
+        assertThat(body.fieldErrors).isEmpty()
+        assertThat(body.toString()).doesNotContain("zz-marker-zz")
+    }
+
+    @Test
+    fun `wrong method is ROUTE_NOT_FOUND`() {
+        val token = signIn().token
+
+        call(HttpMethod.DELETE, "/api/v1/users/me", token).assertProblem(ErrorCode.ROUTE_NOT_FOUND)
+    }
+
+    @Test
+    fun `implicit OPTIONS is ROUTE_NOT_FOUND`() {
+        val token = signIn().token
+
+        call(HttpMethod.OPTIONS, "/api/v1/users/me", token).assertProblem(ErrorCode.ROUTE_NOT_FOUND)
+    }
+
+    @Test
+    fun `implicit HEAD is 404`() {
+        val token = signIn().token
+
+        val result = call(HttpMethod.HEAD, "/api/v1/users/me", token)
+
+        assertThat(result.status).isEqualTo(404)
+        assertThat(result.contentType).isEqualTo("application/problem+json")
+    }
+
+    @Test
+    fun `path rejected by the firewall is ROUTE_NOT_FOUND, with or without a token`() {
+        val token = signIn().token
+
+        raw("GET", "/api/v1/users/me;x=1", token).assertProblem(ErrorCode.ROUTE_NOT_FOUND)
+        raw("GET", "/api/v1/users/me;x=1").assertProblem(ErrorCode.ROUTE_NOT_FOUND)
+    }
+
+    @Test
+    fun `wrong content type is UNSUPPORTED_MEDIA_TYPE and the media type is not echoed`() {
+        val token = signIn().token
+
+        val result = call(
+            HttpMethod.POST,
+            "/api/v1/test/echo",
+            token,
+            json = """{"name":"a","key":"ab"}""",
+            headers = mapOf("Content-Type" to "text/zz-marker"),
+        )
+
+        result.assertProblem(ErrorCode.UNSUPPORTED_MEDIA_TYPE)
+        assertThat(result.body).doesNotContain("zz-marker")
+        assertThat(result.headers.getFirst("Accept").orEmpty()).doesNotContain("json")
+    }
+
+    @Test
+    fun `invalid JSON is MALFORMED_REQUEST with empty fieldErrors`() {
+        val token = signIn().token
+
+        val body = call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name": """)
+            .assertProblem(ErrorCode.MALFORMED_REQUEST)
+
+        assertThat(body.fieldErrors).isEmpty()
+    }
+
+    @Test
+    fun `wrong JSON type is MALFORMED_REQUEST and the detail names nothing from the request`() {
+        val token = signIn().token
+
+        val result = call(
+            HttpMethod.POST,
+            "/api/v1/test/echo",
+            token,
+            json = """{"name":"a","key":"ab","position":"zq9x"}""",
+        )
+
+        val detail = result.assertProblem(ErrorCode.MALFORMED_REQUEST)["detail"] as String
+        listOf("position", "zq9x", "Exception", "jackson", "kotlin.", "java.").forEach {
+            assertThat(detail).doesNotContain(it)
+        }
+    }
+
+    @Test
+    fun `invalid JSON and wrong type have the same detail`() {
+        val token = signIn().token
+
+        val invalid = call(HttpMethod.POST, "/api/v1/test/echo", token, json = "{")
+        val wrongType = call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name":"a","key":"ab","position":"x"}""")
+
+        assertThat(invalid.json()["detail"]).isEqualTo(wrongType.json()["detail"])
+    }
+
+    @Test
+    fun `number for a text field is not coerced`() {
+        val token = signIn().token
+
+        call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name":5,"key":"ab"}""")
+            .assertProblem(ErrorCode.MALFORMED_REQUEST)
+    }
+
+    @Test
+    fun `fraction for an integer field is not truncated`() {
+        val token = signIn().token
+
+        call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name":"a","key":"ab","position":1.5}""")
+            .assertProblem(ErrorCode.MALFORMED_REQUEST)
+    }
+
+    @Test
+    fun `malformed path UUID is NOT_FOUND`() {
+        val token = signIn().token
+
+        call(HttpMethod.GET, "/api/v1/test/things/abc", token).assertProblem(ErrorCode.NOT_FOUND)
+    }
+
+    @Test
+    fun `uniqueness conflict carries ALREADY_USED on its field`() {
+        val token = signIn().token
+
+        val body = call(HttpMethod.POST, "/api/v1/test/conflict", token).assertProblem(ErrorCode.CONFLICT)
+
+        assertThat(body.fieldErrors).containsExactly(mapOf("field" to "key", "code" to "ALREADY_USED"))
+    }
+
+    @Test
+    fun `endpoint failure is INTERNAL_ERROR with a fixed detail and a logged stack trace`(output: CapturedOutput) {
+        val token = signIn().token
+
+        val result = call(HttpMethod.GET, "/api/v1/test/boom", token)
+
+        result.assertProblem(ErrorCode.INTERNAL_ERROR)
+        assertThat(result.body).doesNotContain("boom-marker")
+        assertThat(output.all).contains("java.lang.IllegalStateException: boom-marker from the endpoint")
+        assertThat(output.all).contains("\tat com.plcoding.cardigan.testapi.TestApiController.boom")
+    }
+
+    @Test
+    fun `filter failure is INTERNAL_ERROR with a fixed detail and a logged stack trace`(output: CapturedOutput) {
+        val token = signIn().token
+
+        val result = call(HttpMethod.GET, "/api/v1/test/boom-filter", token)
+
+        result.assertProblem(ErrorCode.INTERNAL_ERROR)
+        assertThat(result.body).doesNotContain("boom-marker")
+        assertThat(output.all).contains("java.lang.IllegalStateException: boom-marker from the filter")
+        assertThat(output.all).contains("\tat com.plcoding.cardigan.testapi.FailingTestFilter")
+    }
+
+    @Test
+    fun `missing token, expired token and missing user share one title`() {
+        val missingToken = call(HttpMethod.GET, "/api/v1/users/me")
+        val missingUser = call(HttpMethod.GET, "/api/v1/users/me", tokenWithoutUser())
+        val expiredToken = signIn().token
+        clock.advanceBy(Duration.ofMinutes(16))
+        val expired = call(HttpMethod.GET, "/api/v1/users/me", expiredToken)
+
+        val titles = listOf(missingToken, missingUser, expired).map { it.assertProblem(ErrorCode.UNAUTHENTICATED)["title"] }
+
+        assertThat(titles.toSet()).isEqualTo(setOf(ErrorCode.UNAUTHENTICATED.title))
+    }
+
+    @Test
+    fun `direct call to the error path is ROUTE_NOT_FOUND`() {
+        call(HttpMethod.GET, "/error").assertProblem(ErrorCode.ROUTE_NOT_FOUND)
+    }
+}
