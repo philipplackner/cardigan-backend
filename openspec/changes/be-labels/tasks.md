@@ -38,5 +38,6 @@
 
 ## Workflow follow-up
 
-- The shared-spec dependency (`decisions.md` D2) is met, so this change can be archived once it is implemented and verified.
+- Do not archive this change after implementation. Archive only when the user explicitly says so.
+- The shared-spec dependency (`decisions.md` D2) is met and doesn't block archiving.
 - When archiving, follow the archive guidance in `openspec/config.yaml` for the `module-boundaries` delta, which `be-boards` may also touch.
