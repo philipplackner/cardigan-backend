@@ -22,6 +22,28 @@ spring:
   threads:
     virtual:
       enabled: true
+  mvc:
+    formcontent:
+      filter:
+        # FormContentFilter runs before security and buffers form bodies without a size limit.
+        enabled: false
+  servlet:
+    multipart:
+      # Tomcat parses multipart parts from its own buffer, past the request size limit filter.
+      enabled: false
+
+cardigan:
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      access-token-ttl: 15m
+  web:
+    max-request-body-size: 256KB
+
+springdoc:
+  api-docs:
+    enabled: false
+    version: openapi_3_0
 
 management:
   endpoints:

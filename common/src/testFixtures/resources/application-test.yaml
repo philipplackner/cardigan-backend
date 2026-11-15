@@ -8,3 +8,8 @@ spring:
           create_namespaces: true
   flyway:
     enabled: false
+
+cardigan:
+  security:
+    jwt:
+      secret: B0nFhsWLwXJYZvA5qxHVsoNELNX1lovqQB9phdjgG74=

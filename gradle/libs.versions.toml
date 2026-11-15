@@ -3,6 +3,7 @@ java = "25"
 kotlin = "2.3.21"
 spring-boot = "4.1.1"
 assertk = "0.28.1"
+springdoc = "3.2.0"
 
 [libraries]
 # Gradle plugin artifacts for build-logic
@@ -20,6 +21,12 @@ spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-st
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-security-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-security-oauth2-resource-server" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+
+# API docs
+springdoc-openapi-webmvc-api = { module = "org.springdoc:springdoc-openapi-starter-webmvc-api", version.ref = "springdoc" }
 
 # Kotlin / Jackson 3
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
@@ -34,6 +41,9 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 assertk = { module = "com.willowtreeapps.assertk:assertk-jvm", version.ref = "assertk" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-starter-data-jpa-test = { module = "org.springframework.boot:spring-boot-starter-data-jpa-test" }
+spring-boot-starter-security-test = { module = "org.springframework.boot:spring-boot-starter-security-test" }
+spring-jdbc = { module = "org.springframework:spring-jdbc" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
 
