@@ -11,6 +11,7 @@ import com.plcoding.cardigan.testapi.TestApiController
 import com.plcoding.cardigan.user.UserFixtures
 import com.plcoding.cardigan.user.domain.model.User
 import com.plcoding.cardigan.user.domain.repository.UserRepository
+import com.plcoding.cardigan.user.infra.ratelimit.Bucket4jAuthRateLimiter
 import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -96,6 +97,9 @@ abstract class E2eTest {
     @Autowired
     protected lateinit var accessTokenIssuer: AccessTokenIssuer
 
+    @Autowired
+    private lateinit var authRateLimiter: Bucket4jAuthRateLimiter
+
     protected lateinit var client: RestTestClient
 
     private val httpClient: HttpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()
@@ -106,6 +110,8 @@ abstract class E2eTest {
     fun setUpE2e() {
         databaseCleaner.clean("user_service")
         clock.set(START)
+        // The clock was just set back, and a rate limit bucket never refills while the clock is behind it.
+        authRateLimiter.clear()
         client = RestTestClient.bindToServer().baseUrl(baseUrl).build()
     }
 

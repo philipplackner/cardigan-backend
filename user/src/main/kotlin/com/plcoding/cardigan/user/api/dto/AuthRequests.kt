@@ -8,6 +8,7 @@ import com.plcoding.cardigan.user.api.validation.NotEmptyPassword
 import com.plcoding.cardigan.user.api.validation.ValidEmail
 import com.plcoding.cardigan.user.api.validation.ValidPassword
 import com.plcoding.cardigan.user.domain.model.EMAIL_MAX_LENGTH
+import io.swagger.v3.oas.annotations.media.Schema
 
 data class RegisterRequest(
     @Required
@@ -19,6 +20,7 @@ data class RegisterRequest(
     val password: String?,
     @Required
     @ValidEnum(RefreshTokenTransportDto::class)
+    @field:Schema(implementation = RefreshTokenTransportDto::class)
     val refreshTokenTransport: String?,
 ) {
 
@@ -35,6 +37,7 @@ data class LoginRequest(
     val password: String?,
     @Required
     @ValidEnum(RefreshTokenTransportDto::class)
+    @field:Schema(implementation = RefreshTokenTransportDto::class)
     val refreshTokenTransport: String?,
 ) {
 
@@ -44,6 +47,7 @@ data class LoginRequest(
 data class RefreshRequest(
     @Required
     @ValidEnum(RefreshTokenTransportDto::class)
+    @field:Schema(implementation = RefreshTokenTransportDto::class)
     val refreshTokenTransport: String?,
     val refreshToken: String?,
 ) {
@@ -54,6 +58,7 @@ data class RefreshRequest(
 data class LogoutRequest(
     @Required
     @ValidEnum(RefreshTokenTransportDto::class)
+    @field:Schema(implementation = RefreshTokenTransportDto::class)
     val refreshTokenTransport: String?,
     val refreshToken: String?,
 ) {

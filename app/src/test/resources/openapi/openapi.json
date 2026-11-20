@@ -1,6 +1,41 @@
 {
   "components" : {
     "schemas" : {
+      "AuthSessionDto" : {
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "accessTokenExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "refreshToken" : {
+            "type" : "string"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/CurrentUserDto"
+          }
+        },
+        "required" : [ "accessToken", "accessTokenExpiresAt", "user" ],
+        "type" : "object"
+      },
+      "AuthTokensDto" : {
+        "properties" : {
+          "accessToken" : {
+            "type" : "string"
+          },
+          "accessTokenExpiresAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "refreshToken" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "accessToken", "accessTokenExpiresAt" ],
+        "type" : "object"
+      },
       "CurrentUserDto" : {
         "properties" : {
           "createdAt" : {
@@ -38,6 +73,33 @@
         "required" : [ "code", "field" ],
         "type" : "object"
       },
+      "LoginRequest" : {
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          },
+          "refreshTokenTransport" : {
+            "$ref" : "#/components/schemas/RefreshTokenTransportDto"
+          }
+        },
+        "required" : [ "email", "password", "refreshTokenTransport" ],
+        "type" : "object"
+      },
+      "LogoutRequest" : {
+        "properties" : {
+          "refreshToken" : {
+            "type" : "string"
+          },
+          "refreshTokenTransport" : {
+            "$ref" : "#/components/schemas/RefreshTokenTransportDto"
+          }
+        },
+        "required" : [ "refreshTokenTransport" ],
+        "type" : "object"
+      },
       "Problem" : {
         "properties" : {
           "code" : {
@@ -65,6 +127,37 @@
         },
         "required" : [ "code", "detail", "fieldErrors", "status", "title", "type" ],
         "type" : "object"
+      },
+      "RefreshRequest" : {
+        "properties" : {
+          "refreshToken" : {
+            "type" : "string"
+          },
+          "refreshTokenTransport" : {
+            "$ref" : "#/components/schemas/RefreshTokenTransportDto"
+          }
+        },
+        "required" : [ "refreshTokenTransport" ],
+        "type" : "object"
+      },
+      "RefreshTokenTransportDto" : {
+        "enum" : [ "COOKIE", "BODY" ],
+        "type" : "string"
+      },
+      "RegisterRequest" : {
+        "properties" : {
+          "email" : {
+            "type" : "string"
+          },
+          "password" : {
+            "type" : "string"
+          },
+          "refreshTokenTransport" : {
+            "$ref" : "#/components/schemas/RefreshTokenTransportDto"
+          }
+        },
+        "required" : [ "email", "password", "refreshTokenTransport" ],
+        "type" : "object"
       }
     },
     "securitySchemes" : {
@@ -81,6 +174,329 @@
   },
   "openapi" : "3.0.1",
   "paths" : {
+    "/api/v1/auth/login" : {
+      "post" : {
+        "description" : "With the `COOKIE` transport the refresh token is set in the `cardigan_refresh_token` cookie and left out of the body. With `BODY` it is in the body.",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthSessionDto"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: VALIDATION_FAILED, MALFORMED_REQUEST"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: INVALID_CREDENTIALS"
+          },
+          "413" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: PAYLOAD_TOO_LARGE"
+          },
+          "415" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: UNSUPPORTED_MEDIA_TYPE"
+          },
+          "429" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: RATE_LIMITED"
+          },
+          "500" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: INTERNAL_ERROR"
+          }
+        },
+        "summary" : "Start a session with an email and a password",
+        "tags" : [ "Auth" ]
+      }
+    },
+    "/api/v1/auth/logout" : {
+      "post" : {
+        "description" : "Always answers 204 for a valid request, whether or not a session was ended. With the `COOKIE` transport the refresh token is read from the `cardigan_refresh_token` cookie, `refreshToken` in the body is ignored, and the cookie is cleared. With `BODY` the refresh token is read from the body.",
+        "operationId" : "logout",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LogoutRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: VALIDATION_FAILED, MALFORMED_REQUEST"
+          },
+          "413" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: PAYLOAD_TOO_LARGE"
+          },
+          "415" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: UNSUPPORTED_MEDIA_TYPE"
+          },
+          "500" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: INTERNAL_ERROR"
+          }
+        },
+        "summary" : "End the session of the refresh token",
+        "tags" : [ "Auth" ]
+      }
+    },
+    "/api/v1/auth/refresh" : {
+      "post" : {
+        "description" : "With the `COOKIE` transport the refresh token is read from the `cardigan_refresh_token` cookie, `refreshToken` in the body is ignored, and the new refresh token is set in that cookie. A failed refresh clears the cookie. With `BODY` the refresh token is read from and returned in the body.",
+        "operationId" : "refresh",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthTokensDto"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: VALIDATION_FAILED, MALFORMED_REQUEST"
+          },
+          "401" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: INVALID_REFRESH_TOKEN"
+          },
+          "413" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: PAYLOAD_TOO_LARGE"
+          },
+          "415" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: UNSUPPORTED_MEDIA_TYPE"
+          },
+          "500" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: INTERNAL_ERROR"
+          }
+        },
+        "summary" : "Exchange the refresh token for new tokens",
+        "tags" : [ "Auth" ]
+      }
+    },
+    "/api/v1/auth/register" : {
+      "post" : {
+        "description" : "With the `COOKIE` transport the refresh token is set in the `cardigan_refresh_token` cookie and left out of the body. With `BODY` it is in the body.",
+        "operationId" : "register",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AuthSessionDto"
+                }
+              }
+            },
+            "description" : "Created"
+          },
+          "400" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: VALIDATION_FAILED, MALFORMED_REQUEST"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: CONFLICT"
+          },
+          "413" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: PAYLOAD_TOO_LARGE"
+          },
+          "415" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: UNSUPPORTED_MEDIA_TYPE"
+          },
+          "429" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: RATE_LIMITED"
+          },
+          "500" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description" : "Error codes: INTERNAL_ERROR"
+          }
+        },
+        "summary" : "Create an account and start a session",
+        "tags" : [ "Auth" ]
+      }
+    },
     "/api/v1/users/me" : {
       "get" : {
         "operationId" : "getCurrentUser",

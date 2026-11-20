@@ -1,5 +1,6 @@
 package com.plcoding.cardigan.common.api.openapi
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.plcoding.cardigan.common.api.validation.Required
 import com.plcoding.cardigan.common.api.validation.ValidEnum
 import com.plcoding.cardigan.common.api.validation.ValidRange
@@ -119,7 +120,13 @@ class CardiganOpenApiCustomizer(
     private fun customizeRequestSchema(requestClass: Class<*>, schema: Schema<*>) {
         val fields = requestClass.declaredFields.filterNot { Modifier.isStatic(it.modifiers) }.associateBy { it.name }
         schema.required = fields.values.filter { it.isAnnotationPresent(Required::class.java) }.map { it.name }.ifEmpty { null }
-        schema.properties.orEmpty().forEach { (name, property) ->
+        schema.properties.orEmpty().toMap().forEach { (name, property) ->
+            // swagger-core wraps a reference to a named enum in allOf. Clients get the plain reference.
+            val reference = property.allOf?.singleOrNull()?.`$ref`
+            if (reference != null) {
+                schema.properties[name] = Schema<Any>().`$ref`(reference)
+                return@forEach
+            }
             property.nullable = null
             val field = fields[name] ?: return@forEach
             applyConstraintFormats(field, property as Schema<Any>)
@@ -133,10 +140,17 @@ class CardiganOpenApiCustomizer(
         }
     }
 
-    /** Response properties are required unless their Kotlin type is nullable. */
+    /**
+     * Response properties are required unless their Kotlin type is nullable. A nullable property is
+     * `nullable` in the document, except one that `@JsonInclude(NON_NULL)` leaves out instead.
+     */
     private fun customizeResponseSchema(responseClass: Class<*>, schema: Schema<*>) {
         val parameters = responseClass.kotlin.primaryConstructor?.parameters ?: return
         schema.required = parameters.filterNot { it.type.isMarkedNullable }.mapNotNull { it.name }.ifEmpty { null }
+        // A property that is left out when it has no value is never sent as null.
+        responseClass.declaredFields
+            .filter { it.getAnnotation(JsonInclude::class.java)?.value == JsonInclude.Include.NON_NULL }
+            .forEach { field -> schema.properties?.get(field.name)?.nullable = null }
     }
 
     private fun applyConstraintFormats(field: Field, property: Schema<Any>) {
