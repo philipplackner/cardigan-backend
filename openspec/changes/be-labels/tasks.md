@@ -2,8 +2,8 @@
 
 ## 1. Module setup
 
-- [ ] 1.1 Add `com.ibm.icu:icu4j` (latest stable release, looked up at implementation) to `gradle/libs.versions.toml` and to `board/build.gradle.kts`, together with the test dependencies `:board` needs (`spring-boot-starter-data-jpa-test`, `:common` test fixtures, as in `user/build.gradle.kts`). Verify with `./gradlew :board:dependencies` listing ICU4J and `./gradlew build` passing.
-- [ ] 1.2 Add `BoardTestApplication` in `board/src/test` (as `UserTestApplication`), unless `be-boards` already added it. Verify with an empty `@DataJpaTest` context starting against Testcontainers Postgres.
+- [x] 1.1 Add `com.ibm.icu:icu4j` (latest stable release, looked up at implementation) to `gradle/libs.versions.toml` and to `board/build.gradle.kts`, together with the test dependencies `:board` needs (`spring-boot-starter-data-jpa-test`, `:common` test fixtures, as in `user/build.gradle.kts`). Verify with `./gradlew :board:dependencies` listing ICU4J and `./gradlew build` passing.
+- [x] 1.2 Add `BoardTestApplication` in `board/src/test` (as `UserTestApplication`), unless `be-boards` already added it. Verify with an empty `@DataJpaTest` context starting against Testcontainers Postgres.
 
 ## 2. Case folding and domain model
 
