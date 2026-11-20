@@ -22,8 +22,8 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## 5. Sessions and refresh tokens
 
-- [ ] 5.1 Add `Session`, `RefreshToken`, `RefreshTokenTransport`, the token hash function, `RefreshTokenGenerator` and its `SecureRandom` implementation. Verify with unit tests: the token has 43 base64url characters, 1,000 generated tokens are distinct, and the hash is the lowercase hex SHA-256.
-- [ ] 5.2 Add `SessionEntity`, `RefreshTokenEntity`, the Spring Data repositories, the adapters, the mappers, and `UserRepository.findByEmail`. Verify with `@DataJpaTest` tests: the round trip at millisecond precision, the unique `token_hash`, the transport check constraint, deleting a user removes its sessions and tokens, the claim statement updates one row the first time and zero the second, and a duplicate email on `save` becomes `EmailAlreadyUsedException` without a prior `existsByEmail` call. Name the email unique constraint `users_email_unique`, and change the two duplicate tests in `JpaUserRepositoryTest` to expect `EmailAlreadyUsedException` from `save`.
+- [x] 5.1 Add `Session`, `RefreshToken`, `RefreshTokenTransport`, the token hash function, `RefreshTokenGenerator` and its `SecureRandom` implementation. Verify with unit tests: the token has 43 base64url characters, 1,000 generated tokens are distinct, and the hash is the lowercase hex SHA-256.
+- [x] 5.2 Add `SessionEntity`, `RefreshTokenEntity`, the Spring Data repositories, the adapters, the mappers, and `UserRepository.findByEmail`. Verify with `@DataJpaTest` tests: the round trip at millisecond precision, the unique `token_hash`, the transport check constraint, deleting a user removes its sessions and tokens, the claim statement updates one row the first time and zero the second, and a duplicate email on `save` becomes `EmailAlreadyUsedException` without a prior `existsByEmail` call. Name the email unique constraint `users_email_unique`, and change the two duplicate tests in `JpaUserRepositoryTest` to expect `EmailAlreadyUsedException` from `save`.
 
 ## 6. Rate limiter
 
