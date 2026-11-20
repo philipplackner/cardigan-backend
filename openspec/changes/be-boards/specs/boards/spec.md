@@ -49,7 +49,7 @@ Creating a board through `POST /api/v1/boards` SHALL also create the columns `To
 
 #### Scenario: Default columns in the response
 - **WHEN** a user creates a board
-- **THEN** the 201 body's `columns` holds exactly `To do`, `In progress`, `Done` with the positions 0, 1, 2, each with its own `id`
+- **THEN** the 201 body's `columns` holds exactly `To do`, `In progress`, `Done` with the positions 0, 1, 2, each with its own `id`, and each with `createdAt` and `updatedAt` equal to the board's `createdAt`
 
 #### Scenario: Request language is ignored
 - **WHEN** a user creates a board with the header `Accept-Language: de`
@@ -58,6 +58,10 @@ Creating a board through `POST /api/v1/boards` SHALL also create the columns `To
 #### Scenario: Rejected create stores no columns
 - **WHEN** a board create is rejected with 409 `CONFLICT` for a used key
 - **THEN** no board and no column is stored
+
+#### Scenario: Column write fails
+- **WHEN** storing the third default column fails during a board create
+- **THEN** the create fails, and neither the board nor any of its columns is stored
 
 ### Requirement: Key validation codes
 The `key` of a create request SHALL be trimmed as `text-length` defines and its letters `a` to `z` converted to uppercase, then checked in this order: empty is `REQUIRED`, fewer than 2 code points is `TOO_SHORT` with `min` 2, more than 5 is `TOO_LONG` with `max` 5, and any character outside `A` to `Z` is `INVALID_FORMAT`. A control character or unpaired surrogate in a key SHALL be `INVALID_FORMAT` too, never `INVALID_CHARACTER`.
@@ -72,6 +76,10 @@ The `key` of a create request SHALL be trimmed as `text-length` defines and its 
 
 #### Scenario: Tab inside the key
 - **WHEN** a board is created with the key `"C\tD"`
+- **THEN** the field error for `key` is `INVALID_FORMAT`
+
+#### Scenario: Unpaired surrogate in the key
+- **WHEN** a board is created with the key `"C\ud800D"`
 - **THEN** the field error for `key` is `INVALID_FORMAT`
 
 #### Scenario: Single wrong character
@@ -113,8 +121,12 @@ The uniqueness of board keys per user SHALL hold when requests run at the same t
 - **THEN** the response is 200 with `{ "boards": [] }`
 
 #### Scenario: Column change moves a board to the front
-- **WHEN** a user has the boards A and B, B was updated last, and the user then renames a column of A
+- **WHEN** a user creates board A, creates board B one minute later, and one minute after that renames a column of A to a new name
 - **THEN** the list returns A before B
+
+#### Scenario: A column change that changes nothing keeps the order
+- **WHEN** a user creates board A, creates board B one minute later, and one minute after that renames a column of A to its current name
+- **THEN** the list returns B before A
 
 #### Scenario: Identifier tie-break
 - **WHEN** two boards have the same `updatedAt` and `createdAt` and the identifiers `0f…` and `f0…`
@@ -124,8 +136,8 @@ The uniqueness of board keys per user SHALL hold when requests run at the same t
 `GET /api/v1/boards/{boardId}` SHALL return 200 with the full board when the authenticated user owns it.
 
 #### Scenario: Board with columns
-- **WHEN** a user requests their board whose columns `Done`, `To do`, `In progress` have the positions 2, 0, 1
-- **THEN** the response is 200 and `columns` holds `To do`, `In progress`, `Done` in that order
+- **WHEN** a user creates a board, moves its column `Done` to position 0, and then requests the board
+- **THEN** the response is 200 and `columns` holds `Done`, `To do`, `In progress` in that order with the positions 0, 1, 2
 
 #### Scenario: Uppercase board ID
 - **WHEN** a user requests their own board with the ID written in uppercase
@@ -135,7 +147,7 @@ The uniqueness of board keys per user SHALL hold when requests run at the same t
 `PATCH /api/v1/boards/{boardId}` SHALL change the `name` of a board the authenticated user owns and SHALL return 200 with the full board. `name` SHALL be optional, and sent as `null` it SHALL produce the field error `REQUIRED`. The request SHALL have no other field, so a `key` in the body SHALL be ignored.
 
 #### Scenario: Rename
-- **WHEN** a user sends `{ "name": " Platform " }` for their board `Roadmap`
+- **WHEN** a user sends `{ "name": " Platform " }` for their board `Roadmap` one minute after it was created
 - **THEN** the response is 200 with `name` `Platform`, the unchanged `key`, `createdAt` and `columns`, and `updatedAt` set to the time of the request
 
 #### Scenario: Null name
@@ -151,7 +163,7 @@ The uniqueness of board keys per user SHALL hold when requests run at the same t
 - **THEN** the response is 200 with `name` `Platform` and `key` `CRD`
 
 #### Scenario: Only a key in the body
-- **WHEN** a user sends `{ "key": "NEW" }` for their board with the key `CRD`
+- **WHEN** a user sends `{ "key": "NEW" }` for their board with the key `CRD` one minute after its last change
 - **THEN** the response is 200 with the unchanged board, including `updatedAt`
 
 ### Requirement: An unchanged board name does not move the updated time
@@ -162,11 +174,11 @@ A board's `updatedAt` SHALL change on a rename only when the stored name differs
 - **THEN** the response is 200 and `updatedAt` is unchanged
 
 #### Scenario: Empty patch
-- **WHEN** a user sends `{}` for their board
+- **WHEN** a user sends `{}` for their board one minute after its last change
 - **THEN** the response is 200 with the unchanged board, including `updatedAt`
 
 #### Scenario: Case-only rename
-- **WHEN** a board is named `roadmap` and a user later sends `{ "name": "Roadmap" }`
+- **WHEN** a board is named `roadmap` and, one minute after its last change, a user sends `{ "name": "Roadmap" }`
 - **THEN** the response is 200 with `name` `Roadmap`, and `updatedAt` changes to the time of the request
 
 ### Requirement: Delete a board
@@ -185,7 +197,7 @@ A board's `updatedAt` SHALL change on a rename only when the stored name differs
 - **THEN** its column rows are gone as well
 
 ### Requirement: Boards are isolated per user
-A board SHALL be readable and changeable only by its owner, the user whose token created it. For get, rename and delete, a `boardId` that names another user's board, names no board, or is not a UUID SHALL produce the same 404 `NOT_FOUND`, and that 404 SHALL be reported before field validation.
+A board SHALL be readable and changeable only by its owner, the user whose token created it. For get, rename and delete, a `boardId` that names another user's board, names no board, or is not a UUID in the canonical 8-4-4-4-12 form SHALL produce the same 404 `NOT_FOUND`, and that 404 SHALL be reported before field validation.
 
 #### Scenario: List shows only own boards
 - **WHEN** user A has a board and user B lists boards
@@ -207,6 +219,10 @@ A board SHALL be readable and changeable only by its owner, the user whose token
 - **WHEN** a user sends a GET to `/api/v1/boards/abc`
 - **THEN** the response is 404 `NOT_FOUND`
 
+#### Scenario: Short-form board ID
+- **WHEN** a user sends a GET for their own board with the leading zeros of an ID group left out
+- **THEN** the response is 404 `NOT_FOUND`
+
 #### Scenario: Missing board and invalid body
 - **WHEN** a user sends a PATCH with a name of normalized length 101 for an ID that names no board
 - **THEN** the response is 404 `NOT_FOUND`
@@ -219,11 +235,19 @@ A board SHALL store the user ID from the access token as its owner, without chec
 - **THEN** the response is 201 and the board is listed for that token
 
 ### Requirement: Board operations in the API document
-The OpenAPI document SHALL list the board operations under the tag `Boards` with the operationIds `listBoards`, `createBoard`, `getBoard`, `updateBoard` and `deleteBoard`. `createBoard` SHALL document 409 `CONFLICT`, and `getBoard`, `updateBoard` and `deleteBoard` SHALL document 404 `NOT_FOUND`.
+The OpenAPI document SHALL list the board operations under the tag `Boards` with the operationIds `listBoards`, `createBoard`, `getBoard`, `updateBoard` and `deleteBoard`. `createBoard` SHALL document 409 `CONFLICT`, and `getBoard`, `updateBoard` and `deleteBoard` SHALL document 404 `NOT_FOUND`. `createBoard` and `updateBoard` SHALL document 400 with the codes `VALIDATION_FAILED` and `MALFORMED_REQUEST`.
 
 #### Scenario: Operations and tag
 - **WHEN** the snapshot is inspected
 - **THEN** the five board operations exist with those operationIds, each with exactly the tag `Boards`
+
+#### Scenario: Error statuses
+- **WHEN** the snapshot is inspected
+- **THEN** `createBoard` documents 409 with the code `CONFLICT`, `getBoard`, `updateBoard` and `deleteBoard` document 404 with the code `NOT_FOUND`, `listBoards` and `createBoard` document no 404, and `createBoard` and `updateBoard` document 400 with the codes `VALIDATION_FAILED` and `MALFORMED_REQUEST`
+
+#### Scenario: Response fields are required
+- **WHEN** the board response schemas are inspected
+- **THEN** every property of the full board, the list item and the board list is required, and none is nullable
 
 #### Scenario: Request fields
 - **WHEN** the board request schemas are inspected

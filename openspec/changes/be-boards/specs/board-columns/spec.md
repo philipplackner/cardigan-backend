@@ -51,7 +51,7 @@ The backend SHALL NOT offer an endpoint that lists a board's columns on their ow
 `PATCH /api/v1/boards/{boardId}/columns/{columnId}` SHALL change the `name` of a column and SHALL return 200 with that column. `name` SHALL be optional, and sent as `null` it SHALL produce the field error `REQUIRED`. The request SHALL have no other field, so a `position` in the body SHALL be ignored.
 
 #### Scenario: Rename
-- **WHEN** a user sends `{ "name": "QA" }` for their column `Review`
+- **WHEN** a user sends `{ "name": "QA" }` for their column `Review` one minute after it was created
 - **THEN** the response is 200 with `name` `QA`, the unchanged `position` and `createdAt`, and `updatedAt` set to the time of the request
 
 #### Scenario: Null name
@@ -85,7 +85,7 @@ The backend SHALL NOT offer an endpoint that lists a board's columns on their ow
 The valid range of `position` SHALL be 0 to n-1 for the n columns the board has at the moment the move is applied, and an `OUT_OF_RANGE` field error SHALL carry that `min` and `max`. A position that is in range for the current columns SHALL be applied as sent, even when the client's view of the board was stale.
 
 #### Scenario: Position equal to the column count
-- **WHEN** a board has 3 columns and a column is moved to position 3
+- **WHEN** a board has 3 columns and, one minute after its last change, a column is moved to position 3
 - **THEN** the response is 400 `VALIDATION_FAILED` with the field error `{ "field": "position", "code": "OUT_OF_RANGE", "min": 0, "max": 2 }`, and no position or timestamp changes
 
 #### Scenario: Negative position
@@ -108,7 +108,7 @@ The valid range of `position` SHALL be 0 to n-1 for the n columns the board has 
 `DELETE /api/v1/boards/{boardId}/columns/{columnId}` SHALL permanently delete a column and SHALL return 204 with no body. The columns after it SHALL move one position down and keep their `updatedAt`.
 
 #### Scenario: Middle column deleted
-- **WHEN** a board has the columns A, B, C and a user deletes B
+- **WHEN** a board has the columns A, B, C and a user deletes B one minute after the board's last change
 - **THEN** the response is 204 with an empty body, and the board holds A and C at the positions 0 and 1 with unchanged `updatedAt`
 
 #### Scenario: Last column deleted
@@ -127,11 +127,11 @@ A column rename whose name equals the stored one after normalization, an empty P
 - **THEN** the response is 200, and the column's and the board's `updatedAt` are unchanged
 
 #### Scenario: Empty patch
-- **WHEN** a user sends `{}` for their column
+- **WHEN** a user sends `{}` for their column one minute after the board's last change
 - **THEN** the response is 200 with the unchanged column, and the board's `updatedAt` is unchanged
 
 #### Scenario: Move to the current position
-- **WHEN** a column is at position 1 and a user moves it to position 1
+- **WHEN** a column is at position 1 and, one minute after the board's last change, a user moves it to position 1
 - **THEN** the response is 200 with all columns unchanged, and no column's and not the board's `updatedAt` changes
 
 ### Requirement: Column changes update the board
@@ -150,19 +150,34 @@ A column create, an effective rename, an effective move and a delete SHALL set t
 - **THEN** the board's `updatedAt` is the time of the delete
 
 ### Requirement: Positions stay dense under concurrent requests
-Column creates, moves and deletes on the same board SHALL be applied one after the other, each on the result of the one before. After any number of simultaneous requests, the board's column positions SHALL be exactly 0 to n-1, each used once. Requests on different boards SHALL NOT wait for each other.
+Column creates, moves and deletes on the same board SHALL be applied one after the other, each on the result of the one before. After any number of simultaneous requests, the board's column positions SHALL be exactly 0 to n-1, each used once.
 
 #### Scenario: Simultaneous creates
 - **WHEN** ten create requests for one board with three columns arrive at the same time
 - **THEN** all ten return 201, and the board has 13 columns with the positions 0 to 12, each used once
 
 #### Scenario: Simultaneous move and delete
-- **WHEN** a move and a delete of two different columns of one board arrive at the same time
-- **THEN** both succeed or the move returns `OUT_OF_RANGE`, and the remaining positions are dense
+- **WHEN** a board has the columns A, B, C, and a move of A to position 2 and a delete of B arrive at the same time
+- **THEN** the delete returns 204, and the result is one of exactly two: the move returns 200 and the board holds C, A at the positions 0, 1; or the move returns 400 `OUT_OF_RANGE` with `max` 1 and the board holds A, C at the positions 0, 1
 
 #### Scenario: Negative position written past the application
 - **WHEN** a column row with the position -1 is inserted directly into the database
 - **THEN** the database rejects it
+
+### Requirement: Board lock waits are bounded
+Requests on different boards SHALL NOT wait for each other's board lock, and a request SHALL NOT wait for a board lock longer than the configured lock timeout. A request that reaches the lock timeout SHALL fail with 500 `INTERNAL_ERROR` and SHALL change nothing.
+
+#### Scenario: Write waits for an open write on the same board
+- **WHEN** a transaction holds the row lock of board X and a column create for X arrives
+- **THEN** the create does not complete while the lock is held, and after the lock is released it returns the position after the board's last column
+
+#### Scenario: Write on another board does not wait
+- **WHEN** a transaction holds the row lock of board X and a column create for board Y arrives
+- **THEN** the create for Y completes while the lock on X is still held
+
+#### Scenario: Lock wait ends at the timeout
+- **WHEN** a transaction holds the row lock of board X for longer than the configured lock timeout and a column create for X arrives
+- **THEN** the create fails once the lock timeout has passed, and no column is stored
 
 ### Requirement: Columns are reachable only through their own board
 Every column endpoint SHALL first resolve `boardId` for the authenticated user and then `columnId` within that board. A board or column that belongs to another user, does not exist, or has a malformed ID, and a column addressed under a board it does not belong to, SHALL produce the same 404 `NOT_FOUND`, reported before field validation.
@@ -179,6 +194,22 @@ Every column endpoint SHALL first resolve `boardId` for the authenticated user a
 - **WHEN** user B sends a move for user A's board and column IDs
 - **THEN** the response is 404 `NOT_FOUND` and no position changes
 
+#### Scenario: Delete another user's column under an own board
+- **WHEN** user B sends a DELETE for user A's column ID under the path of user B's own board
+- **THEN** the response is 404 `NOT_FOUND`, user A's board still has the column, and no position changes in either board
+
+#### Scenario: Move another user's column under an own board
+- **WHEN** user B sends a move with `{ "position": 0 }` for user A's column ID under the path of user B's own board
+- **THEN** the response is 404 `NOT_FOUND` and no position or `updatedAt` changes in either board
+
+#### Scenario: Rename another user's column under an own board
+- **WHEN** user B sends `{ "name": "X" }` for user A's column ID under the path of user B's own board
+- **THEN** the response is 404 `NOT_FOUND` and user A's column is unchanged
+
+#### Scenario: Delete a column under the wrong own board
+- **WHEN** a user owns the boards X and Y and sends a DELETE for a column of X under the path of Y
+- **THEN** the response is 404 `NOT_FOUND`, and X and Y keep all their columns and positions
+
 #### Scenario: Malformed column ID
 - **WHEN** a user sends a DELETE to `/api/v1/boards/{boardId}/columns/abc` for their own board
 - **THEN** the response is 404 `NOT_FOUND`
@@ -192,11 +223,19 @@ Every column endpoint SHALL first resolve `boardId` for the authenticated user a
 - **THEN** the response is 404 `NOT_FOUND`
 
 ### Requirement: Column operations in the API document
-The OpenAPI document SHALL list the column operations under the tag `Columns` with the operationIds `createColumn`, `updateColumn`, `moveColumn` and `deleteColumn`, each documenting 404 `NOT_FOUND`. `position` in the move request SHALL be documented as a required integer.
+The OpenAPI document SHALL list the column operations under the tag `Columns` with the operationIds `createColumn`, `updateColumn`, `moveColumn` and `deleteColumn`, each documenting 404 `NOT_FOUND`. `createColumn`, `updateColumn` and `moveColumn` SHALL document 400 with the codes `VALIDATION_FAILED` and `MALFORMED_REQUEST`. `position` in the move request SHALL be documented as a required integer.
 
 #### Scenario: Operations and tag
 - **WHEN** the snapshot is inspected
 - **THEN** the four column operations exist with those operationIds, each with exactly the tag `Columns`
+
+#### Scenario: Error statuses
+- **WHEN** the snapshot is inspected
+- **THEN** each of the four column operations documents 404 with the code `NOT_FOUND`, and `createColumn`, `updateColumn` and `moveColumn` document 400 with the codes `VALIDATION_FAILED` and `MALFORMED_REQUEST`
+
+#### Scenario: Response fields are required
+- **WHEN** the column response schemas are inspected
+- **THEN** every property of the column and the column list is required, and none is nullable
 
 #### Scenario: Request fields
 - **WHEN** the column request schemas are inspected

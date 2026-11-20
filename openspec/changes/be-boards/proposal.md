@@ -21,10 +21,10 @@ Boards and columns are the frame every card hangs off, and both clients have a b
 - A board has `id`, `name`, `key`, `createdAt`, `updatedAt`, and `columns` on the full board. A column has `id`, `name`, `position`, `createdAt`, `updatedAt` (D16).
 - A rename to the current name or a move to the current position changes nothing, including every `updatedAt` (D8).
 - Every wrong character in a board key, control characters included, is `INVALID_FORMAT`, checked after the length (D11).
-- Column create, move and delete lock the board row, so positions stay dense under concurrent requests (D13). The move range is checked under that lock (D20).
+- Column create, move and delete lock the board row, so positions stay dense under concurrent requests (D13). The move range is checked under that lock (D20). A request waits for the lock for at most a configured timeout (5 seconds) and then fails with 500 `INTERNAL_ERROR`.
 - No caps on boards per user or columns per board (D9). No `cardCount` yet (D10).
 - New tables `boards` and `columns` in the schema `board_service`. A board's owner is a plain UUID without a foreign key to the users table (D12). Columns are removed with their board by the database (D19). No Flyway migration yet; dev and tests build the schema from the entities.
-- `:common` gets a base exception for an out-of-range field (D20) and the shared `@NotNullWhenPresent` constraint for PATCH requests (D21), unless `be-labels` added the latter first.
+- `:common` gets a base exception for an out-of-range field (D20) and the shared `@NotNullWhenPresent` constraint for PATCH requests (D21), unless `be-labels` added the latter first. Path UUIDs are accepted only in the canonical form, so short forms are 404 like any other malformed ID.
 - `openapi.json` gets the nine operations and the board and column schemas.
 - `:board` gets production code, so the `module-boundaries` scenario that expects no source files there changes. `be-labels` makes the same change.
 
@@ -90,7 +90,7 @@ Not in this change: cards, labels, import/export, and the baseline migration.
 
 ## Impact
 
-- **Code**: `:board` (board and column domain models, services, controllers, DTOs, mappers, the key constraint, entities, repositories, module test app). `:common` (a base exception for an out-of-range field with its handler mapping, `@NotNullWhenPresent` if it doesn't exist yet, and the field-violation helper opened up so a module can write its own constraint). `:app` (E2E tests, cleanup of `board_service` in the E2E base class).
+- **Code**: `:board` (board and column domain models, services, controllers, DTOs, mappers, the key constraint, entities, repositories, module test app). `:common` (a base exception for an out-of-range field with its handler mapping, `@NotNullWhenPresent` if it doesn't exist yet, the field-violation helper opened up so a module can write its own constraint, and a canonical path UUID converter). Config: `cardigan.board.lock-timeout` in `application.yaml`. `:app` (E2E tests, cleanup of `board_service` in the E2E base class).
 - **API**: nine new operations and the schemas `BoardDto`, `BoardSummaryDto`, `BoardListDto`, `ColumnDto`, `ColumnListDto`, `CreateBoardRequest`, `UpdateBoardRequest`, `CreateColumnRequest`, `UpdateColumnRequest` and `MoveColumnRequest` in `openapi.json`. Additive only.
 - **Dependencies**: none new.
 - **Database**: tables `board_service.boards` and `board_service.columns`. Dev creates them through `ddl-auto: update`. They become part of the baseline migration before the first production deploy.

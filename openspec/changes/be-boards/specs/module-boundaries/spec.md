@@ -10,5 +10,5 @@
 - **THEN** the `:user` and `:board` layer packages exist on disk under `com.plcoding.cardigan.user` and `com.plcoding.cardigan.board`, and the `:common` layer packages exist under `com.plcoding.cardigan.common`
 
 #### Scenario: No placeholder classes
-- **WHEN** the main source folders of `:user`, `:board` and `:common` are inspected
-- **THEN** every source file holds real code, and a layer package without real code holds no source file
+- **WHEN** the layer packages of `:user`, `:board` and `:common` in the main source folders are inspected
+- **THEN** each one holds either at least one Kotlin source file at any depth and no `.gitkeep`, or a `.gitkeep` and no source file
