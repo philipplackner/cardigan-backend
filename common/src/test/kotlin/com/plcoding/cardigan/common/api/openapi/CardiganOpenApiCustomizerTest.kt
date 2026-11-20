@@ -4,6 +4,7 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNull
+import com.plcoding.cardigan.common.api.validation.PatchRequest
 import com.plcoding.cardigan.common.api.validation.Required
 import com.plcoding.cardigan.common.api.validation.ValidEnum
 import com.plcoding.cardigan.common.api.validation.ValidRange
@@ -27,6 +28,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.test.web.servlet.client.RestTestClient
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -53,6 +55,21 @@ data class CreateWidgetRequest(
     val position: BigInteger?,
 )
 
+class UpdateWidgetRequest : PatchRequest() {
+
+    @ValidText(min = 1, max = 10)
+    var name: String? = null
+        set(value) {
+            field = sent("name", value)
+        }
+
+    @ValidEnum(WidgetColorDto::class)
+    var color: String? = null
+        set(value) {
+            field = sent("color", value)
+        }
+}
+
 data class WidgetDto(
     val id: UUID,
     val name: String,
@@ -69,6 +86,10 @@ class WidgetController {
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(404, ErrorCode.NOT_FOUND)
     fun createWidget(@RequestBody request: CreateWidgetRequest): WidgetDto = error("not called")
+
+    @PatchMapping("/api/v1/widgets/{id}")
+    @Operation(operationId = "updateWidget")
+    fun updateWidget(@RequestBody request: UpdateWidgetRequest, @PathVariable id: UUID): WidgetDto = error("not called")
 
     @GetMapping("/api/v1/widgets/{id}")
     @Operation(operationId = "getWidget")
@@ -128,6 +149,19 @@ class CardiganOpenApiCustomizerTest @Autowired constructor(
             assertThat(property.asMap()["nullable"], name).isNull()
         }
         assertThat(requestProperties.keys).isEqualTo(setOf("name", "note", "ownerId", "labelIds", "color", "position"))
+    }
+
+    @Test
+    fun `PatchRequest subclass documents exactly its own properties, none required and none nullable`() {
+        val schema = document.at("components", "schemas", "UpdateWidgetRequest")
+
+        assertThat(schema.at("properties").keys).isEqualTo(setOf("name", "color"))
+        assertThat(schema["required"]).isNull()
+        schema.at("properties").forEach { (name, property) ->
+            assertThat(property.asMap()["nullable"], name).isNull()
+        }
+        assertThat(schema.at("properties", "color")["enum"]).isEqualTo(listOf("RED", "GREEN"))
+        assertThat(document.at("components", "schemas").containsKey("PatchRequest")).isFalse()
     }
 
     @Test

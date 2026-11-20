@@ -5,6 +5,7 @@ import com.plcoding.cardigan.common.api.validation.fieldErrorsOf
 import com.plcoding.cardigan.common.api.web.PayloadTooLargeException
 import com.plcoding.cardigan.common.domain.exception.ErrorCode
 import com.plcoding.cardigan.common.domain.exception.FieldErrorCode
+import com.plcoding.cardigan.common.domain.exception.FieldOutOfRangeException
 import com.plcoding.cardigan.common.domain.exception.ResourceNotFoundException
 import com.plcoding.cardigan.common.domain.exception.UnauthenticatedException
 import com.plcoding.cardigan.common.domain.exception.UniquenessConflictException
@@ -81,6 +82,13 @@ class CommonExceptionHandler : ResponseEntityExceptionHandler() {
     @ExceptionHandler(RequestValidationException::class)
     fun handleRequestValidation(ex: RequestValidationException): ResponseEntity<ProblemDetail> =
         problem(ErrorCode.VALIDATION_FAILED, ex.fieldErrors)
+
+    @ExceptionHandler(FieldOutOfRangeException::class)
+    fun handleFieldOutOfRange(ex: FieldOutOfRangeException): ResponseEntity<ProblemDetail> =
+        problem(
+            ErrorCode.VALIDATION_FAILED,
+            listOf(ProblemFieldError(ex.field, FieldErrorCode.OUT_OF_RANGE, min = ex.min, max = ex.max)),
+        )
 
     @ExceptionHandler(ResourceNotFoundException::class)
     fun handleNotFound(ex: ResourceNotFoundException): ResponseEntity<ProblemDetail> =
