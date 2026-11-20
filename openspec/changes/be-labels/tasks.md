@@ -32,9 +32,9 @@
 
 ## 7. Integration and project rules
 
-- [ ] 7.1 Update the "Current state" paragraph in `AGENTS.md` (`CLAUDE.md` is a symlink to it): `:board` has the `labels` table and the label endpoints, and colors are upper-case constants. Also update the layer table (`domain` may depend on: Kotlin, `java.*`, `common.domain`, and ICU4J for case folding in `:board`) and add `text/  pure text helpers (CaseFolding.kt)` under `domain/` in the business module layout. If this change added `@NotNullWhenPresent`, add it and `PatchRequest` to the places that list the `:common` constraints, and note in the request DTO rules that PATCH request DTOs extend `PatchRequest` with body properties. Verify by reading the changed lines against the code.
+- [x] 7.1 Update the "Current state" paragraph in `AGENTS.md` (`CLAUDE.md` is a symlink to it): `:board` has the `labels` table and the label endpoints, and colors are upper-case constants. Also update the layer table (`domain` may depend on: Kotlin, `java.*`, `common.domain`, and ICU4J for case folding in `:board`) and add `text/  pure text helpers (CaseFolding.kt)` under `domain/` in the business module layout. If this change added `@NotNullWhenPresent`, add it and `PatchRequest` to the places that list the `:common` constraints, and note in the request DTO rules that PATCH request DTOs extend `PatchRequest` with body properties. Verify by reading the changed lines against the code.
 - [ ] 7.2 Start the app with `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun` and check through the Supabase MCP (dev branch) that `board_service.labels` exists with the unique constraint on (`owner_id`, `name_key`). Verify by listing the table and its constraints.
-- [ ] 7.3 Run `./gradlew build` and `openspec validate be-labels --strict`. Verify that both pass, then commit per the Git workflow in `CLAUDE.md`.
+- [x] 7.3 Run `./gradlew build` and `openspec validate be-labels --strict`. Verify that both pass, then commit per the Git workflow in `CLAUDE.md`.
 
 ## Workflow follow-up
 
