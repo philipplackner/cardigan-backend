@@ -39,6 +39,9 @@ cardigan:
       access-token-ttl: 15m
   web:
     max-request-body-size: 256KB
+  board:
+    # How long a write waits for the row lock of its board before it fails with a 500.
+    lock-timeout: 5s
 
 springdoc:
   api-docs:

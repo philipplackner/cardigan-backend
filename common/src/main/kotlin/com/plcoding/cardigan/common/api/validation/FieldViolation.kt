@@ -15,7 +15,11 @@ data class FieldViolation(
     val max: Long? = null,
 )
 
-internal fun ConstraintValidatorContext.reject(violation: FieldViolation): Boolean {
+/**
+ * Reports [violation] as the field error of the constraint being checked. Returns false, so a
+ * validator can end with `return context.reject(...)`.
+ */
+fun ConstraintValidatorContext.reject(violation: FieldViolation): Boolean {
     unwrap(HibernateConstraintValidatorContext::class.java).withDynamicPayload(violation)
     return false
 }

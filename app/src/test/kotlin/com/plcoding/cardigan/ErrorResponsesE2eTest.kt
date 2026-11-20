@@ -146,6 +146,27 @@ class ErrorResponsesE2eTest : E2eTest() {
     }
 
     @Test
+    fun `out-of-range field from a service is VALIDATION_FAILED with OUT_OF_RANGE, min and max`() {
+        val token = signIn().token
+
+        val result = call(HttpMethod.POST, "/api/v1/test/out-of-range", token)
+
+        assertThat(result.assertProblem(ErrorCode.VALIDATION_FAILED).fieldErrors).containsExactly(
+            mapOf("field" to "position", "code" to "OUT_OF_RANGE", "min" to 0, "max" to 2),
+        )
+        assertThat(result.body).doesNotContain("range-marker")
+    }
+
+    @Test
+    fun `short-form path UUID is NOT_FOUND`() {
+        val token = signIn().token
+
+        call(HttpMethod.GET, "/api/v1/test/things/b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10", token)
+            .assertProblem(ErrorCode.NOT_FOUND)
+        call(HttpMethod.GET, "/api/v1/test/things/1-2-3-4-5", token).assertProblem(ErrorCode.NOT_FOUND)
+    }
+
+    @Test
     fun `endpoint failure is INTERNAL_ERROR with a fixed detail and a logged stack trace`(output: CapturedOutput) {
         val token = signIn().token
 

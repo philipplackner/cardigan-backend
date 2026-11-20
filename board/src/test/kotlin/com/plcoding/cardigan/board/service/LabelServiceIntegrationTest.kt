@@ -54,7 +54,11 @@ class RacingLabelRepository(
     }
 }
 
-@SpringBootTest(classes = [BoardTestApplication::class], webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(
+    classes = [BoardTestApplication::class],
+    webEnvironment = SpringBootTest.WebEnvironment.NONE,
+    properties = ["cardigan.board.lock-timeout=5s"],
+)
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, LabelServiceIntegrationTest.Config::class)
 class LabelServiceIntegrationTest @Autowired constructor(
