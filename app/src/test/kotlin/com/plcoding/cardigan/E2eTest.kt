@@ -104,7 +104,7 @@ abstract class E2eTest {
 
     @BeforeEach
     fun setUpE2e() {
-        databaseCleaner.clean("user_service")
+        databaseCleaner.clean("user_service", "board_service")
         clock.set(START)
         client = RestTestClient.bindToServer().baseUrl(baseUrl).build()
     }
