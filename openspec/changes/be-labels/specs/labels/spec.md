@@ -78,12 +78,20 @@ A label color on the wire SHALL be a string holding one of the palette names of 
 - **THEN** the response is 200 with `name` `Bug` and `color` `BLUE`
 
 #### Scenario: Rename and recolor
-- **WHEN** a user sends `{ "name": "Defect", "color": "ROSE" }`
-- **THEN** the response is 200 with both new values, and `createdAt` is unchanged
+- **WHEN** a user sends `{ "name": "Defect", "color": "ROSE" }` for their label `Bug` colored `RED`, one minute after creating it
+- **THEN** the response is 200 with `name` `Defect` and `color` `ROSE`, `createdAt` is still the creation time, and `updatedAt` is one minute later
 
 #### Scenario: Null name
 - **WHEN** a user sends `{ "name": null }`
 - **THEN** the response is 400 `VALIDATION_FAILED` with `name` `REQUIRED`, and the label is unchanged
+
+#### Scenario: Null color
+- **WHEN** a user sends `{ "color": null }` for their label colored `RED`
+- **THEN** the response is 400 `VALIDATION_FAILED` with exactly the field error `color` `REQUIRED`, and the label is still `RED`
+
+#### Scenario: Unknown color on update
+- **WHEN** a user sends `{ "color": "Red" }` for their label colored `RED`
+- **THEN** the response is 400 `VALIDATION_FAILED` with exactly the field error `color` `INVALID_VALUE`, and the label is unchanged
 
 #### Scenario: Whitespace-only name
 - **WHEN** a user sends `{ "name": "   " }`
@@ -101,19 +109,19 @@ A label's `updatedAt` SHALL change to the time of the request only when the stor
 - **THEN** the response is 200 and `updatedAt` is unchanged
 
 #### Scenario: Same name with surrounding spaces
-- **WHEN** a label is named `Bug` and a user later sends `{ "name": " Bug " }`
+- **WHEN** a label is named `Bug` and, one minute after its last change, a user sends `{ "name": " Bug " }`
 - **THEN** the response is 200 and `updatedAt` is unchanged
 
 #### Scenario: Empty patch
-- **WHEN** a user sends `{}` for their label
+- **WHEN** a user sends `{}` for their label one minute after its last change
 - **THEN** the response is 200 with the unchanged label, including `updatedAt`
 
 #### Scenario: One of two fields differs
-- **WHEN** a label is `Bug` and `RED` and a user later sends `{ "name": "Bug", "color": "BLUE" }`
+- **WHEN** a label is `Bug` and `RED` and, one minute after its last change, a user sends `{ "name": "Bug", "color": "BLUE" }`
 - **THEN** `updatedAt` changes to the time of the request
 
 #### Scenario: Case-only rename
-- **WHEN** a label is named `bug` and a user later sends `{ "name": "Bug" }`
+- **WHEN** a label is named `bug` and, one minute after its last change, a user sends `{ "name": "Bug" }`
 - **THEN** the response is 200 with `name` `Bug`, and `updatedAt` changes to the time of the request
 
 ### Requirement: Name clashes are conflicts
@@ -151,15 +159,19 @@ Creating or renaming a label to a name that, after case folding, equals the name
 The uniqueness of label names per user SHALL hold when requests run at the same time. Of several simultaneous requests that would give one user two labels with the same case-folded name, exactly one SHALL succeed, and each other SHALL return 409 `CONFLICT` with `ALREADY_USED` for `name`.
 
 #### Scenario: Two simultaneous creates
-- **WHEN** a user sends two create requests for `Bug` and `bug` at the same time
-- **THEN** one response is 201, the other is 409 `CONFLICT` with `ALREADY_USED` for `name`, and the user has exactly one of the two labels
+- **WHEN** two create requests of one user for `Bug` and `bug` are released together from a start barrier, repeated for 20 rounds with a new user each round
+- **THEN** in every round one response is 201, the other is 409 `CONFLICT` with `ALREADY_USED` for `name`, and the user has exactly one of the two labels
+
+#### Scenario: Clash found only by the database
+- **WHEN** the labels `Bug` and `bug` of one user are saved through the label repository, without the service's name check
+- **THEN** the second save fails with the name-already-used error and not with a generic database error, and the same two saves for two different users succeed
 
 #### Scenario: Duplicate written past the application
 - **WHEN** a second label row with the same owner and the same case-folded name is inserted directly into the database
 - **THEN** the database rejects it
 
 ### Requirement: Delete a label
-`DELETE /api/v1/labels/{labelId}` SHALL permanently delete a label the authenticated user owns and SHALL return 204 with no body.
+`DELETE /api/v1/labels/{labelId}` SHALL permanently delete a label the authenticated user owns and SHALL return 204 with no body. A PATCH or DELETE for a label that another request deleted in the meantime SHALL return 404 `NOT_FOUND` and SHALL NOT recreate the label.
 
 #### Scenario: Label deleted
 - **WHEN** a user deletes one of their two labels
@@ -169,6 +181,10 @@ The uniqueness of label names per user SHALL hold when requests run at the same 
 - **WHEN** a user deletes a label and sends the same delete again
 - **THEN** the second response is 404 `NOT_FOUND`
 
+#### Scenario: Update after a concurrent delete
+- **WHEN** a label is deleted after an update request for it was accepted but before that update is stored
+- **THEN** the update returns 404 `NOT_FOUND` and the label list does not contain the label
+
 ### Requirement: Labels are isolated per user
 A label SHALL be readable and changeable only by its owner, the user who created it. For update and delete, a `labelId` that names another user's label, names no label, or is not a UUID SHALL produce the same 404 `NOT_FOUND`, and that 404 SHALL be reported before field validation.
 
@@ -177,7 +193,7 @@ A label SHALL be readable and changeable only by its owner, the user who created
 - **THEN** user B's list does not contain user A's label
 
 #### Scenario: Update another user's label
-- **WHEN** user B sends a PATCH for the ID of user A's label
+- **WHEN** user B sends a PATCH with `{ "color": "BLUE" }` for the ID of user A's label
 - **THEN** the response is 404 `NOT_FOUND`, identical to the response for an ID that never existed, and user A's label is unchanged
 
 #### Scenario: Delete another user's label
@@ -185,16 +201,16 @@ A label SHALL be readable and changeable only by its owner, the user who created
 - **THEN** the response is 404 `NOT_FOUND` and user A still has the label
 
 #### Scenario: Malformed label ID
-- **WHEN** a user sends a PATCH to `/api/v1/labels/abc`
-- **THEN** the response is 404 `NOT_FOUND`
+- **WHEN** a user sends a PATCH with `{ "color": "BLUE" }`, or a DELETE, to `/api/v1/labels/abc`
+- **THEN** each response is 404 `NOT_FOUND`
 
 #### Scenario: Missing label and invalid body
 - **WHEN** a user sends a PATCH with a name of normalized length 31 for an ID that names no label
 - **THEN** the response is 404 `NOT_FOUND`
 
 #### Scenario: Uppercase label ID
-- **WHEN** a user sends a PATCH for their own label with the ID written in uppercase
-- **THEN** the response is 200 and `id` is lowercase
+- **WHEN** a user sends a PATCH with `{ "color": "BLUE" }` for their own label with the ID written in uppercase
+- **THEN** the response is 200 with `color` `BLUE`, and `id` is lowercase
 
 ### Requirement: No limit on the number of labels
 The backend SHALL NOT limit how many labels a user has.
@@ -216,4 +232,8 @@ The generated OpenAPI document SHALL contain the operations `createLabel`, `list
 
 #### Scenario: Request fields
 - **WHEN** the request schemas are inspected
-- **THEN** the create request lists `name` and `color` as required, the update request lists no required field, and no request property is nullable
+- **THEN** the create request lists `name` and `color` as required, the update request lists no required field and has exactly the properties `name` and `color`, no request property is nullable, and no schema exists for a request base type
+
+#### Scenario: Error statuses
+- **WHEN** the responses of the four operations in the snapshot are inspected
+- **THEN** `createLabel` documents exactly 201, 400, 401, 409, 413, 415 and 500, `listLabels` 200, 401 and 500, `updateLabel` 200, 400, 401, 404, 409, 413, 415 and 500, and `deleteLabel` 204, 401, 404 and 500, with `CONFLICT` in the 409 description and `NOT_FOUND` in the 404 description

@@ -72,7 +72,7 @@ Not in this change: attaching labels to cards, and removing a deleted label from
 ## Impact
 
 - **Code**: `:board` (label domain model, service, controller, DTOs, mappers, entity, repository, case-folding helper, module test app). `:common` (a validation constraint that rejects `null` for an optional PATCH field, shared with `be-boards`; added by whichever change is implemented first). `:app` (E2E tests, database cleanup of `board_service` in the E2E base class).
-- **API**: four new operations and the schemas `LabelDto`, `LabelListDto`, `LabelColorDto`, `CreateLabelRequest` and `UpdateLabelRequest` in `openapi.json`. Additive only.
+- **API**: four new operations and the schemas `LabelDto`, `LabelListDto`, `CreateLabelRequest` and `UpdateLabelRequest` in `openapi.json`. The color is an inline string enum in all three places it appears. Additive only.
 - **Dependencies**: `com.ibm.icu:icu4j` in `gradle/libs.versions.toml`, used by `:board`. About 14 MB more in the app jar.
 - **Database**: table `board_service.labels`. Dev creates it through `ddl-auto: update`. It becomes part of the baseline migration before the first production deploy.
 - **Other chunks**: `be-cards` attaches labels and extends label deletion. `be-import-export` reuses the case-folding helper and the color constants. `mob-labels-connect` and `web-labels-connect` generate from the updated `openapi.json`.
