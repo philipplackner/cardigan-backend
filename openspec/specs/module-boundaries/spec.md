@@ -47,5 +47,5 @@ The build SHALL consist of exactly the modules `:app`, `:common`, `:user` and `:
 - **THEN** the `:user` and `:board` layer packages exist on disk under `com.plcoding.cardigan.user` and `com.plcoding.cardigan.board`, and the `:common` layer packages exist under `com.plcoding.cardigan.common`
 
 #### Scenario: No placeholder classes
-- **WHEN** the `:board` main source folder is inspected
-- **THEN** it contains no source files
+- **WHEN** the layer packages of `:user`, `:board` and `:common` in the main source folders are inspected
+- **THEN** each one holds either at least one Kotlin source file at any depth and no `.gitkeep`, or a `.gitkeep` and no source file

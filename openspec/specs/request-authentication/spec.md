@@ -109,7 +109,7 @@ Every 401 `UNAUTHENTICATED` response SHALL carry the header `WWW-Authenticate: B
 - **THEN** the `WWW-Authenticate` header is `Bearer` with no `error` or `error_description`
 
 ### Requirement: Public routes are listed explicitly
-Every path under `/api/v1` SHALL require an access token unless it is on an explicit list of public routes, each given by method and exact path. This change adds no public route under `/api/v1`. Paths outside `/api/v1` SHALL NOT require a token. On public routes and on paths outside `/api/v1`, the backend SHALL ignore the `Authorization` header: a missing, invalid, expired or non-bearer value SHALL NOT produce 401. Every endpoint mapping SHALL be under `/api/v1/`.
+Every path under `/api/v1` SHALL require an access token unless it is on an explicit list of public routes, each given by method and exact path. The public routes are `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh` and `POST /api/v1/auth/logout`. Paths outside `/api/v1` SHALL NOT require a token. On public routes and on paths outside `/api/v1`, the backend SHALL ignore the `Authorization` header: a missing, invalid, expired or non-bearer value SHALL NOT produce 401. Every endpoint mapping SHALL be under `/api/v1/`.
 
 #### Scenario: Unknown API path without a token
 - **WHEN** a client without a token calls `GET /api/v1/does-not-exist`
@@ -130,6 +130,22 @@ Every path under `/api/v1` SHALL require an access token unless it is on an expl
 #### Scenario: No endpoint outside the API base path
 - **WHEN** the application's request mappings are listed
 - **THEN** every controller mapping starts with `/api/v1/`
+
+#### Scenario: Login without a token
+- **WHEN** a client without an `Authorization` header calls `POST /api/v1/auth/login` with valid credentials
+- **THEN** the response is 200
+
+#### Scenario: Login with a broken token
+- **WHEN** a client calls `POST /api/v1/auth/login` with valid credentials and the header `Authorization: Bearer garbage`
+- **THEN** the response is 200
+
+#### Scenario: Other method on an auth path
+- **WHEN** a client without a token calls `GET /api/v1/auth/login`
+- **THEN** the response is 401 `UNAUTHENTICATED`
+
+#### Scenario: Auth operations in the document
+- **WHEN** the OpenAPI snapshot is inspected
+- **THEN** the four auth operations have no bearer security requirement and document no 401 `UNAUTHENTICATED`
 
 ### Requirement: The request user comes from the token subject
 The user acting in an authenticated request SHALL be the UUID in the access token's `sub`. The backend SHALL NOT look the user up in the database to authenticate the request, and SHALL NOT take the acting user from the request path, query or body.
