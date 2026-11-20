@@ -5,7 +5,7 @@ import com.plcoding.cardigan.user.domain.repository.UserRepository
 import java.time.Clock
 import java.util.UUID
 
-/** Creates users directly in the repository, for tests that need a user before register exists. */
+/** Creates users directly in the repository, for tests that need a user without going through the API. */
 class UserFixtures(
     private val userRepository: UserRepository,
     private val clock: Clock,

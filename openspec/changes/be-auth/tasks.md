@@ -49,9 +49,9 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## 10. Contract, test helper and docs
 
-- [ ] 10.1 Run `./gradlew :app:updateOpenApiSnapshot` and review the diff: four operations with the tag `Auth` and the agreed operation IDs, the seven schemas, no bearer requirement and no `UNAUTHENTICATED` on them, `refreshToken` neither required nor nullable, no parameters on `refresh` and `logout` and the cookie name in their descriptions, and no change to existing paths or schemas. Verify with `OpenApiSnapshotTest` passing.
-- [ ] 10.2 Switch `E2eTest.signIn` to register → login over HTTP. `setUpE2e` clears the rate limiter. Verify that all existing E2E tests pass unchanged.
-- [ ] 10.3 Update `CLAUDE.md`: rate limiting is per email for login and register only, with no IP and no refresh or logout limit (section and tech stack row); the auth routes are the agreed exception to the plural-resource rule; the base exception list; the `infra/security` and `infra/ratelimit` packages; the current-state paragraph and the E2E row in the test table. Verify by reading the file against `decisions.md`.
+- [x] 10.1 Run `./gradlew :app:updateOpenApiSnapshot` and review the diff: four operations with the tag `Auth` and the agreed operation IDs, the seven schemas, no bearer requirement and no `UNAUTHENTICATED` on them, `refreshToken` neither required nor nullable, no parameters on `refresh` and `logout` and the cookie name in their descriptions, and no change to existing paths or schemas. Verify with `OpenApiSnapshotTest` passing.
+- [x] 10.2 Switch `E2eTest.signIn` to register → login over HTTP. `setUpE2e` clears the rate limiter. Verify that all existing E2E tests pass unchanged.
+- [x] 10.3 Update `CLAUDE.md`: rate limiting is per email for login and register only, with no IP and no refresh or logout limit (section and tech stack row); the auth routes are the agreed exception to the plural-resource rule; the base exception list; the `infra/security` and `infra/ratelimit` packages; the current-state paragraph and the E2E row in the test table. Verify by reading the file against `decisions.md`.
 - [ ] 10.4 Run `./gradlew build` and start the app once with `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun`. Verify that the dev database has `user_service.sessions` and `user_service.refresh_tokens` with the columns, foreign keys with cascade, and unique index from `design.md`, and that a register, refresh and logout round trip with `curl` works.
 
 ## Workflow follow-up
