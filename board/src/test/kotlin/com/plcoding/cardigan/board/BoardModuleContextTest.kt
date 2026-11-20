@@ -32,7 +32,10 @@ class BoardPersistenceContextTest @Autowired constructor(
     }
 }
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.NONE,
+    properties = ["cardigan.board.lock-timeout=5s"],
+)
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, BoardTestConfig::class)
 class BoardModuleContextTest @Autowired constructor(
