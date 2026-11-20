@@ -566,6 +566,12 @@ class LabelE2eTest : E2eTest() {
     }
 
     @Test
+    fun `blank label id is NOT_FOUND`() {
+        patch(" ", body("color" to "BLUE")).assertProblem(ErrorCode.NOT_FOUND)
+        delete(" ").assertProblem(ErrorCode.NOT_FOUND)
+    }
+
+    @Test
     fun `missing label with an invalid body is NOT_FOUND`() {
         patch(UUID.randomUUID(), body("name" to "a".repeat(31))).assertProblem(ErrorCode.NOT_FOUND)
     }
