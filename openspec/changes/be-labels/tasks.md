@@ -12,8 +12,8 @@
 
 ## 3. Persistence
 
-- [ ] 3.1 Add `LabelEntity` (table `labels`, schema `board_service`, columns and the unique constraint `labels_owner_name_key_unique` from `design.md`), `SpringDataLabelRepository`, `JpaLabelRepository` with owner-scoped queries and `saveAndFlush`, and `LabelEntityMappers.kt`. Verify with `@DataJpaTest` tests: round trip with millisecond timestamps, `findByIdAndOwnerId` returning nothing for another owner, list by owner returning only that owner's labels, delete by ID and owner leaving another owner's label alone, and a native insert of a second row with the same owner and `name_key` rejected by the database.
-- [ ] 3.2 Translate a violation of `labels_owner_name_key_unique` in `JpaLabelRepository.save` into `LabelNameAlreadyUsedException`, and rethrow every other integrity violation. Verify with a `@DataJpaTest` test that saves two labels with the names `Bug` and `bug` for one owner through the adapter and expects the exception, and one that saves the same names for two owners and succeeds.
+- [x] 3.1 Add `LabelEntity` (table `labels`, schema `board_service`, columns and the unique constraint `labels_owner_name_key_unique` from `design.md`), `SpringDataLabelRepository`, `JpaLabelRepository` with owner-scoped queries and `saveAndFlush`, and `LabelEntityMappers.kt`. Verify with `@DataJpaTest` tests: round trip with millisecond timestamps, `findByIdAndOwnerId` returning nothing for another owner, list by owner returning only that owner's labels, delete by ID and owner leaving another owner's label alone, and a native insert of a second row with the same owner and `name_key` rejected by the database.
+- [x] 3.2 Translate a violation of `labels_owner_name_key_unique` in `JpaLabelRepository.save` into `LabelNameAlreadyUsedException`, and rethrow every other integrity violation. Verify with a `@DataJpaTest` test that saves two labels with the names `Bug` and `bug` for one owner through the adapter and expects the exception, and one that saves the same names for two owners and succeeds.
 
 ## 4. Service
 
