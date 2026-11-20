@@ -13,7 +13,7 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## 3. Password hashing
 
-- [ ] 3.1 Add `PasswordHasher` in `domain` and `BcryptPasswordHasher` (SHA-256, base64, BCrypt with the configured cost, the dummy hash behind `matches(password, null)`, the semaphore from `max-concurrent-hashes`). Verify with unit tests for every `user-accounts` delta scenario: the hash is BCrypt with the configured cost, two hashes of one password differ, 128-character passwords that differ in the last character don't match, a 400-byte password hashes and matches, `matches` with a `null` hash returns false, and no more than the configured number of hashes run at once.
+- [x] 3.1 Add `PasswordHasher` in `domain` and `BcryptPasswordHasher` (SHA-256, base64, BCrypt with the configured cost, the dummy hash behind `matches(password, null)`, the semaphore from `max-concurrent-hashes`). Verify with unit tests for every `user-accounts` delta scenario: the hash is BCrypt with the configured cost, two hashes of one password differ, 128-character passwords that differ in the last character don't match, a 400-byte password hashes and matches, `matches` with a `null` hash returns false, and no more than the configured number of hashes run at once.
 
 ## 4. Validation
 
