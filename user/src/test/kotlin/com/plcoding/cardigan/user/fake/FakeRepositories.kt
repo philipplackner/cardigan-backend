@@ -35,9 +35,12 @@ class FakeUserRepository : UserRepository {
     }
 }
 
-class FakeSessionRepository : SessionRepository {
+class FakeSessionRepository(
+    private val refreshTokens: FakeRefreshTokenRepository? = null,
+) : SessionRepository {
 
     val sessions = linkedMapOf<UUID, Session>()
+    val deleteEndedCalls = mutableListOf<Instant>()
 
     val active: List<Session> get() = sessions.values.filterNot { it.isRevoked }
 
@@ -52,6 +55,19 @@ class FakeSessionRepository : SessionRepository {
         val session = sessions[id]?.takeUnless { it.isRevoked } ?: return false
         sessions[id] = session.copy(revokedAt = at)
         return true
+    }
+
+    override fun deleteEnded(now: Instant): Int {
+        deleteEndedCalls += now
+        val tokens = checkNotNull(refreshTokens) { "deleteEnded needs the token repository" }
+        val ended = sessions.values.filter { session ->
+            session.isRevoked || tokens.ofSession(session.id).none { !it.isRotated && !it.isExpiredAt(now) }
+        }
+        ended.forEach { session ->
+            sessions.remove(session.id)
+            tokens.tokens.values.removeIf { it.sessionId == session.id }
+        }
+        return ended.size
     }
 }
 

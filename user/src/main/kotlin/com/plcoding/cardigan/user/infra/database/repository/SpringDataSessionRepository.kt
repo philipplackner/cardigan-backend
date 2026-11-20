@@ -13,4 +13,18 @@ interface SpringDataSessionRepository : JpaRepository<SessionEntity, UUID> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update SessionEntity s set s.revokedAt = :at where s.id = :id and s.revokedAt is null")
     fun revoke(@Param("id") id: UUID, @Param("at") at: Instant): Int
+
+    // The tokens of a deleted session go with it through the foreign key's ON DELETE CASCADE.
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(
+        """
+        delete from SessionEntity s
+        where s.revokedAt is not null
+        or not exists (
+            select 1 from RefreshTokenEntity t
+            where t.session = s and t.rotatedAt is null and t.expiresAt > :now
+        )
+        """,
+    )
+    fun deleteEnded(@Param("now") now: Instant): Int
 }

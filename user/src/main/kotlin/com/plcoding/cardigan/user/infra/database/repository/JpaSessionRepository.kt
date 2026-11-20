@@ -24,4 +24,6 @@ class JpaSessionRepository(
     override fun findById(id: UUID): Session? = springDataSessionRepository.findByIdOrNull(id)?.toSession()
 
     override fun revoke(id: UUID, at: Instant): Boolean = springDataSessionRepository.revoke(id, at) == 1
+
+    override fun deleteEnded(now: Instant): Int = springDataSessionRepository.deleteEnded(now)
 }

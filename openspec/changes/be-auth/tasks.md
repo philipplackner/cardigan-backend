@@ -45,7 +45,7 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## 9. Cleanup job
 
-- [ ] 9.1 Add `SessionCleanupService` with the scheduled delete and `@EnableScheduling` in `ApplicationConfig`. Verify with a persistence or module integration test for the "Ended sessions are deleted daily" scenarios (logged out, expired at the exact instant, kept 1 ms before expiry, active with 41 tokens kept, a deleted token answers 401) and a context test that the cron expression resolves from config and that its next run after `2026-11-15T09:15:30Z` is `2026-11-16T03:00:00Z`.
+- [x] 9.1 Add `SessionCleanupService` with the scheduled delete and `@EnableScheduling` in `ApplicationConfig`. Verify with a persistence or module integration test for the "Ended sessions are deleted daily" scenarios (logged out, expired at the exact instant, kept 1 ms before expiry, active with 41 tokens kept, a deleted token answers 401) and a context test that the cron expression resolves from config and that its next run after `2026-11-15T09:15:30Z` is `2026-11-16T03:00:00Z`.
 
 ## 10. Contract, test helper and docs
 
