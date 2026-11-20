@@ -6,10 +6,14 @@ import assertk.assertions.isFalse
 import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import com.plcoding.cardigan.common.domain.exception.FieldErrorCode
+import org.junit.jupiter.api.Assertions.assertTimeoutPreemptively
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.function.ThrowingSupplier
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import java.text.Normalizer
+import java.time.Duration
 
 class TextTest {
 
@@ -60,6 +64,27 @@ class TextTest {
         @Test
         fun `zero-width space is not white space and stays`() {
             assertThat(normalizeText("​a")).isEqualTo("​a")
+        }
+
+        @Test
+        fun `exactly the Unicode White_Space characters are removed`() {
+            val whiteSpace = Regex("\\p{IsWhite_Space}")
+            for (code in Char.MIN_VALUE.code..Char.MAX_VALUE.code) {
+                val c = code.toChar()
+                if (c.isSurrogate() || c == '\r') continue
+                val text = "${c}a$c"
+                val expected = if (whiteSpace.matches(c.toString())) "a" else Normalizer.normalize(text, Normalizer.Form.NFC)
+                assertThat(normalizeText(text), "U+%04X".format(code)).isEqualTo(expected)
+            }
+        }
+
+        @Test
+        fun `a long inner whitespace run is kept without quadratic work`() {
+            val text = "a" + " ".repeat(250_000) + "b"
+
+            val normalized = assertTimeoutPreemptively(Duration.ofSeconds(2), ThrowingSupplier { normalizeText(" $text ") })
+
+            assertThat(normalized).isEqualTo(text)
         }
 
         @Test

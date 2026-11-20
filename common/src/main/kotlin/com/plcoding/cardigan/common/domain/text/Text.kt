@@ -3,7 +3,6 @@ package com.plcoding.cardigan.common.domain.text
 import com.plcoding.cardigan.common.domain.exception.FieldErrorCode
 import java.text.Normalizer
 
-private val surroundingWhiteSpace = Regex("^\\p{IsWhite_Space}+|\\p{IsWhite_Space}+$")
 private val lineBreaks = Regex("\r\n?")
 
 /**
@@ -12,7 +11,14 @@ private val lineBreaks = Regex("\r\n?")
  */
 fun normalizeText(text: String): String =
     Normalizer.normalize(text.replace(lineBreaks, "\n"), Normalizer.Form.NFC)
-        .replace(surroundingWhiteSpace, "")
+        .trim(::isWhiteSpace)
+
+// A hand-written scan instead of a regex: `\p{IsWhite_Space}+$` takes quadratic time on a long inner run.
+private fun isWhiteSpace(c: Char): Boolean = when (c) {
+    in '\u0009'..'\u000D', ' ', '\u0085', '\u00A0', '\u1680', in '\u2000'..'\u200A',
+    '\u2028', '\u2029', '\u202F', '\u205F', '\u3000' -> true
+    else -> false
+}
 
 /** Normalizes a password to NFC. Whitespace is part of a password and is kept. */
 fun normalizePassword(password: String): String = Normalizer.normalize(password, Normalizer.Form.NFC)
