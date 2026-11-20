@@ -35,8 +35,6 @@ class BoardE2eTest : BoardApiE2eTest() {
     private fun patchBoard(boardId: String, json: String, token: String = this.token) =
         patch("/api/v1/boards/$boardId", token, json)
 
-    // Board representations
-
     @Test
     fun `full board has exactly id, name, key, createdAt, updatedAt and columns`() {
         val created = createBoard(token, "Roadmap", "CRD")
@@ -65,8 +63,6 @@ class BoardE2eTest : BoardApiE2eTest() {
 
         assertThat(listBoards(token)).containsExactly(board - "columns")
     }
-
-    // Create a board
 
     @Test
     fun `create trims the name, uppercases the key and sets equal timestamps`() {
@@ -120,8 +116,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         assertThat(listBoards(token).size).isEqualTo(301)
     }
 
-    // A new board starts with three columns
-
     @Test
     fun `new board has To do, In progress and Done at 0, 1, 2 with the board's creation time`() {
         val board = createBoard(token)
@@ -161,8 +155,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         assertThat(createRaw("""{"name":"","key":"CRD"}""").singleFieldError())
             .isEqualTo(mapOf("field" to "name", "code" to "REQUIRED"))
     }
-
-    // Key validation codes
 
     @Test
     fun `surrounding whitespace in the key is removed`() {
@@ -207,8 +199,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         createRaw("""{"name":"Roadmap","key":12}""").assertProblem(ErrorCode.MALFORMED_REQUEST)
     }
 
-    // Key uniqueness under concurrent requests
-
     @Test
     fun `two simultaneous creates with one key give one 201 and one CONFLICT`() {
         val executor = Executors.newFixedThreadPool(2)
@@ -236,8 +226,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         }
         assertThat(storedBoards()).isEqualTo(5)
     }
-
-    // List boards
 
     @Test
     fun `list is a wrapper object holding all of the user's boards`() {
@@ -287,8 +275,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         assertThat(listBoards(token).map { it.id }).isEqualTo(ids.sorted())
     }
 
-    // Get a board
-
     @Test
     fun `get returns the columns in position order after a move`() {
         val board = createBoard(token)
@@ -309,8 +295,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         assertThat(result.status).isEqualTo(200)
         assertThat(result.json().id).isEqualTo(board.id)
     }
-
-    // Rename a board
 
     @Test
     fun `rename changes name and updatedAt and keeps key, createdAt and columns`() {
@@ -364,8 +348,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         assertThat(result.json()).isEqualTo(board)
     }
 
-    // An unchanged board name does not move the updated time
-
     @Test
     fun `same name with surrounding spaces keeps updatedAt`() {
         val board = createBoard(token, "Roadmap")
@@ -401,8 +383,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         assertThat(result.json()["updatedAt"]).isEqualTo(later)
     }
 
-    // Delete a board
-
     @Test
     fun `delete removes the board with its columns and returns 204 without a body`() {
         val gone = createBoard(token, key = "AA")
@@ -432,8 +412,6 @@ class BoardE2eTest : BoardApiE2eTest() {
 
         assertThat(createBoard(token, key = "CRD").id).isNotEqualTo(board.id)
     }
-
-    // Boards are isolated per user
 
     @Test
     fun `list shows only the user's own boards`() {
@@ -524,8 +502,6 @@ class BoardE2eTest : BoardApiE2eTest() {
         assertThat(patchBoard(board.id, """{"name":"${"a".repeat(101)}"}""").singleFieldError())
             .isEqualTo(mapOf("field" to "name", "code" to "TOO_LONG", "max" to 100))
     }
-
-    // A board's owner is the token subject
 
     @Test
     fun `token without a user record can create and list a board`() {

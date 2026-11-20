@@ -2,6 +2,7 @@ package com.plcoding.cardigan
 
 import assertk.assertThat
 import assertk.assertions.isEqualTo
+import com.plcoding.cardigan.common.domain.exception.ErrorCode
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpMethod
 import org.springframework.jdbc.core.JdbcTemplate
@@ -88,5 +89,5 @@ abstract class BoardApiE2eTest : E2eTest() {
     protected fun List<Json>.namesAndPositions(): List<Pair<Any?, Any?>> = map { it["name"] to it["position"] }
 
     protected fun HttpResult.singleFieldError(): Json =
-        assertProblem(com.plcoding.cardigan.common.domain.exception.ErrorCode.VALIDATION_FAILED).fieldErrors.single()
+        assertProblem(ErrorCode.VALIDATION_FAILED).fieldErrors.single()
 }

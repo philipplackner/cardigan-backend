@@ -23,8 +23,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
 
     private fun bob(): String = signIn("bob@example.com").token
 
-    // Column representation
-
     @Test
     fun `column has exactly id, name, position, createdAt and updatedAt`() {
         val board = createBoard(token)
@@ -39,8 +37,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
         assertThat(getBoard(token, board.id).columns.last()).isEqualTo(column)
     }
 
-    // Columns are read through their board
-
     @Test
     fun `there is no column list endpoint`() {
         val board = createBoard(token)
@@ -48,8 +44,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
         call(HttpMethod.GET, "/api/v1/boards/${board.id}/columns", token).assertProblem(ErrorCode.ROUTE_NOT_FOUND)
         call(HttpMethod.GET, columnPath(board, "Done"), token).assertProblem(ErrorCode.ROUTE_NOT_FOUND)
     }
-
-    // Create a column
 
     @Test
     fun `new column is appended with a trimmed name`() {
@@ -108,8 +102,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
         assertThat(getBoard(token, board.id).columns.map { it["position"] }).isEqualTo((0..200).toList())
     }
 
-    // Rename a column
-
     @Test
     fun `rename changes name and updatedAt and keeps position and createdAt`() {
         val board = createBoard(token)
@@ -142,8 +134,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
         assertThat(result.json()["name"]).isEqualTo("QA")
         assertThat(result.json()["position"]).isEqualTo(2)
     }
-
-    // Move a column
 
     @Test
     fun `move to the front returns all columns in a wrapper object`() {
@@ -185,8 +175,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
         move(token, board.id, board.column("A").id, "1.5").assertProblem(ErrorCode.MALFORMED_REQUEST)
         move(token, board.id, board.column("A").id, "\"1\"").assertProblem(ErrorCode.MALFORMED_REQUEST)
     }
-
-    // The move range follows the current column count
 
     @Test
     fun `position equal to the column count is OUT_OF_RANGE with 0 and n-1 and changes nothing`() {
@@ -236,8 +224,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
             .isEqualTo(mapOf("field" to "position", "code" to "OUT_OF_RANGE", "min" to 0, "max" to 0))
     }
 
-    // Delete a column
-
     @Test
     fun `delete of the middle column returns 204 and closes the gap without touching updatedAt`() {
         val board = boardAbc(token)
@@ -268,8 +254,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
         delete(columnPath(board, "B"), token).assertProblem(ErrorCode.NOT_FOUND)
         assertThat(getBoard(token, board.id).columns.namesAndPositions()).containsExactly("A" to 0, "C" to 1)
     }
-
-    // Changes that change nothing move no updated time
 
     @Test
     fun `rename to the same name changes no updatedAt`() {
@@ -306,8 +290,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
         assertThat(result.json().columns).isEqualTo(board.columns)
         assertThat(getBoard(token, board.id)).isEqualTo(board)
     }
-
-    // Column changes update the board
 
     @Test
     fun `create sets the board's updatedAt to the column's createdAt`() {
@@ -346,8 +328,6 @@ class ColumnE2eTest : BoardApiE2eTest() {
 
         assertThat(getBoard(token, board.id)["updatedAt"]).isEqualTo(later)
     }
-
-    // Columns are reachable only through their own board
 
     @Test
     fun `create in another user's board is NOT_FOUND and changes nothing`() {

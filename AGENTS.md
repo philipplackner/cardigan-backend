@@ -20,7 +20,7 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 | API contract | OpenAPI 3.0.1, generated code-first with springdoc-openapi, committed as a JSON snapshot |
 | Tests | JUnit 5, AssertK, hand-written fakes, Testcontainers (Postgres), WireMock, Awaitility |
 
-**Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users` table and `GET /api/v1/users/me`. Register, login, refresh, logout and rate limiting don't exist yet (`be-auth`). `:board` has no code. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
+**Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users` table and `GET /api/v1/users/me`. Register, login, refresh, logout and rate limiting don't exist yet (`be-auth`). `:board` has the `boards` and `columns` tables and the board and column endpoints under `/api/v1/boards`. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
 
 ---
 
@@ -90,13 +90,16 @@ cardigan/
 common/src/
 ├── main/kotlin/com/plcoding/cardigan/common/
 │   ├── api/              CommonExceptionHandler, problemDetail(), ProblemResponseWriter, ProblemErrorController, requestUserId
-│   │   ├── validation/   @Required, @ValidText, @ValidUuid, @ValidEnum, @ValidRange, RequestValidator
-│   │   ├── web/          Jackson config, RequestSizeLimitFilter, PublicRoutes, content negotiation
+│   │   ├── validation/   @Required, @ValidText, @ValidUuid, @ValidEnum, @ValidRange, RequestValidator,
+│   │   │                 PatchRequest with @NotNullWhenPresent, reject(FieldViolation) for module constraints
+│   │   ├── web/          Jackson config, RequestSizeLimitFilter, PublicRoutes, content negotiation,
+│   │   │                 canonical path UUID converter
 │   │   ├── openapi/      springdoc customizers, @ApiErrors
 │   │   └── security/     authentication entry point, firewall rejection handler
 │   ├── domain/
 │   │   ├── exception/    ErrorCode, FieldErrorCode, base exceptions (ResourceNotFoundException,
-│   │   │                 UniquenessConflictException, UnauthenticatedException). No ForbiddenException.
+│   │   │                 UniquenessConflictException, UnauthenticatedException, FieldOutOfRangeException).
+│   │   │                 No ForbiddenException.
 │   │   ├── text/         normalizeText, normalizePassword, codePointLength, checkText
 │   │   ├── security/     AccessTokenIssuer
 │   │   └── event/        cross-module events, one sealed <Publisher>Event per publishing module
@@ -144,9 +147,10 @@ app/src/
 |---|---|
 | An endpoint | `<feature>/api/controller` under `/api/v1/`, with an explicit `operationId`, one plural `@Tag` and `@ApiErrors` for its extra error statuses. If it's public, add it to the module's own `PublicRoutes` bean, not to `SecurityConfig` |
 | A request or response body | `<feature>/api/dto`, mapped in `api/mapper`. Request DTOs follow the rules in "API contract" below |
-| A format/length/range check | Bean Validation on the request DTO with the `:common` constraints (`@Required`, `@ValidText`, `@ValidUuid`, `@ValidEnum`, `@ValidRange`) |
+| A format/length/range check | Bean Validation on the request DTO with the `:common` constraints (`@Required`, `@ValidText`, `@ValidUuid`, `@ValidEnum`, `@ValidRange`). A range that depends on stored data is checked in the service, which throws `FieldOutOfRangeException` |
+| A PATCH request body | A plain class in `<feature>/api/dto` that extends `PatchRequest` from `:common`, so a field sent as `null` is `REQUIRED` (`@NotNullWhenPresent`) and an absent one is left alone |
 | A rule that needs data or state | `<feature>/service` |
-| A failure clients must handle | Exception in `<feature>/domain/exception` that subclasses `ResourceNotFoundException`, `UniquenessConflictException` or `UnauthenticatedException` from `:common`. `CommonExceptionHandler` maps it; no feature handler. A new top-level code needs a shared `api-errors` change first |
+| A failure clients must handle | Exception in `<feature>/domain/exception` that subclasses `ResourceNotFoundException`, `UniquenessConflictException` or `UnauthenticatedException` from `:common`, or a `FieldOutOfRangeException` (400 `VALIDATION_FAILED` with `OUT_OF_RANGE`, `min` and `max`) thrown as it is. `CommonExceptionHandler` maps it; no feature handler. A new top-level code needs a shared `api-errors` change first |
 | An OpenAPI rule | `:common` `api/openapi` customizers, never per-feature springdoc config |
 | A table, column, or index | Entity in `infra/database/entity`. Dev and tests build their schema from it. Once the baseline migration exists, also a Flyway migration in `<feature>/src/main/resources/db/migration/<feature>` |
 | A query | `SpringData<Model>Repository`, exposed through the domain interface and `Jpa<Model>Repository` |
@@ -221,12 +225,13 @@ The spec is generated code-first by springdoc from controllers and DTOs. Mobile 
 - The document is OpenAPI 3.0.1 (`springdoc.api-docs.version: openapi_3_0`), for the best code generator support.
 - Response DTOs: Kotlin nullability is the contract. A non-null property is `required`, a nullable one is `nullable`.
 - Request DTOs deliberately differ: every property is nullable in Kotlin with no default, so missing and `null` fields become `REQUIRED` field errors and all broken fields are reported at once. `@Required` marks the fields the endpoint needs. In the document, only `@Required` properties are `required`, and no request property is `nullable`: optional fields are omitted, never sent as `null`.
+- PATCH request DTOs are the one exception to "no default": they extend `PatchRequest` and declare each field as `var name: String? = null` with `set(value) { field = sent("name", value) }`. An absent field is left alone, and a field sent as `null` is `REQUIRED`.
 - Request DTOs declare UUIDs as `String` with `@ValidUuid`, enums as `String` with `@ValidEnum(XDto::class)`, and bounded integers such as positions as `BigInteger` with a range check. Mappers convert them after validation. The document still shows `format: uuid`, the enum values and `integer`.
 - Text fields use `@ValidText`. Mappers call `normalizeText` again when building the domain value; the validator never changes the DTO.
 - Endpoints that reference resources in the path or body call `RequestValidator.validate(request)` after the service resolved them, so 404 wins over field errors. `@Valid` is only for endpoints without references. Declare `@RequestBody` before any `@PathVariable`.
 - Every request and response body is a concrete, named DTO. No `Any`, `Map<String, Any>`, `JsonNode`, or untyped lists.
 - API enums are separate `<Name>Dto` enums with stable constant names.
-- IDs are `string` with `format: uuid`, lowercase in responses. Instants are `string` with `format: date-time`, always UTC with milliseconds (`.000Z` for whole seconds).
+- IDs are `string` with `format: uuid`, lowercase in responses. A path ID is accepted only in the canonical 8-4-4-4-12 form, in any letter case; anything else is 404 `NOT_FOUND`, also the short forms `UUID.fromString` accepts. Instants are `string` with `format: date-time`, always UTC with milliseconds (`.000Z` for whole seconds).
 - Sealed or polymorphic types get an explicit discriminator property and a named schema per subtype.
 - Errors are `application/problem+json` with `type` `urn:cardigan:problem:<code in kebab-case>`, a fixed `title` and `detail` per code, `code`, and `fieldErrors`. No `instance`, and never 403 (other users' data is 404). This replaces `about:blank` and `ForbiddenException` in `spring-api-layer`.
 - Every operation documents 500, 401 when protected, 400/413/415 when it has a body, and its `@ApiErrors` statuses, each with the `Problem` schema and its codes in the description. `CardiganOpenApiCustomizer` adds these.
@@ -264,7 +269,7 @@ All test types are expected. See `spring-unit-testing` and `spring-integration-t
 |---|---|---|
 | Unit | module `src/test` | Pure logic, in memory. Fakes for domain interfaces, `MutableClock`. No Spring, no I/O. |
 | Persistence | module `src/test`, `@DataJpaTest` | Postgres, entities, adapters, plus Flyway once the baseline migration exists |
-| Module integration | module `src/test`, `@SpringBootTest` with the module's test app | Services, transactions, events, Postgres |
+| Module integration | module `src/test`, `@SpringBootTest` with the module's test app | Services, transactions, events, Postgres. `:board` tests import `BoardTestConfig` (`MutableClock`, `DatabaseCleaner`, `RequestValidator`) and set `cardigan.board.lock-timeout` themselves |
 | HTTP client | module `src/test` | Our client against WireMock |
 | E2E | `:app` `src/test`, `@SpringBootTest(RANDOM_PORT)` + `RestTestClient` | The whole app over HTTP. Until `be-auth` exists, `E2eTest.signIn` creates the user with `UserFixtures` and mints a real token with the issuer; `be-auth` switches it to register → login |
 
