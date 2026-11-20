@@ -44,6 +44,7 @@ cardigan:
       refresh-token-ttl: 30d
       bcrypt-cost: 12
       # max-concurrent-hashes: default is half the available processors, at least 1
+      hash-wait-timeout: 5s
       session-cleanup-cron: "0 0 3 * * *"
       rate-limit:
         max-tracked-emails: 100000

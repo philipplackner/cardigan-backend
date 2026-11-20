@@ -1,17 +1,24 @@
 package com.plcoding.cardigan.user.infra.security
 
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isGreaterThan
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNotEqualTo
 import assertk.assertions.isTrue
 import assertk.assertions.matches
+import assertk.assertions.prop
 import com.plcoding.cardigan.common.domain.text.normalizePassword
+import com.plcoding.cardigan.user.domain.exception.PasswordHashingBusyException
 import com.plcoding.cardigan.user.infra.config.PasswordHashingProperties
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.security.crypto.password.PasswordEncoder
+import java.time.Duration
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -21,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class BcryptPasswordHasherTest {
 
     private val hasher = BcryptPasswordHasher(PasswordHashingProperties(bcryptCost = 4, maxConcurrentHashes = 2))
+    private val longWait = Duration.ofSeconds(30)
 
     @Test
     fun `hash is BCrypt with the configured cost and without the password`() {
@@ -111,7 +119,7 @@ class BcryptPasswordHasherTest {
     @Test
     fun `null hash does one verification against a real hash`() {
         val encoder = RecordingEncoder()
-        val recordingHasher = BcryptPasswordHasher(encoder, 1)
+        val recordingHasher = BcryptPasswordHasher(encoder, 1, longWait)
         val verificationsBefore = encoder.verifiedHashes.size
 
         recordingHasher.matches("Correct horse 7", null)
@@ -122,7 +130,7 @@ class BcryptPasswordHasherTest {
 
     @Test
     fun `a match against the dummy hash still returns false`() {
-        val recordingHasher = BcryptPasswordHasher(RecordingEncoder(alwaysMatches = true), 1)
+        val recordingHasher = BcryptPasswordHasher(RecordingEncoder(alwaysMatches = true), 1, longWait)
 
         assertThat(recordingHasher.matches("anything", null)).isFalse()
     }
@@ -136,7 +144,7 @@ class BcryptPasswordHasherTest {
     fun `no more than the configured number of hashes run at once`() {
         val maxConcurrent = 2
         val encoder = BlockingEncoder()
-        val blockingHasher = BcryptPasswordHasher(encoder, maxConcurrent)
+        val blockingHasher = BcryptPasswordHasher(encoder, maxConcurrent, longWait)
         encoder.block()
         val executor = Executors.newFixedThreadPool(8)
         try {
@@ -156,6 +164,56 @@ class BcryptPasswordHasherTest {
             encoder.release()
             executor.shutdownNow()
         }
+    }
+
+    @Test
+    fun `a request that gets no permit in time fails as rate limited and never hashes`() {
+        val encoder = BlockingEncoder()
+        val busyHasher = BcryptPasswordHasher(encoder, 1, Duration.ofMillis(100))
+        encoder.block()
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val running = executor.submit<Any> { busyHasher.hash("first") }
+            encoder.awaitRunning(1)
+            val callsBefore = encoder.calls.get()
+
+            assertFailure { busyHasher.hash("second") }.isInstanceOf(PasswordHashingBusyException::class)
+                .prop(PasswordHashingBusyException::retryAfterSeconds).isEqualTo(1)
+            assertFailure { busyHasher.matches("second", null) }.isInstanceOf(PasswordHashingBusyException::class)
+
+            assertThat(encoder.calls.get()).isEqualTo(callsBefore)
+            encoder.release()
+            running.get(10, TimeUnit.SECONDS)
+        } finally {
+            encoder.release()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `a timed out request doesn't use up a permit`() {
+        val encoder = BlockingEncoder()
+        val busyHasher = BcryptPasswordHasher(encoder, 1, Duration.ofMillis(100))
+        encoder.block()
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val running = executor.submit<Any> { busyHasher.hash("first") }
+            encoder.awaitRunning(1)
+            assertFailure { busyHasher.hash("second") }.isInstanceOf(PasswordHashingBusyException::class)
+            encoder.release()
+            running.get(10, TimeUnit.SECONDS)
+
+            assertThat(busyHasher.hash("third")).isEqualTo("hash")
+        } finally {
+            encoder.release()
+            executor.shutdownNow()
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource("1, 1", "999, 1", "1000, 1", "1001, 2", "5000, 5")
+    fun `Retry-After is the wait timeout rounded up to whole seconds`(timeoutMillis: Long, expectedSeconds: Long) {
+        assertThat(retryAfterSeconds(Duration.ofMillis(timeoutMillis))).isEqualTo(expectedSeconds)
     }
 
     private class RecordingEncoder(private val alwaysMatches: Boolean = false) : PasswordEncoder {

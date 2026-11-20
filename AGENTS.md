@@ -209,6 +209,7 @@ app/src/
 - No limit uses the client IP. No client IP is read and no forwarded-header handling is configured. Refresh and logout are not rate limited and never answer 429.
 - bucket4j buckets live in memory in a Caffeine cache with a maximum size and expire-after-access. Both read the `Clock` bean.
 - Exceeding a limit throws `AuthRateLimitedException`, which maps to `429` with code `RATE_LIMITED` and a `Retry-After` header. The limit is checked after the body was parsed and before field validation, credentials and the uniqueness check.
+- Password hashing runs at most `max-concurrent-hashes` at a time. A login or register that waits longer than `hash-wait-timeout` (5s) for its turn throws `PasswordHashingBusyException` and answers the same `429` `RATE_LIMITED`, with `Retry-After` set to that timeout.
 - Accepted trade-offs: limits are per instance and reset on restart. Email keys don't stop one client trying many emails, and anyone can use up another email's limit for up to a minute. This is on purpose, to keep things simple. Don't add IP-based or global limits without asking.
 
 ### Events: in-process only

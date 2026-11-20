@@ -118,7 +118,7 @@ Alternative considered: bucket4j's own Caffeine proxy manager. It adds a second 
 
 - Domain interface `PasswordHasher` with `hash(password): String` and `matches(password, hash: String?): Boolean`. Callers pass the NFC-normalized password. With a `null` hash, the implementation checks against a dummy hash it created once at startup with the same cost and returns false.
 - `BcryptPasswordHasher` computes `Base64(SHA-256(password as UTF-8))` (44 ASCII characters) and passes it to Spring Security's `BCryptPasswordEncoder(cost)`. The cost comes from `cardigan.user.auth.bcrypt-cost`, default 12. The test profile sets 4.
-- `BcryptPasswordHasher` runs `hash` and `matches` under a fair `Semaphore` with `cardigan.user.auth.max-concurrent-hashes` permits (default: half the available processors, at least 1). Requests beyond that wait, so hashing never takes all carrier threads.
+- `BcryptPasswordHasher` runs `hash` and `matches` under a fair `Semaphore` with `cardigan.user.auth.max-concurrent-hashes` permits (default: half the available processors, at least 1). Requests beyond that wait, so hashing never takes all carrier threads. A request that gets no permit within `cardigan.user.auth.hash-wait-timeout` (default 5s) throws `PasswordHashingBusyException`, a `RateLimitedException`: 429 `RATE_LIMITED` with `Retry-After` set to the timeout rounded up to whole seconds.
 - Login passes `user?.passwordHash` to `matches`, so an unknown email does the same work, then throws the same exception. This gives the equal work `api-errors` asks for.
 - `BCryptPasswordEncoder` comes from `spring-security-crypto`, which `:user` already gets through `:common`.
 
@@ -188,7 +188,7 @@ A failed refresh with `COOKIE` clears the cookie (D19). The controller adds the 
 
 ### Configuration
 
-The properties under `cardigan.user.auth` are split by consumer, so no layer imports from one it may not depend on: `AuthProperties` (`refresh-token-ttl`, `session-cleanup-cron`) lives in `service`; `PasswordHashingProperties` (`bcrypt-cost`, `max-concurrent-hashes`) and `AuthRateLimitProperties` (`rate-limit.*`) live in `infra/config`. The YAML keys stay as shown:
+The properties under `cardigan.user.auth` are split by consumer, so no layer imports from one it may not depend on: `AuthProperties` (`refresh-token-ttl`, `session-cleanup-cron`) lives in `service`; `PasswordHashingProperties` (`bcrypt-cost`, `max-concurrent-hashes`, `hash-wait-timeout`) and `AuthRateLimitProperties` (`rate-limit.*`) live in `infra/config`. The YAML keys stay as shown:
 
 ```yaml
 cardigan:
@@ -197,6 +197,7 @@ cardigan:
       refresh-token-ttl: 30d
       bcrypt-cost: 12
       # max-concurrent-hashes: default is half the available processors, at least 1
+      hash-wait-timeout: 5s
       session-cleanup-cron: "0 0 3 * * *"
       rate-limit:
         max-tracked-emails: 100000
@@ -230,7 +231,7 @@ The properties classes carry these defaults, so `:user` tests need no extra YAML
 - [The cleanup job runs on every instance] → The delete is idempotent, so concurrent runs are harmless. No ShedLock.
 - [A lost refresh response logs the user out, because the old token then counts as reuse] → Required by the shared spec ("There is no grace period").
 - [`sessions` and `refresh_tokens` exist only through `ddl-auto`] → They must be in the baseline migration before the first production deploy (deferred, see `decisions.md`).
-- [BCrypt cost 12 takes a few hundred milliseconds of CPU per login and holds a carrier thread for that time] → `BcryptPasswordHasher` limits concurrent hashes with a semaphore (`max-concurrent-hashes`), so hashing never takes all carrier threads and other endpoints stay responsive. There is still no cap on total logins across many emails; under a flood, logins get slow but the rest of the API keeps working.
+- [BCrypt cost 12 takes a few hundred milliseconds of CPU per login and holds a carrier thread for that time] → `BcryptPasswordHasher` limits concurrent hashes with a semaphore (`max-concurrent-hashes`), so hashing never takes all carrier threads and other endpoints stay responsive. There is still no cap on total logins across many emails; under a flood, a login or register waits at most `hash-wait-timeout` and then answers 429 `RATE_LIMITED`, and the rest of the API keeps working.
 - [An active session keeps every rotated token, and refresh is not rate limited, so one client that refreshes in a loop grows `refresh_tokens` without bound] → Accepted with D8 and D12. Normal clients add about 100 rows per session per day. If table size becomes a problem, the fix is a per-session refresh limit or a cap on kept tokens, which needs a new decision.
 - [`be-boards` and `be-labels` run in parallel] → Shared touch points: `BaseExceptions.kt`, `CommonExceptionHandler`, `reject`, `TestApiController`, `E2eTest`, `libs.versions.toml`, `AGENTS.md` and the snapshot. Whichever change lands second merges them.
 

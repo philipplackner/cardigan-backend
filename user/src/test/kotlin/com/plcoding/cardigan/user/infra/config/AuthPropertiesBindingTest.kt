@@ -39,6 +39,7 @@ class AuthPropertiesBindingTest {
             assertThat(hashing.bcryptCost).isEqualTo(12)
             assertThat(hashing.maxConcurrentHashes)
                 .isEqualTo((Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1))
+            assertThat(hashing.hashWaitTimeout).isEqualTo(Duration.ofSeconds(5))
             assertThat(context.getBean(AuthRateLimitProperties::class.java)).isEqualTo(
                 AuthRateLimitProperties(
                     maxTrackedEmails = 100_000,
@@ -56,6 +57,7 @@ class AuthPropertiesBindingTest {
             "cardigan.user.auth.session-cleanup-cron=0 30 4 * * *",
             "cardigan.user.auth.bcrypt-cost=5",
             "cardigan.user.auth.max-concurrent-hashes=3",
+            "cardigan.user.auth.hash-wait-timeout=250ms",
             "cardigan.user.auth.rate-limit.max-tracked-emails=2",
             "cardigan.user.auth.rate-limit.login.capacity=7",
             "cardigan.user.auth.rate-limit.login.period=30s",
@@ -66,7 +68,7 @@ class AuthPropertiesBindingTest {
             assertThat(context.getBean(AuthProperties::class.java))
                 .isEqualTo(AuthProperties(Duration.ofDays(7), "0 30 4 * * *"))
             assertThat(context.getBean(PasswordHashingProperties::class.java))
-                .isEqualTo(PasswordHashingProperties(5, 3))
+                .isEqualTo(PasswordHashingProperties(5, 3, Duration.ofMillis(250)))
             assertThat(context.getBean(AuthRateLimitProperties::class.java)).isEqualTo(
                 AuthRateLimitProperties(
                     maxTrackedEmails = 2,
@@ -100,6 +102,12 @@ class AuthPropertiesBindingTest {
     fun `non-positive max-concurrent-hashes fails startup`() {
         assertStartupFails("cardigan.user.auth.max-concurrent-hashes=0")
         assertStartupFails("cardigan.user.auth.max-concurrent-hashes=-2")
+    }
+
+    @Test
+    fun `non-positive hash-wait-timeout fails startup`() {
+        assertStartupFails("cardigan.user.auth.hash-wait-timeout=0s")
+        assertStartupFails("cardigan.user.auth.hash-wait-timeout=-1s")
     }
 
     @Test

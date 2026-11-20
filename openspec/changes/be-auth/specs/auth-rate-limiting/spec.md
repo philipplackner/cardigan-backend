@@ -62,3 +62,14 @@ Limit counters SHALL be kept in the memory of each backend instance, SHALL reset
 #### Scenario: Idle email
 - **WHEN** an email was last used for login 61 seconds ago
 - **THEN** the limiter tracks no login entry for it, and its next 5 login requests are processed
+
+### Requirement: Password hashing has a bounded wait
+At most a configured number of password hash computations SHALL run at once. A login or register request that waits longer than a configured time for its turn, 5 seconds by default, SHALL answer 429 `RATE_LIMITED` with `Retry-After` set to that time rounded up to whole seconds, and SHALL NOT create a user or a session. This 429 does not depend on the email, and the retry may be answered 429 again while the backend is still busy.
+
+#### Scenario: Hashing stays busy
+- **WHEN** every hashing slot is busy for longer than the configured wait and a client sends a login with a valid body
+- **THEN** the response is 429 `RATE_LIMITED` with `Retry-After: 5`, and no password was verified for that request
+
+#### Scenario: Slot becomes free in time
+- **WHEN** every hashing slot is busy and one becomes free before the configured wait is over
+- **THEN** the waiting request is processed

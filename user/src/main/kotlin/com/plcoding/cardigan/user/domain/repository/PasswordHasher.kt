@@ -1,6 +1,9 @@
 package com.plcoding.cardigan.user.domain.repository
 
-/** Hashes and verifies passwords. Callers pass the NFC-normalized password. */
+/**
+ * Hashes and verifies passwords. Callers pass the NFC-normalized password. Both functions throw
+ * `PasswordHashingBusyException` when the hasher is at capacity for too long.
+ */
 interface PasswordHasher {
 
     fun hash(password: String): String
