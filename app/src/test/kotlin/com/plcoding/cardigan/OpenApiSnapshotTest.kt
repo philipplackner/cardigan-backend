@@ -147,6 +147,91 @@ class OpenApiSnapshotTest @Autowired constructor(
             .isEqualTo(mapOf("type" to "http", "scheme" to "bearer", "bearerFormat" to "JWT"))
     }
 
+    @Test
+    fun `label operations exist with the single tag Labels`() {
+        val collection = document.map("paths").map("/api/v1/labels")
+        val item = document.map("paths").map("/api/v1/labels/{labelId}")
+
+        assertThat(collection.keys).isEqualTo(setOf("get", "post"))
+        assertThat(item.keys).isEqualTo(setOf("patch", "delete"))
+        val operations = mapOf(
+            "createLabel" to collection.map("post"),
+            "listLabels" to collection.map("get"),
+            "updateLabel" to item.map("patch"),
+            "deleteLabel" to item.map("delete"),
+        )
+        operations.forEach { (operationId, operation) ->
+            assertThat(operation["operationId"]).isEqualTo(operationId)
+            assertThat(operation["tags"], operationId).isEqualTo(listOf("Labels"))
+            assertThat(operation["security"], operationId).isEqualTo(listOf(mapOf("bearerAuth" to emptyList<String>())))
+        }
+    }
+
+    @Test
+    fun `label color is a string enum of the 20 upper-case values everywhere`() {
+        val schemas = document.map("components").map("schemas")
+
+        listOf("LabelDto", "CreateLabelRequest", "UpdateLabelRequest").forEach { name ->
+            val color = schemas.map(name).map("properties").map("color")
+            assertThat(color, name).isEqualTo(mapOf("type" to "string", "enum" to LABEL_COLORS))
+        }
+        assertThat(schemas.keys.filter { it.contains("Color") }).isEmpty()
+    }
+
+    @Test
+    fun `label request schemas list their fields`() {
+        val schemas = document.map("components").map("schemas")
+        val create = schemas.map("CreateLabelRequest")
+        val update = schemas.map("UpdateLabelRequest")
+
+        assertThat((create["required"] as List<*>).toSet()).isEqualTo(setOf("name", "color"))
+        assertThat(create.map("properties").keys).isEqualTo(setOf("name", "color"))
+        assertThat(update["required"]).isNull()
+        assertThat(update.map("properties").keys).isEqualTo(setOf("name", "color"))
+        (create.map("properties").values + update.map("properties").values).forEach {
+            assertThat((it as Map<*, *>)["nullable"]).isNull()
+        }
+        assertThat(schemas.keys).doesNotContain("PatchRequest")
+        assertThat(update["allOf"]).isNull()
+    }
+
+    @Test
+    fun `label response schemas are required and non-null`() {
+        val schemas = document.map("components").map("schemas")
+        val label = schemas.map("LabelDto")
+
+        assertThat((label["required"] as List<*>).toSet()).isEqualTo(setOf("id", "name", "color", "createdAt", "updatedAt"))
+        assertThat(label.map("properties").keys).isEqualTo(setOf("id", "name", "color", "createdAt", "updatedAt"))
+        label.map("properties").values.forEach { assertThat((it as Map<*, *>)["nullable"]).isNull() }
+        assertThat(label.map("properties").map("id")["format"]).isEqualTo("uuid")
+        assertThat(schemas.map("LabelListDto")["required"]).isEqualTo(listOf("labels"))
+        assertThat(schemas.map("LabelListDto").map("properties").map("labels").map("items"))
+            .isEqualTo(mapOf("\$ref" to "#/components/schemas/LabelDto"))
+    }
+
+    @Test
+    fun `label operations document their statuses and error codes`() {
+        val collection = document.map("paths").map("/api/v1/labels")
+        val item = document.map("paths").map("/api/v1/labels/{labelId}")
+        val create = collection.map("post").map("responses")
+        val list = collection.map("get").map("responses")
+        val update = item.map("patch").map("responses")
+        val delete = item.map("delete").map("responses")
+
+        assertThat(create.keys).isEqualTo(setOf("201", "400", "401", "409", "413", "415", "500"))
+        assertThat(list.keys).isEqualTo(setOf("200", "401", "500"))
+        assertThat(update.keys).isEqualTo(setOf("200", "400", "401", "404", "409", "413", "415", "500"))
+        assertThat(delete.keys).isEqualTo(setOf("204", "401", "404", "500"))
+        listOf(create, update).forEach {
+            assertThat(it.map("409")["description"]).isEqualTo("Error codes: CONFLICT")
+            assertThat(it.map("400")["description"]).isEqualTo("Error codes: VALIDATION_FAILED, MALFORMED_REQUEST")
+        }
+        listOf(update, delete).forEach {
+            assertThat(it.map("404")["description"]).isEqualTo("Error codes: NOT_FOUND")
+        }
+        assertThat(delete.map("204")["content"]).isNull()
+    }
+
     private fun operations(): List<Map<String, Any?>> =
         document.map("paths").values.flatMap { item -> (item as Map<*, *>).values.map { it.asStringMap() } }
 
@@ -167,6 +252,11 @@ class OpenApiSnapshotTest @Autowired constructor(
 
     companion object {
         const val UPDATE_PROPERTY = "openapi.update"
+
+        private val LABEL_COLORS = listOf(
+            "AMBER", "BLUE", "BROWN", "CYAN", "EMERALD", "FUCHSIA", "GREEN", "INDIGO", "LIME", "OLIVE",
+            "ORANGE", "PINK", "PURPLE", "RED", "ROSE", "SKY", "SLATE", "TEAL", "VIOLET", "YELLOW",
+        )
 
         private val jsonMapper: JsonMapper = JsonMapper.builder().build()
         private val prettyMapper: JsonMapper = JsonMapper.builder()

@@ -28,7 +28,7 @@
 
 ## 6. API contract
 
-- [ ] 6.1 Run `./gradlew :app:updateOpenApiSnapshot` and review the diff of `app/src/test/resources/openapi/openapi.json`: only the four label operations and the label schemas are added, `color` is a string enum with the 20 upper-case values in `LabelDto` and both requests, `CreateLabelRequest` requires `name` and `color`, `UpdateLabelRequest` requires nothing and has exactly `name` and `color`, no request property is nullable, no `LabelColorDto` or request base type schema exists, and every operation documents its error statuses. Verify with `OpenApiSnapshotTest` passing and `OpenApiSnapshotTest` cases for the `labels` scenarios "Operations and tag", "Color enum", "Request fields" and "Error statuses".
+- [x] 6.1 Run `./gradlew :app:updateOpenApiSnapshot` and review the diff of `app/src/test/resources/openapi/openapi.json`: only the four label operations and the label schemas are added, `color` is a string enum with the 20 upper-case values in `LabelDto` and both requests, `CreateLabelRequest` requires `name` and `color`, `UpdateLabelRequest` requires nothing and has exactly `name` and `color`, no request property is nullable, no `LabelColorDto` or request base type schema exists, and every operation documents its error statuses. Verify with `OpenApiSnapshotTest` passing and `OpenApiSnapshotTest` cases for the `labels` scenarios "Operations and tag", "Color enum", "Request fields" and "Error statuses".
 
 ## 7. Integration and project rules
 
