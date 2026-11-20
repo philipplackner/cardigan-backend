@@ -5,6 +5,9 @@ import com.plcoding.cardigan.common.api.validation.fieldErrorsOf
 import com.plcoding.cardigan.common.api.web.PayloadTooLargeException
 import com.plcoding.cardigan.common.domain.exception.ErrorCode
 import com.plcoding.cardigan.common.domain.exception.FieldErrorCode
+import com.plcoding.cardigan.common.domain.exception.InvalidCredentialsException
+import com.plcoding.cardigan.common.domain.exception.InvalidRefreshTokenException
+import com.plcoding.cardigan.common.domain.exception.RateLimitedException
 import com.plcoding.cardigan.common.domain.exception.ResourceNotFoundException
 import com.plcoding.cardigan.common.domain.exception.UnauthenticatedException
 import com.plcoding.cardigan.common.domain.exception.UniquenessConflictException
@@ -93,6 +96,23 @@ class CommonExceptionHandler : ResponseEntityExceptionHandler() {
     @ExceptionHandler(UnauthenticatedException::class)
     fun handleUnauthenticated(ex: UnauthenticatedException): ResponseEntity<ProblemDetail> =
         problem(ErrorCode.UNAUTHENTICATED)
+
+    @ExceptionHandler(InvalidCredentialsException::class)
+    fun handleInvalidCredentials(ex: InvalidCredentialsException): ResponseEntity<ProblemDetail> =
+        problem(ErrorCode.INVALID_CREDENTIALS)
+
+    @ExceptionHandler(InvalidRefreshTokenException::class)
+    fun handleInvalidRefreshToken(ex: InvalidRefreshTokenException): ResponseEntity<ProblemDetail> =
+        problem(ErrorCode.INVALID_REFRESH_TOKEN)
+
+    @ExceptionHandler(RateLimitedException::class)
+    fun handleRateLimited(ex: RateLimitedException): ResponseEntity<ProblemDetail> {
+        val response = problem(ErrorCode.RATE_LIMITED)
+        return ResponseEntity.status(response.statusCode)
+            .headers(response.headers)
+            .header(HttpHeaders.RETRY_AFTER, ex.retryAfterSeconds.toString())
+            .body(response.body)
+    }
 
     @ExceptionHandler(PayloadTooLargeException::class)
     fun handlePayloadTooLarge(ex: PayloadTooLargeException): ResponseEntity<ProblemDetail> =

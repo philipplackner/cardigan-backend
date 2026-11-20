@@ -9,7 +9,7 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## 2. Error mapping in `:common`
 
-- [ ] 2.1 Add the base exceptions `InvalidCredentialsException`, `InvalidRefreshTokenException` and `RateLimitedException(retryAfterSeconds)` and map them in `CommonExceptionHandler`. Verify with E2E tests through the test-only API: 401 `INVALID_CREDENTIALS` and 401 `INVALID_REFRESH_TOKEN` without `WWW-Authenticate`, 429 `RATE_LIMITED` with `Retry-After`, each with the exact problem field set.
+- [x] 2.1 Add the base exceptions `InvalidCredentialsException`, `InvalidRefreshTokenException` and `RateLimitedException(retryAfterSeconds)` and map them in `CommonExceptionHandler`. Verify with E2E tests through the test-only API: 401 `INVALID_CREDENTIALS` and 401 `INVALID_REFRESH_TOKEN` without `WWW-Authenticate`, 429 `RATE_LIMITED` with `Retry-After`, each with the exact problem field set.
 
 ## 3. Password hashing
 
