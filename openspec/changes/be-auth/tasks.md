@@ -27,7 +27,7 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## 6. Rate limiter
 
-- [ ] 6.1 Add `AuthRateLimiter` in `domain`, `AuthRateLimitedException`, and `Bucket4jAuthRateLimiter` with the clock-driven time source and the bounded Caffeine caches. Verify with unit tests on `MutableClock` for the `auth-rate-limiting` scenarios and the shared `api-auth-tokens` scenarios of "Rate limits count per email": the sixth request fails, still fails after 11.999 seconds, exactly one more passes after 12 seconds, separate login and register counts, separate emails, `Retry-After` of 12, 7 and 1 at the instants of the spec scenario and never 0, an idle bucket is no longer tracked after 61 seconds, a new limiter instance starts with full limits, and after inserting more emails than the maximum, the cache holds at most the maximum.
+- [x] 6.1 Add `AuthRateLimiter` in `domain`, `AuthRateLimitedException`, and `Bucket4jAuthRateLimiter` with the clock-driven time source and the bounded Caffeine caches. Verify with unit tests on `MutableClock` for the `auth-rate-limiting` scenarios and the shared `api-auth-tokens` scenarios of "Rate limits count per email": the sixth request fails, still fails after 11.999 seconds, exactly one more passes after 12 seconds, separate login and register counts, separate emails, `Retry-After` of 12, 7 and 1 at the instants of the spec scenario and never 0, an idle bucket is no longer tracked after 61 seconds, a new limiter instance starts with full limits, and after inserting more emails than the maximum, the cache holds at most the maximum.
 
 ## 7. Auth service
 
