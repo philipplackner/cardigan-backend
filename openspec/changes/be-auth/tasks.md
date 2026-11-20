@@ -4,8 +4,8 @@ Every group ends with `./gradlew build` passing and a commit, as `CLAUDE.md` req
 
 ## 1. Dependencies and configuration
 
-- [ ] 1.1 Look up the latest stable bucket4j and Caffeine versions, add them to `gradle/libs.versions.toml` and to `:user`. Verify with `./gradlew :user:dependencies` showing both and `./gradlew build` passing.
-- [ ] 1.2 Add `AuthProperties`, `PasswordHashingProperties` and `AuthRateLimitProperties` (`cardigan.user.auth.*`, split and placed as in `design.md`) with their defaults and validation of their values, the values in `:app` `application.yaml`, and `bcrypt-cost: 4` in `application-test.yaml`. Give `UserTestApplication` `@ConfigurationPropertiesScan` and a `UserTestConfig` with `PostgresTestConfig`, a `MutableClock` bean and a fake `AccessTokenIssuer`. Verify with a binding test for the defaults (cost 12 when none is configured) and a test that a cost below 4, a non-positive capacity or a non-positive `max-concurrent-hashes` fails startup.
+- [x] 1.1 Look up the latest stable bucket4j and Caffeine versions, add them to `gradle/libs.versions.toml` and to `:user`. Verify with `./gradlew :user:dependencies` showing both and `./gradlew build` passing.
+- [x] 1.2 Add `AuthProperties`, `PasswordHashingProperties` and `AuthRateLimitProperties` (`cardigan.user.auth.*`, split and placed as in `design.md`) with their defaults and validation of their values, the values in `:app` `application.yaml`, and `bcrypt-cost: 4` in `application-test.yaml`. Give `UserTestApplication` `@ConfigurationPropertiesScan` and a `UserTestConfig` with `PostgresTestConfig`, a `MutableClock` bean and a fake `AccessTokenIssuer`. Verify with a binding test for the defaults (cost 12 when none is configured) and a test that a cost below 4, a non-positive capacity or a non-positive `max-concurrent-hashes` fails startup.
 
 ## 2. Error mapping in `:common`
 

@@ -13,3 +13,6 @@ cardigan:
   security:
     jwt:
       secret: B0nFhsWLwXJYZvA5qxHVsoNELNX1lovqQB9phdjgG74=
+  user:
+    auth:
+      bcrypt-cost: 4

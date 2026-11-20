@@ -39,6 +39,20 @@ cardigan:
       access-token-ttl: 15m
   web:
     max-request-body-size: 256KB
+  user:
+    auth:
+      refresh-token-ttl: 30d
+      bcrypt-cost: 12
+      # max-concurrent-hashes: default is half the available processors, at least 1
+      session-cleanup-cron: "0 0 3 * * *"
+      rate-limit:
+        max-tracked-emails: 100000
+        login:
+          capacity: 5
+          period: 1m
+        register:
+          capacity: 5
+          period: 1m
 
 springdoc:
   api-docs:
