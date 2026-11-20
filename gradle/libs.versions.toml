@@ -4,6 +4,7 @@ kotlin = "2.3.21"
 spring-boot = "4.1.1"
 assertk = "0.28.1"
 springdoc = "3.1.1"
+icu4j = "79.1"
 
 [libraries]
 # Gradle plugin artifacts for build-logic
@@ -31,6 +32,9 @@ springdoc-openapi-webmvc-api = { module = "org.springdoc:springdoc-openapi-start
 # Kotlin / Jackson 3
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect" }
 jackson-module-kotlin = { module = "tools.jackson.module:jackson-module-kotlin" }
+
+# Text
+icu4j = { module = "com.ibm.icu:icu4j", version.ref = "icu4j" }
 
 # Database
 postgresql = { module = "org.postgresql:postgresql" }

@@ -20,6 +20,7 @@ import org.springframework.validation.ObjectError
 import org.springframework.web.HttpMediaTypeNotSupportedException
 import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.MethodArgumentNotValidException
+import org.springframework.web.bind.MissingPathVariableException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -64,6 +65,9 @@ class CommonExceptionHandler : ResponseEntityExceptionHandler() {
                 } else {
                     problem(ErrorCode.MALFORMED_REQUEST)
                 }
+            // A blank path value converts to null, so it arrives here and not as a type mismatch.
+            is MissingPathVariableException ->
+                if (ex.isMissingAfterConversion) problem(ErrorCode.NOT_FOUND) else problemForStatus(ex, statusCode)
             is MethodArgumentNotValidException ->
                 validationFailed(ex.bindingResult.allErrors.mapNotNull { it.constraintViolation() })
             is HandlerMethodValidationException ->

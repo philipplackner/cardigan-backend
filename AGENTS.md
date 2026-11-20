@@ -20,7 +20,7 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 | API contract | OpenAPI 3.0.1, generated code-first with springdoc-openapi, committed as a JSON snapshot |
 | Tests | JUnit 5, AssertK, hand-written fakes, Testcontainers (Postgres), WireMock, Awaitility |
 
-**Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users` table and `GET /api/v1/users/me`. Register, login, refresh, logout and rate limiting don't exist yet (`be-auth`). `:board` has no code. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
+**Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users` table and `GET /api/v1/users/me`. Register, login, refresh, logout and rate limiting don't exist yet (`be-auth`). `:board` has the `labels` table and the label endpoints under `/api/v1/labels`. Label colors are upper-case constants such as `RED`. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
 
 ---
 
@@ -66,6 +66,7 @@ cardigan/
     │   │   ├── service/             <Concept>Service (business rules, @Transactional)
     │   │   ├── domain/
     │   │   │   ├── model/           immutable data classes, no Spring/JPA
+    │   │   │   ├── text/            pure text helpers (CaseFolding.kt)
     │   │   │   ├── exception/       <Thing><Problem>Exception, subclasses of the :common base exceptions
     │   │   │   ├── event/           module-internal events
     │   │   │   └── repository/      <Model>Repository interfaces + other outbound interfaces
@@ -90,7 +91,7 @@ cardigan/
 common/src/
 ├── main/kotlin/com/plcoding/cardigan/common/
 │   ├── api/              CommonExceptionHandler, problemDetail(), ProblemResponseWriter, ProblemErrorController, requestUserId
-│   │   ├── validation/   @Required, @ValidText, @ValidUuid, @ValidEnum, @ValidRange, RequestValidator
+│   │   ├── validation/   @Required, @ValidText, @ValidUuid, @ValidEnum, @ValidRange, @NotNullWhenPresent, PatchRequest, RequestValidator
 │   │   ├── web/          Jackson config, RequestSizeLimitFilter, PublicRoutes, content negotiation
 │   │   ├── openapi/      springdoc customizers, @ApiErrors
 │   │   └── security/     authentication entry point, firewall rejection handler
@@ -127,7 +128,7 @@ app/src/
 
 | Layer | Contains | May depend on |
 |---|---|---|
-| `domain` | Models, domain exceptions, events, repository interfaces | Kotlin, `java.*`, `common.domain` |
+| `domain` | Models, domain exceptions, events, repository interfaces | Kotlin, `java.*`, `common.domain`, and ICU4J for case folding in `:board` |
 | `service` | Business logic, transactions, event publishing | `domain` |
 | `infra` | JPA entities and adapters, HTTP clients, SDK wrappers | `domain` |
 | `api` | Controllers, DTOs, exception handlers, event listeners | `service`, `domain` |
@@ -144,7 +145,7 @@ app/src/
 |---|---|
 | An endpoint | `<feature>/api/controller` under `/api/v1/`, with an explicit `operationId`, one plural `@Tag` and `@ApiErrors` for its extra error statuses. If it's public, add it to the module's own `PublicRoutes` bean, not to `SecurityConfig` |
 | A request or response body | `<feature>/api/dto`, mapped in `api/mapper`. Request DTOs follow the rules in "API contract" below |
-| A format/length/range check | Bean Validation on the request DTO with the `:common` constraints (`@Required`, `@ValidText`, `@ValidUuid`, `@ValidEnum`, `@ValidRange`) |
+| A format/length/range check | Bean Validation on the request DTO with the `:common` constraints (`@Required`, `@ValidText`, `@ValidUuid`, `@ValidEnum`, `@ValidRange`; `@NotNullWhenPresent` comes with `PatchRequest`) |
 | A rule that needs data or state | `<feature>/service` |
 | A failure clients must handle | Exception in `<feature>/domain/exception` that subclasses `ResourceNotFoundException`, `UniquenessConflictException` or `UnauthenticatedException` from `:common`. `CommonExceptionHandler` maps it; no feature handler. A new top-level code needs a shared `api-errors` change first |
 | An OpenAPI rule | `:common` `api/openapi` customizers, never per-feature springdoc config |
@@ -221,6 +222,7 @@ The spec is generated code-first by springdoc from controllers and DTOs. Mobile 
 - The document is OpenAPI 3.0.1 (`springdoc.api-docs.version: openapi_3_0`), for the best code generator support.
 - Response DTOs: Kotlin nullability is the contract. A non-null property is `required`, a nullable one is `nullable`.
 - Request DTOs deliberately differ: every property is nullable in Kotlin with no default, so missing and `null` fields become `REQUIRED` field errors and all broken fields are reported at once. `@Required` marks the fields the endpoint needs. In the document, only `@Required` properties are `required`, and no request property is `nullable`: optional fields are omitted, never sent as `null`.
+- PATCH request DTOs are the one exception to constructor properties: a plain class that extends `PatchRequest` and declares each field as a body property, `var name: String? = null` with `set(value) { field = sent("name", value) }`. That way an absent field is accepted and a field sent as `null` is `REQUIRED` (`@NotNullWhenPresent`).
 - Request DTOs declare UUIDs as `String` with `@ValidUuid`, enums as `String` with `@ValidEnum(XDto::class)`, and bounded integers such as positions as `BigInteger` with a range check. Mappers convert them after validation. The document still shows `format: uuid`, the enum values and `integer`.
 - Text fields use `@ValidText`. Mappers call `normalizeText` again when building the domain value; the validator never changes the DTO.
 - Endpoints that reference resources in the path or body call `RequestValidator.validate(request)` after the service resolved them, so 404 wins over field errors. `@Valid` is only for endpoints without references. Declare `@RequestBody` before any `@PathVariable`.
