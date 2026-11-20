@@ -118,6 +118,124 @@ class OpenApiSnapshotTest @Autowired constructor(
     }
 
     @Test
+    fun `board operations have their operationIds, the tag Boards and their error statuses`() {
+        val boards = document.map("paths").map("/api/v1/boards")
+        val board = document.map("paths").map("/api/v1/boards/{boardId}")
+        val operations = mapOf(
+            "listBoards" to boards.map("get"),
+            "createBoard" to boards.map("post"),
+            "getBoard" to board.map("get"),
+            "updateBoard" to board.map("patch"),
+            "deleteBoard" to board.map("delete"),
+        )
+
+        assertThat(boards.keys + board.keys).isEqualTo(setOf("get", "post", "patch", "delete"))
+        operations.forEach { (operationId, operation) ->
+            assertThat(operation["operationId"]).isEqualTo(operationId)
+            assertThat(operation["tags"]).isEqualTo(listOf("Boards"))
+        }
+        assertThat(operations.mapValues { it.value.map("responses").keys.sorted() }).isEqualTo(
+            mapOf(
+                "listBoards" to listOf("200", "401", "500"),
+                "createBoard" to listOf("201", "400", "401", "409", "413", "415", "500"),
+                "getBoard" to listOf("200", "401", "404", "500"),
+                "updateBoard" to listOf("200", "400", "401", "404", "413", "415", "500"),
+                "deleteBoard" to listOf("204", "401", "404", "500"),
+            ),
+        )
+        assertThat(operations.getValue("createBoard").errorCodes("409")).isEqualTo("Error codes: CONFLICT")
+        listOf("getBoard", "updateBoard", "deleteBoard").forEach {
+            assertThat(operations.getValue(it).errorCodes("404"), it).isEqualTo("Error codes: NOT_FOUND")
+        }
+        listOf("createBoard", "updateBoard").forEach {
+            assertThat(operations.getValue(it).errorCodes("400"), it)
+                .isEqualTo("Error codes: VALIDATION_FAILED, MALFORMED_REQUEST")
+        }
+    }
+
+    @Test
+    fun `board schemas - responses fully required, requests by @Required, full board and list item apart`() {
+        val boards = document.map("paths").map("/api/v1/boards")
+        val board = document.map("paths").map("/api/v1/boards/{boardId}")
+
+        assertThat(boards.map("get").responseSchema("200")).isEqualTo("BoardListDto")
+        assertThat(boards.map("post").responseSchema("201")).isEqualTo("BoardDto")
+        assertThat(board.map("get").responseSchema("200")).isEqualTo("BoardDto")
+        assertThat(board.map("patch").responseSchema("200")).isEqualTo("BoardDto")
+        assertThat(board.map("delete").map("responses").map("204")["content"]).isNull()
+        assertThat(boards.map("post").requestSchema()).isEqualTo("CreateBoardRequest")
+        assertThat(board.map("patch").requestSchema()).isEqualTo("UpdateBoardRequest")
+
+        assertSchema("BoardDto", required = setOf("id", "name", "key", "createdAt", "updatedAt", "columns"))
+        assertSchema("BoardSummaryDto", required = setOf("id", "name", "key", "createdAt", "updatedAt"))
+        assertSchema("BoardListDto", required = setOf("boards"))
+        assertSchema("CreateBoardRequest", required = setOf("name", "key"))
+        assertSchema("UpdateBoardRequest", properties = setOf("name"), required = emptySet())
+        assertThat(schema("BoardDto").map("properties").map("id")["format"]).isEqualTo("uuid")
+        assertThat(schema("BoardDto").map("properties").map("columns").map("items"))
+            .isEqualTo(mapOf("\$ref" to "#/components/schemas/ColumnDto"))
+        assertThat(schema("BoardListDto").map("properties").map("boards").map("items"))
+            .isEqualTo(mapOf("\$ref" to "#/components/schemas/BoardSummaryDto"))
+    }
+
+    @Test
+    fun `column operations have their operationIds, the tag Columns and their error statuses`() {
+        val columns = document.map("paths").map("/api/v1/boards/{boardId}/columns")
+        val column = document.map("paths").map("/api/v1/boards/{boardId}/columns/{columnId}")
+        val move = document.map("paths").map("/api/v1/boards/{boardId}/columns/{columnId}/move")
+        val operations = mapOf(
+            "createColumn" to columns.map("post"),
+            "updateColumn" to column.map("patch"),
+            "moveColumn" to move.map("post"),
+            "deleteColumn" to column.map("delete"),
+        )
+
+        assertThat(columns.keys).isEqualTo(setOf("post"))
+        assertThat(column.keys).isEqualTo(setOf("patch", "delete"))
+        assertThat(move.keys).isEqualTo(setOf("post"))
+        operations.forEach { (operationId, operation) ->
+            assertThat(operation["operationId"]).isEqualTo(operationId)
+            assertThat(operation["tags"]).isEqualTo(listOf("Columns"))
+            assertThat(operation.errorCodes("404"), operationId).isEqualTo("Error codes: NOT_FOUND")
+        }
+        assertThat(operations.mapValues { it.value.map("responses").keys.sorted() }).isEqualTo(
+            mapOf(
+                "createColumn" to listOf("201", "400", "401", "404", "413", "415", "500"),
+                "updateColumn" to listOf("200", "400", "401", "404", "413", "415", "500"),
+                "moveColumn" to listOf("200", "400", "401", "404", "413", "415", "500"),
+                "deleteColumn" to listOf("204", "401", "404", "500"),
+            ),
+        )
+        listOf("createColumn", "updateColumn", "moveColumn").forEach {
+            assertThat(operations.getValue(it).errorCodes("400"), it)
+                .isEqualTo("Error codes: VALIDATION_FAILED, MALFORMED_REQUEST")
+        }
+    }
+
+    @Test
+    fun `column schemas - responses fully required, requests by @Required, position an integer`() {
+        val columns = document.map("paths").map("/api/v1/boards/{boardId}/columns")
+        val column = document.map("paths").map("/api/v1/boards/{boardId}/columns/{columnId}")
+        val move = document.map("paths").map("/api/v1/boards/{boardId}/columns/{columnId}/move")
+
+        assertThat(columns.map("post").responseSchema("201")).isEqualTo("ColumnDto")
+        assertThat(column.map("patch").responseSchema("200")).isEqualTo("ColumnDto")
+        assertThat(move.map("post").responseSchema("200")).isEqualTo("ColumnListDto")
+        assertThat(columns.map("post").requestSchema()).isEqualTo("CreateColumnRequest")
+        assertThat(column.map("patch").requestSchema()).isEqualTo("UpdateColumnRequest")
+        assertThat(move.map("post").requestSchema()).isEqualTo("MoveColumnRequest")
+
+        assertSchema("ColumnDto", required = setOf("id", "name", "position", "createdAt", "updatedAt"))
+        assertSchema("ColumnListDto", required = setOf("columns"))
+        assertSchema("CreateColumnRequest", required = setOf("name"))
+        assertSchema("UpdateColumnRequest", properties = setOf("name"), required = emptySet())
+        assertSchema("MoveColumnRequest", required = setOf("position"))
+        assertThat(schema("MoveColumnRequest").map("properties").map("position")["type"]).isEqualTo("integer")
+        assertThat(schema("ColumnDto").map("properties").map("position")["type"]).isEqualTo("integer")
+        assertThat(schema("ColumnDto").map("properties").map("id")["format"]).isEqualTo("uuid")
+    }
+
+    @Test
     fun `current user schema is required, non-null and formatted`() {
         val ref = document.map("paths").map("/api/v1/users/me").map("get").map("responses").map("200")
             .map("content").values.single().let { (it as Map<*, *>)["schema"] as Map<*, *> }["\$ref"] as String
@@ -146,6 +264,28 @@ class OpenApiSnapshotTest @Autowired constructor(
         assertThat(document.map("components").map("securitySchemes").map("bearerAuth"))
             .isEqualTo(mapOf("type" to "http", "scheme" to "bearer", "bearerFormat" to "JWT"))
     }
+
+    private fun schema(name: String): Map<String, Any?> = document.map("components").map("schemas").map(name)
+
+    /** The schema has exactly [properties], requires exactly [required], and no property is nullable. */
+    private fun assertSchema(name: String, required: Set<String>, properties: Set<String> = required) {
+        val schema = schema(name)
+        assertThat(schema.map("properties").keys, "$name properties").isEqualTo(properties)
+        assertThat((schema["required"] as List<*>?).orEmpty().toSet(), "$name required").isEqualTo(required)
+        schema.map("properties").forEach { (property, definition) ->
+            assertThat(definition.asStringMap()["nullable"], "$name.$property nullable").isNull()
+        }
+    }
+
+    private fun Map<String, Any?>.errorCodes(status: String): Any? = map("responses").map(status)["description"]
+
+    private fun Map<String, Any?>.responseSchema(status: String): String =
+        (map("responses").map(status).map("content").map("application/json").map("schema")["\$ref"] as String)
+            .substringAfterLast('/')
+
+    private fun Map<String, Any?>.requestSchema(): String =
+        (map("requestBody").map("content").map("application/json").map("schema")["\$ref"] as String)
+            .substringAfterLast('/')
 
     private fun operations(): List<Map<String, Any?>> =
         document.map("paths").values.flatMap { item -> (item as Map<*, *>).values.map { it.asStringMap() } }
