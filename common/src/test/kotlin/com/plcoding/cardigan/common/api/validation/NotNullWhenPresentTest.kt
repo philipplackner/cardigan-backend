@@ -97,6 +97,14 @@ class NotNullWhenPresentTest {
     }
 
     @Test
+    fun `duplicate key counts with its last value`() {
+        assertThat(errorsOf("""{"name":null,"name":"ok"}""")).isEmpty()
+        assertThat(errorsOf("""{"name":"ok","name":null}""")).containsExactly(
+            ProblemFieldError("name", FieldErrorCode.REQUIRED),
+        )
+    }
+
+    @Test
     fun `property set to null in code is REQUIRED too`() {
         val request = UpdateThingRequest().apply { name = null }
 

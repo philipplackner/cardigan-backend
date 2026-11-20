@@ -28,9 +28,12 @@ abstract class PatchRequest {
 
     private val nullProperties = mutableSetOf<String>()
 
-    /** Records [name] as sent when [value] is null. Returns [value]. */
+    /**
+     * Records [name] as sent as `null` when [value] is null and forgets it again for a later
+     * non-null value, as with a duplicate JSON key. Returns [value].
+     */
     protected fun <T> sent(name: String, value: T?): T? {
-        if (value == null) nullProperties += name
+        if (value == null) nullProperties += name else nullProperties -= name
         return value
     }
 
