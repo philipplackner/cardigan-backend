@@ -6,8 +6,12 @@
 The backend SHALL store a password only as a BCrypt hash with a configured cost, 12 by default, with a random salt per user. Every character of the NFC-normalized password SHALL count, also beyond BCrypt's 72-byte input limit. Surrounding whitespace SHALL be kept.
 
 #### Scenario: Stored hash
-- **WHEN** a user registers with the password `Correct horse 7`
-- **THEN** the stored password hash is a BCrypt hash with cost 12 and does not contain the password
+- **WHEN** the cost is configured as 5 and a user registers with the password `Correct horse 7`
+- **THEN** the stored password hash is a BCrypt hash with cost 5 and does not contain the password
+
+#### Scenario: Default cost
+- **WHEN** no cost is configured
+- **THEN** the cost is 12
 
 #### Scenario: Same password, different users
 - **WHEN** two users register with the same password

@@ -70,7 +70,7 @@ The backend can verify access tokens but can't issue them to real users: there i
 ## Impact
 
 - `:user`: new controller, DTOs, validators, services, domain models, repositories, entities, rate limiter, scheduled job, config properties, `PublicRoutes` bean.
-- `:common`: a `RateLimitedException` base exception mapped to 429 with `Retry-After`, if not already there.
+- `:common`: the base exceptions `InvalidCredentialsException`, `InvalidRefreshTokenException` and `RateLimitedException`, mapped in `CommonExceptionHandler` (401 without `WWW-Authenticate`, 429 with `Retry-After`), and a public `reject(FieldViolation)`.
 - `:app`: `@EnableScheduling`, new config values in `application.yaml`, a low BCrypt cost in the test profile, new E2E tests, `E2eTest.signIn`, the OpenAPI snapshot.
 - Database: tables `user_service.sessions` and `user_service.refresh_tokens`. They must be part of the baseline migration before the first production deploy.
 - Dependencies: bucket4j, Caffeine.

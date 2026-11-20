@@ -41,7 +41,7 @@ A successful refresh SHALL return the schema `AuthTokensDto` with `accessToken`,
 
 #### Scenario: Refresh with the body transport
 - **WHEN** a client refreshes with a valid refresh token and `BODY`
-- **THEN** the body has exactly `accessToken`, `accessTokenExpiresAt` and `refreshToken`
+- **THEN** the response is 200 and the body has exactly `accessToken`, `accessTokenExpiresAt` and `refreshToken`
 
 #### Scenario: Refresh with the cookie transport
 - **WHEN** a client refreshes with a valid refresh cookie and `COOKIE`
@@ -77,13 +77,16 @@ Register with an email that is already stored, compared after normalization and 
 - **WHEN** two register requests for the same new email are processed at the same time
 - **THEN** one answers 201 and the other 409 `CONFLICT`
 
+#### Scenario: Email stored after the existence check
+- **WHEN** a registration stores a user whose email another registration stored after the first one's existence check
+- **THEN** the result is the same 409 `CONFLICT` with `email` `ALREADY_USED`, and one user exists
+
 #### Scenario: Used email and weak password
 - **WHEN** a client registers a used email with a weak password
 - **THEN** the response is 400 `VALIDATION_FAILED`, not 409
 
 ### Requirement: Login validates required fields only
-Login SHALL answer 400 `VALIDATION_FAILED` only when `email`, `password` or `refreshTokenTransport` is missing, `null`, empty after normalization, or the transport is unknown. It SHALL NOT apply the email format, the length limits or the password composition rule: any other email or password that does not match a user SHALL produce 401 `INVALID_CREDENTIALS`.
-
+Login SHALL answer 400 `VALIDATION_FAILED` only when `email`, `password` or `refreshTokenTransport` is missing, `null`, empty after normalization (the email is trimmed, the password is not), or the transport is unknown. It SHALL NOT apply the email format, the length limits or the password composition rule: any other email or password that does not match a user SHALL produce 401 `INVALID_CREDENTIALS`.
 #### Scenario: Missing password
 - **WHEN** a client logs in without `password`
 - **THEN** the response is 400 `VALIDATION_FAILED` with `password` `REQUIRED`
@@ -95,6 +98,29 @@ Login SHALL answer 400 `VALIDATION_FAILED` only when `email`, `password` or `ref
 #### Scenario: Short password
 - **WHEN** a client logs in with a known email and the password `abc`
 - **THEN** the response is 401 `INVALID_CREDENTIALS`, not a field error
+
+#### Scenario: Blank email
+- **WHEN** a client logs in with the email `"   "` and any password
+- **THEN** the response is 400 `VALIDATION_FAILED` with `email` `REQUIRED`
+
+#### Scenario: Empty password
+- **WHEN** a client logs in with a known email and the password `""`
+- **THEN** the response is 400 `VALIDATION_FAILED` with `password` `REQUIRED`
+
+#### Scenario: Password of only spaces
+- **WHEN** a client logs in with a known email and the password `"   "`
+- **THEN** the response is 401 `INVALID_CREDENTIALS`
+
+#### Scenario: Unknown transport on login
+- **WHEN** a client logs in with valid credentials and `refreshTokenTransport` `HEADER`
+- **THEN** the response is 400 `VALIDATION_FAILED` with `refreshTokenTransport` `INVALID_VALUE` and no session is created
+
+### Requirement: A login email that cannot be stored counts as unknown
+A login email that could never be stored (a character `text-length` forbids, or more than 254 characters) SHALL be treated as an unknown email: 401 `INVALID_CREDENTIALS` with the same password verification work, without a database lookup.
+
+#### Scenario: Control character in the email
+- **WHEN** a client logs in with an email containing U+0000 and any password
+- **THEN** the response is 401 `INVALID_CREDENTIALS`, identical to the response for an unknown email
 
 ### Requirement: Login matches the lowercased email and the exact password
 Login SHALL normalize and lowercase the email before matching it, and SHALL compare the password after NFC normalization without trimming it. A wrong password and an unknown email SHALL produce identical 401 `INVALID_CREDENTIALS` responses, as the shared spec `api-errors` ("Login failures look the same") requires.
@@ -109,7 +135,11 @@ Login SHALL normalize and lowercase the email before matching it, and SHALL comp
 
 #### Scenario: Unknown email and wrong password
 - **WHEN** one login uses an unknown email and another a wrong password
-- **THEN** both responses have the same status, headers and body
+- **THEN** both responses are 401 `INVALID_CREDENTIALS` with the same body and the same headers, not counting `Date`, and neither has `WWW-Authenticate`
+
+#### Scenario: Equal work for an unknown email
+- **WHEN** a login uses an unknown email
+- **THEN** the password hasher verifies the submitted password once, as for a known email
 
 ### Requirement: Sessions and refresh tokens are stored hashed
 Each register and login SHALL create one session with its user and its transport, and one refresh token in it. A refresh token SHALL be a random value of at least 256 bits. The backend SHALL store only its SHA-256 hash, with its expiry 30 days after issue, and SHALL never store or log the token itself.
@@ -126,7 +156,7 @@ Each register and login SHALL create one session with its user and its transport
 The backend SHALL NOT limit how many active sessions a user has. A new login SHALL NOT end or change any other session.
 
 #### Scenario: Many sessions
-- **WHEN** a user logs in 20 times and then refreshes with the token from the first login
+- **WHEN** a user logs in 20 times, one minute apart, and then refreshes with the token from the first login
 - **THEN** the refresh succeeds
 
 ### Requirement: Refresh and logout take the transport and an optional token
@@ -143,6 +173,14 @@ Refresh and logout requests SHALL require `refreshTokenTransport` and MAY carry 
 #### Scenario: Cookie refresh without a cookie
 - **WHEN** a client refreshes with `COOKIE` and no refresh cookie, with a valid `refreshToken` in the body
 - **THEN** the response is 401 `INVALID_REFRESH_TOKEN` and that token's session stays active
+
+#### Scenario: Logout without transport
+- **WHEN** a client logs out with `{}`
+- **THEN** the response is 400 `VALIDATION_FAILED` with `refreshTokenTransport` `REQUIRED`
+
+#### Scenario: Body logout without a token
+- **WHEN** a client logs out with `BODY` and no `refreshToken`
+- **THEN** the response is 204
 
 ### Requirement: A wrong transport does not end the session
 A refresh whose transport differs from its session's transport SHALL fail with 401 `INVALID_REFRESH_TOKEN` without rotating the token or revoking the session.
@@ -164,6 +202,10 @@ With the `COOKIE` transport, the backend SHALL set the refresh token in a cookie
 #### Scenario: Cookie on web login
 - **WHEN** a client logs in with `COOKIE`
 - **THEN** the `Set-Cookie` header is for `cardigan_refresh_token` with `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/v1/auth` and `Max-Age=2592000`, and has no `Domain`
+
+#### Scenario: Cookie on web register
+- **WHEN** a client registers with `COOKIE`
+- **THEN** the `Set-Cookie` header is for `cardigan_refresh_token` with the same attributes, and a refresh with that cookie and `COOKIE` succeeds
 
 #### Scenario: Cookie over plain HTTP
 - **WHEN** the same login reaches the backend over plain HTTP
@@ -204,7 +246,7 @@ The OpenAPI document SHALL NOT list the refresh cookie as a parameter of any ope
 - **THEN** the `refresh` and `logout` operations have no parameters, and their descriptions contain `cardigan_refresh_token`
 
 ### Requirement: Logout is public and always succeeds
-Logout SHALL NOT need an access token. A logout with a valid `refreshTokenTransport` SHALL answer 204 whether or not a session was revoked: also when the refresh token is missing, unknown, expired, already revoked, or sent with a transport other than its session's. In those cases no session SHALL change.
+Logout SHALL NOT need an access token. A logout with a valid `refreshTokenTransport` SHALL answer 204 whether or not a session was revoked: also when the refresh token is missing, unknown, expired without having been rotated, already revoked, or sent with a transport other than its session's. In those cases no session SHALL change.
 
 #### Scenario: Logout with an expired access token
 - **WHEN** a client logs out with a valid refresh token and an expired access token in the `Authorization` header
@@ -222,11 +264,19 @@ Logout SHALL NOT need an access token. A logout with a valid `refreshTokenTransp
 - **WHEN** the refresh token of a `COOKIE` session is sent to logout in the body with `BODY`
 - **THEN** the response is 204 and the session stays active
 
+#### Scenario: Expired current token
+- **WHEN** a client logs out with a session's current refresh token one second after its expiry
+- **THEN** the response is 204 and the stored session has no revocation time
+
 ### Requirement: Logout with a rotated token ends its session
-When logout receives a refresh token that was already rotated and whose session is still active, it SHALL revoke that session, including its current refresh token.
+When logout receives a refresh token that was already rotated and whose session is still active, it SHALL revoke that session, including its current refresh token. This SHALL also hold after the rotated token's own 30 days have passed.
 
 #### Scenario: Old token on logout
 - **WHEN** token R1 was rotated to R2 and a client logs out with R1
+- **THEN** the response is 204, and a refresh with R2 answers 401 `INVALID_REFRESH_TOKEN`
+
+#### Scenario: Old token past its own expiry
+- **WHEN** token R1 was rotated to R2 on day 29 and a client logs out with R1 on day 31
 - **THEN** the response is 204, and a refresh with R2 answers 401 `INVALID_REFRESH_TOKEN`
 
 ### Requirement: Logout clears the cookie only for the cookie transport
@@ -247,9 +297,17 @@ A job SHALL run daily at 03:00 UTC and delete every ended session with all its r
 - **WHEN** a session was logged out and the job runs
 - **THEN** the session and all its refresh tokens are gone
 
+#### Scenario: Schedule
+- **WHEN** the default configuration is used and the time is `2026-11-15T09:15:30Z`
+- **THEN** the job's next run is at `2026-11-16T03:00:00Z`
+
 #### Scenario: Expired session
-- **WHEN** a session's current refresh token expired one second ago and the job runs
+- **WHEN** a session's current refresh token expired at this instant or earlier and the job runs
 - **THEN** the session and all its refresh tokens are gone
+
+#### Scenario: Session about to expire
+- **WHEN** a session's current refresh token expires in 1 millisecond and the job runs
+- **THEN** the session remains and a refresh with that token succeeds
 
 #### Scenario: Active session with old rotated tokens
 - **WHEN** a session has refreshed 40 times over 60 days and the job runs
@@ -263,5 +321,9 @@ A job SHALL run daily at 03:00 UTC and delete every ended session with all its r
 Register, login, refresh and logout SHALL NOT publish events, send emails or call other systems. Logs SHALL NOT contain passwords, password hashes, refresh tokens, their hashes or access tokens.
 
 #### Scenario: Log output of a full flow
+- **WHEN** a client registers, logs in, refreshes and logs out, and also sends a register with a weak password, a login with a wrong password, a refresh with a rotated token, a login over the limit and a request that ends in 500, with the `com.plcoding.cardigan` loggers at `DEBUG`
+- **THEN** the log output contains none of: the submitted passwords, the stored password hash, the issued refresh tokens, their stored hashes, the issued access tokens
+
+#### Scenario: No events
 - **WHEN** a client registers, logs in, refreshes and logs out
-- **THEN** the log output contains none of the submitted or issued secrets
+- **THEN** no application event with a payload type from `com.plcoding.cardigan` is published
