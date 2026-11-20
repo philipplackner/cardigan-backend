@@ -38,7 +38,7 @@
 ## 7. Integration and project rules
 
 - [x] 7.1 Update `AGENTS.md` (`CLAUDE.md` is a symlink to it): the "Current state" paragraph (`:board` has the `boards` and `columns` tables and the board and column endpoints), and the places that list the `:common` base exceptions and constraints (`FieldOutOfRangeException`, `@NotNullWhenPresent` with `PatchRequest`), plus the canonical path UUID converter and `BoardTestConfig`. Verify by reading the changed lines against the code.
-- [ ] 7.2 Start the app with `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun` and check through the Supabase MCP (dev branch) that `board_service.boards` and `board_service.columns` exist with the unique constraint on (`owner_id`, `key`), the check on `position`, and the `ON DELETE CASCADE` foreign key. Verify by listing the tables and their constraints.
+- [x] 7.2 Start the app with `SPRING_PROFILES_ACTIVE=dev ./gradlew :app:bootRun` and check through the Supabase MCP (dev branch) that `board_service.boards` and `board_service.columns` exist with the unique constraint on (`owner_id`, `key`), the check on `position`, and the `ON DELETE CASCADE` foreign key. Verify by listing the tables and their constraints.
 - [x] 7.3 Run `./gradlew build` and `openspec validate be-boards --strict`. Verify that both pass, then commit per the Git workflow in `CLAUDE.md`.
 
 ## Workflow follow-up
