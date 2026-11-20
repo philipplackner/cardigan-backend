@@ -8,6 +8,9 @@ import com.plcoding.cardigan.common.api.validation.ValidRange
 import com.plcoding.cardigan.common.api.validation.ValidText
 import com.plcoding.cardigan.common.api.validation.ValidUuid
 import com.plcoding.cardigan.common.domain.exception.FieldOutOfRangeException
+import com.plcoding.cardigan.common.domain.exception.InvalidCredentialsException
+import com.plcoding.cardigan.common.domain.exception.InvalidRefreshTokenException
+import com.plcoding.cardigan.common.domain.exception.RateLimitedException
 import com.plcoding.cardigan.common.domain.exception.ResourceNotFoundException
 import com.plcoding.cardigan.common.domain.exception.UniquenessConflictException
 import jakarta.servlet.FilterChain
@@ -94,6 +97,14 @@ class TestApiController(
 
     @PostMapping("/out-of-range")
     fun outOfRange(): Nothing = throw FieldOutOfRangeException("position", min = 0, max = 2, message = "range-marker")
+    @PostMapping("/invalid-credentials")
+    fun invalidCredentials(): Nothing = throw InvalidCredentialsException("credentials-marker")
+
+    @PostMapping("/invalid-refresh-token")
+    fun invalidRefreshToken(): Nothing = throw InvalidRefreshTokenException("refresh-marker")
+
+    @PostMapping("/rate-limited/{seconds}")
+    fun rateLimited(@PathVariable seconds: Long): Nothing = throw RateLimitedException(seconds, "limit-marker")
 
     @GetMapping("/public")
     fun publicEndpoint(): ThingDto = ThingDto(EXISTING_THING_ID, Instant.parse("2026-11-15T09:15:30Z"))

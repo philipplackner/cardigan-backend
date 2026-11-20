@@ -5,5 +5,8 @@ plugins {
 }
 
 dependencies {
+    implementation(libs.bucket4j.core)
+    implementation(libs.caffeine)
+
     testImplementation(libs.spring.boot.starter.data.jpa.test)
 }

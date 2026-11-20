@@ -42,6 +42,21 @@ cardigan:
   board:
     # How long a write waits for the row lock of its board before it fails with a 500.
     lock-timeout: 5s
+  user:
+    auth:
+      refresh-token-ttl: 30d
+      bcrypt-cost: 12
+      # max-concurrent-hashes: default is half the available processors, at least 1
+      hash-wait-timeout: 5s
+      session-cleanup-cron: "0 0 3 * * *"
+      rate-limit:
+        max-tracked-emails: 100000
+        login:
+          capacity: 5
+          period: 1m
+        register:
+          capacity: 5
+          period: 1m
 
 springdoc:
   api-docs:

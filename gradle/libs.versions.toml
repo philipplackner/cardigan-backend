@@ -5,6 +5,7 @@ spring-boot = "4.1.1"
 assertk = "0.28.1"
 springdoc = "3.1.1"
 icu4j = "79.1"
+bucket4j = "8.22.0"
 
 [libraries]
 # Gradle plugin artifacts for build-logic
@@ -39,6 +40,10 @@ icu4j = { module = "com.ibm.icu:icu4j", version.ref = "icu4j" }
 # Database
 postgresql = { module = "org.postgresql:postgresql" }
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+
+# Rate limiting (Caffeine's version comes from the Spring Boot BOM)
+bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine" }
 
 # Test
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }

@@ -5,6 +5,7 @@ import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isNull
 import com.plcoding.cardigan.common.api.validation.PatchRequest
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.plcoding.cardigan.common.api.validation.Required
 import com.plcoding.cardigan.common.api.validation.ValidEnum
 import com.plcoding.cardigan.common.api.validation.ValidRange
@@ -15,6 +16,7 @@ import com.plcoding.cardigan.common.api.web.PublicRouteRegistry
 import com.plcoding.cardigan.common.api.web.PublicRoutes
 import com.plcoding.cardigan.common.domain.exception.ErrorCode
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,6 +42,9 @@ import java.util.UUID
 
 enum class WidgetColorDto { RED, GREEN }
 
+@Schema(enumAsRef = true)
+enum class WidgetShapeDto { ROUND, SQUARE }
+
 data class CreateWidgetRequest(
     @Required
     @ValidText(min = 1, max = 10)
@@ -53,6 +58,9 @@ data class CreateWidgetRequest(
     val color: String?,
     @ValidRange(min = 0, max = 10)
     val position: BigInteger?,
+    @ValidEnum(WidgetShapeDto::class)
+    @field:Schema(implementation = WidgetShapeDto::class)
+    val shape: String?,
 )
 
 class UpdateWidgetRequest : PatchRequest() {
@@ -75,6 +83,8 @@ data class WidgetDto(
     val name: String,
     val note: String?,
     val createdAt: Instant,
+    @field:JsonInclude(JsonInclude.Include.NON_NULL)
+    val secret: String?,
 )
 
 @RestController
@@ -148,7 +158,7 @@ class CardiganOpenApiCustomizerTest @Autowired constructor(
         requestProperties.forEach { (name, property) ->
             assertThat(property.asMap()["nullable"], name).isNull()
         }
-        assertThat(requestProperties.keys).isEqualTo(setOf("name", "note", "ownerId", "labelIds", "color", "position"))
+        assertThat(requestProperties.keys).isEqualTo(setOf("name", "note", "ownerId", "labelIds", "color", "position", "shape"))
     }
 
     @Test
@@ -175,6 +185,23 @@ class CardiganOpenApiCustomizerTest @Autowired constructor(
         assertThat(requestProperties.at("position")["type"]).isEqualTo("integer")
         assertThat(requestProperties.at("position")["minimum"]).isEqualTo(0)
         assertThat(requestProperties.at("position")["maximum"]).isEqualTo(10)
+    }
+
+    @Test
+    fun `request enum marked as a reference points to its named schema`() {
+        assertThat(requestProperties.at("shape")).isEqualTo(mapOf("\$ref" to "#/components/schemas/WidgetShapeDto"))
+        assertThat(document.at("components", "schemas", "WidgetShapeDto"))
+            .isEqualTo(mapOf("type" to "string", "enum" to listOf("ROUND", "SQUARE")))
+        assertThat(document.at("components", "schemas").containsKey("WidgetColorDto")).isFalse()
+    }
+
+    @Test
+    fun `response property left out when null is neither required nor nullable`() {
+        val schema = document.at("components", "schemas", "WidgetDto")
+
+        assertThat((schema["required"] as List<*>).contains("secret")).isFalse()
+        assertThat(schema.at("properties", "secret")).isEqualTo(mapOf("type" to "string"))
+        assertThat(schema.at("properties", "note")).isEqualTo(mapOf("type" to "string", "nullable" to true))
     }
 
     @Test

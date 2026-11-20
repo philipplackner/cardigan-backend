@@ -11,6 +11,7 @@ import com.plcoding.cardigan.testapi.TestApiController
 import com.plcoding.cardigan.user.UserFixtures
 import com.plcoding.cardigan.user.domain.model.User
 import com.plcoding.cardigan.user.domain.repository.UserRepository
+import com.plcoding.cardigan.user.infra.ratelimit.Bucket4jAuthRateLimiter
 import org.junit.jupiter.api.BeforeEach
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -96,6 +97,12 @@ abstract class E2eTest {
     @Autowired
     protected lateinit var accessTokenIssuer: AccessTokenIssuer
 
+    @Autowired
+    private lateinit var userRepository: UserRepository
+
+    @Autowired
+    private lateinit var authRateLimiter: Bucket4jAuthRateLimiter
+
     protected lateinit var client: RestTestClient
 
     private val httpClient: HttpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()
@@ -106,13 +113,23 @@ abstract class E2eTest {
     fun setUpE2e() {
         databaseCleaner.clean("user_service", "board_service")
         clock.set(START)
+        // The clock was just set back, and a rate limit bucket never refills while the clock is behind it.
+        authRateLimiter.clear()
         client = RestTestClient.bindToServer().baseUrl(baseUrl).build()
     }
 
-    /** Creates a user and returns a valid access token for it. */
+    /** Registers a user and logs in over HTTP. Returns the user and the access token of the login. */
     protected fun signIn(email: String = "ann@example.com"): SignedInUser {
-        val user = userFixtures.createUser(email)
-        return SignedInUser(user, accessTokenIssuer.issue(user.id).token)
+        val credentials = jsonMapper.writeValueAsString(
+            mapOf("email" to email, "password" to SIGN_IN_PASSWORD, "refreshTokenTransport" to "BODY"),
+        )
+        val registered = call(HttpMethod.POST, "/api/v1/auth/register", json = credentials)
+        check(registered.status == 201) { "Register answered ${registered.status}: ${registered.body}" }
+        val loggedIn = call(HttpMethod.POST, "/api/v1/auth/login", json = credentials)
+        check(loggedIn.status == 200) { "Login answered ${loggedIn.status}: ${loggedIn.body}" }
+        val userId = UUID.fromString((loggedIn.json()["user"] as Map<*, *>)["id"] as String)
+        val user = checkNotNull(userRepository.findById(userId)) { "No user record for $userId" }
+        return SignedInUser(user, loggedIn.json()["accessToken"] as String)
     }
 
     /** A valid access token for a user ID that has no record. */
@@ -174,5 +191,8 @@ abstract class E2eTest {
 
     companion object {
         val START: Instant = Instant.parse("2026-11-15T09:15:30.123Z")
+        const val SIGN_IN_PASSWORD = "Correct horse 7"
+
+        private val jsonMapper: JsonMapper = JsonMapper.builder().build()
     }
 }

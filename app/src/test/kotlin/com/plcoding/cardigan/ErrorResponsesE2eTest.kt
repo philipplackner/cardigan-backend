@@ -6,6 +6,7 @@ import assertk.assertions.containsExactly
 import assertk.assertions.doesNotContain
 import assertk.assertions.isEmpty
 import assertk.assertions.isEqualTo
+import assertk.assertions.isNull
 import com.plcoding.cardigan.common.domain.exception.ErrorCode
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -164,6 +165,41 @@ class ErrorResponsesE2eTest : E2eTest() {
         call(HttpMethod.GET, "/api/v1/test/things/b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10", token)
             .assertProblem(ErrorCode.NOT_FOUND)
         call(HttpMethod.GET, "/api/v1/test/things/1-2-3-4-5", token).assertProblem(ErrorCode.NOT_FOUND)
+    }
+
+    @Test
+    fun `invalid credentials are 401 without a bearer challenge`() {
+        val result = call(HttpMethod.POST, "/api/v1/test/invalid-credentials", signIn().token)
+
+        val body = result.assertProblem(ErrorCode.INVALID_CREDENTIALS)
+        assertThat(body.fieldErrors).isEmpty()
+        assertThat(result.headers["WWW-Authenticate"]).isNull()
+        assertThat(result.body).doesNotContain("credentials-marker")
+    }
+
+    @Test
+    fun `invalid refresh token is 401 without a bearer challenge`() {
+        val result = call(HttpMethod.POST, "/api/v1/test/invalid-refresh-token", signIn().token)
+
+        val body = result.assertProblem(ErrorCode.INVALID_REFRESH_TOKEN)
+        assertThat(body.fieldErrors).isEmpty()
+        assertThat(result.headers["WWW-Authenticate"]).isNull()
+        assertThat(result.body).doesNotContain("refresh-marker")
+    }
+
+    @Test
+    fun `rate limit is 429 with Retry-After in whole seconds`() {
+        val token = signIn().token
+
+        val result = call(HttpMethod.POST, "/api/v1/test/rate-limited/12", token)
+
+        val body = result.assertProblem(ErrorCode.RATE_LIMITED)
+        assertThat(body.fieldErrors).isEmpty()
+        assertThat(result.headers["Retry-After"]).isEqualTo(listOf("12"))
+        assertThat(result.headers["WWW-Authenticate"]).isNull()
+        assertThat(result.body).doesNotContain("limit-marker")
+        assertThat(call(HttpMethod.POST, "/api/v1/test/rate-limited/1", token).headers["Retry-After"])
+            .isEqualTo(listOf("1"))
     }
 
     @Test

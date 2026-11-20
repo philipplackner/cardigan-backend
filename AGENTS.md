@@ -16,11 +16,11 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 | Persistence | JPA/Hibernate + Spring Data, Flyway migrations, Postgres hosted on Supabase |
 | Auth | Spring Security with self-issued JWT access tokens (HS256) + opaque rotating refresh tokens |
 | Events | Spring `ApplicationEventPublisher` + Spring Modulith event publication registry (JPA) |
-| Rate limiting | bucket4j, in-memory buckets in a Caffeine cache, keyed by client IP, plus by email for login |
+| Rate limiting | bucket4j, in-memory buckets in a Caffeine cache, keyed by email, for login and register only |
 | API contract | OpenAPI 3.0.1, generated code-first with springdoc-openapi, committed as a JSON snapshot |
 | Tests | JUnit 5, AssertK, hand-written fakes, Testcontainers (Postgres), WireMock, Awaitility |
 
-**Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users` table and `GET /api/v1/users/me`. Register, login, refresh, logout and rate limiting don't exist yet (`be-auth`). `:board` has the `boards`, `columns` and `labels` tables, the board and column endpoints under `/api/v1/boards` and the label endpoints under `/api/v1/labels`. Label colors are upper-case constants such as `RED`. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
+**Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users`, `sessions` and `refresh_tokens` tables, `GET /api/v1/users/me`, register, login, refresh and logout under `/api/v1/auth`, the per-email rate limit on login and register, and the daily cleanup of ended sessions. `:board` has the `boards`, `columns` and `labels` tables, the board and column endpoints under `/api/v1/boards` and the label endpoints under `/api/v1/labels`. Label colors are upper-case constants such as `RED`. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
 
 ---
 
@@ -76,6 +76,8 @@ cardigan/
     │   │       │   ├── repository/  SpringData<Model>Repository, Jpa<Model>Repository (adapter)
     │   │       │   └── mapper/      <Area>EntityMappers.kt
     │   │       ├── http/            third-party HTTP clients (@HttpExchange + adapter)
+    │   │       ├── security/        password hashing, refresh token generation (`:user` only)
+    │   │       ├── ratelimit/       the bucket4j rate limiter (`:user` only)
     │   │       └── config/          @Configuration, @ConfigurationProperties, the module's PublicRoutes bean
     │   └── resources/db/migration/<feature>/
     │       └── V<yyyy_MM_dd_HHmm>__<description>.sql
@@ -99,7 +101,8 @@ common/src/
 │   │   └── security/     authentication entry point, firewall rejection handler
 │   ├── domain/
 │   │   ├── exception/    ErrorCode, FieldErrorCode, base exceptions (ResourceNotFoundException,
-│   │   │                 UniquenessConflictException, UnauthenticatedException, FieldOutOfRangeException).
+│   │   │                 UniquenessConflictException, UnauthenticatedException, FieldOutOfRangeException,
+│   │   │                 InvalidCredentialsException, InvalidRefreshTokenException, RateLimitedException).
 │   │   │                 No ForbiddenException.
 │   │   ├── text/         normalizeText, normalizePassword, codePointLength, checkText
 │   │   ├── security/     AccessTokenIssuer
@@ -116,7 +119,7 @@ app/src/
 ├── main/
 │   ├── kotlin/com/plcoding/cardigan/
 │   │   ├── CardiganApplication.kt     @SpringBootApplication + @ConfigurationPropertiesScan
-│   │   ├── config/                    ApplicationConfig (Clock; later @EnableAsync, @EnableScheduling)
+│   │   ├── config/                    ApplicationConfig (Clock, @EnableScheduling; later @EnableAsync)
 │   │   └── api/security/              SecurityConfig (filter chain; public routes come from PublicRoutes beans)
 │   └── resources/
 │       ├── application.yaml           shared defaults, imports .env
@@ -151,7 +154,7 @@ app/src/
 | A format/length/range check | Bean Validation on the request DTO with the `:common` constraints (`@Required`, `@ValidText`, `@ValidUuid`, `@ValidEnum`, `@ValidRange`). A range that depends on stored data is checked in the service, which throws `FieldOutOfRangeException` |
 | A PATCH request body | A plain class in `<feature>/api/dto` that extends `PatchRequest` from `:common`, so a field sent as `null` is `REQUIRED` (`@NotNullWhenPresent`) and an absent one is left alone |
 | A rule that needs data or state | `<feature>/service` |
-| A failure clients must handle | Exception in `<feature>/domain/exception` that subclasses `ResourceNotFoundException`, `UniquenessConflictException` or `UnauthenticatedException` from `:common`, or a `FieldOutOfRangeException` (400 `VALIDATION_FAILED` with `OUT_OF_RANGE`, `min` and `max`) thrown as it is. `CommonExceptionHandler` maps it; no feature handler. A new top-level code needs a shared `api-errors` change first |
+| A failure clients must handle | Exception in `<feature>/domain/exception` that subclasses `ResourceNotFoundException`, `UniquenessConflictException`, `UnauthenticatedException` or `RateLimitedException` from `:common`. `InvalidCredentialsException` and `InvalidRefreshTokenException` carry no data and are thrown as they are, and so is `FieldOutOfRangeException` (400 `VALIDATION_FAILED` with `OUT_OF_RANGE`, `min` and `max`). `CommonExceptionHandler` maps it; no feature handler. A new top-level code needs a shared `api-errors` change first |
 | An OpenAPI rule | `:common` `api/openapi` customizers, never per-feature springdoc config |
 | A table, column, or index | Entity in `infra/database/entity`. Dev and tests build their schema from it. Once the baseline migration exists, also a Flyway migration in `<feature>/src/main/resources/db/migration/<feature>` |
 | A query | `SpringData<Model>Repository`, exposed through the domain interface and `Jpa<Model>Repository` |
@@ -159,7 +162,7 @@ app/src/
 | Something another module must react to | Event subtype in `common/domain/event/<publisher>`, listener in the consumer's `api/event` |
 | A config value | `@ConfigurationProperties` under `cardigan.<feature>.<concern>`, value in `:app` `application.yaml` |
 | A scheduled job | `@Scheduled` method on the service that owns the data, cron from config |
-| Auth rate limiting | Auth module: limiter interface in `domain`, bucket4j implementation in `infra` |
+| Auth rate limiting | `:user`: `AuthRateLimiter` in `domain`, `Bucket4jAuthRateLimiter` in `infra/ratelimit` |
 | A fake for tests | Module `src/test/.../fake`, or `:common` `testFixtures` if several modules need it |
 | An E2E test | `:app` `src/test`, extending the `E2eTest` base class |
 
@@ -204,13 +207,15 @@ app/src/
 - Every public route under `/api/v1` is listed explicitly, by method and exact path, in the owning module's `PublicRoutes` bean. Everything else under `/api/v1` requires authentication. The bearer token is ignored on public routes and outside `/api/v1`.
 - The request user is the token's `sub` (`requestUserId`), with no database lookup.
 
-### Rate limiting: per IP, plus per email for login
+### Rate limiting: per email, login and register only
 
-- Public auth endpoints are rate limited per client IP. Login is additionally limited per normalized email (trimmed, lowercased).
-- bucket4j buckets live in memory in a Caffeine cache with a maximum size and expire-after-access. Limits come from `@ConfigurationProperties`.
-- Exceeding a limit throws a domain exception that maps to `429` with code `RATE_LIMITED` and a `Retry-After` header. The rate limit is checked before credentials.
-- Accepted trade-offs: limits are per instance and reset on restart. This is on purpose, to keep things simple. Don't add global limits without asking.
-- Still open, so ask before implementing: the concrete limit values, and whether refresh and logout get any limit.
+- Login and register are rate limited per submitted email, normalized and lowercased, in separate buckets: 5 requests per minute each, refilled evenly. The values are config (`cardigan.user.auth.rate-limit.*`).
+- Every request that carries an email counts, whether it succeeds or fails. A request without an email isn't counted; field validation answers it.
+- No limit uses the client IP. No client IP is read and no forwarded-header handling is configured. Refresh and logout are not rate limited and never answer 429.
+- bucket4j buckets live in memory in a Caffeine cache with a maximum size and expire-after-access. Both read the `Clock` bean.
+- Exceeding a limit throws `AuthRateLimitedException`, which maps to `429` with code `RATE_LIMITED` and a `Retry-After` header. The limit is checked after the body was parsed and before field validation, credentials and the uniqueness check.
+- Password hashing runs at most `max-concurrent-hashes` at a time. A login or register that waits longer than `hash-wait-timeout` (5s) for its turn throws `PasswordHashingBusyException` and answers the same `429` `RATE_LIMITED`, with `Retry-After` set to that timeout.
+- Accepted trade-offs: limits are per instance and reset on restart. Email keys don't stop one client trying many emails, and anyone can use up another email's limit for up to a minute. This is on purpose, to keep things simple. Don't add IP-based or global limits without asking.
 
 ### Events: in-process only
 
@@ -222,7 +227,7 @@ app/src/
 
 The spec is generated code-first by springdoc from controllers and DTOs. Mobile clients generate type-safe code from it, so the spec must be exact:
 
-- All routes live under `/api/v1/<plural-resource>`. This replaces the `/api/...` base path in `spring-api-layer`.
+- All routes live under `/api/v1/<plural-resource>`. This replaces the `/api/...` base path in `spring-api-layer`. The agreed exception is the auth group: `POST /api/v1/auth/register`, `/login`, `/refresh` and `/logout`, with the tag `Auth`, so the refresh cookie has one path.
 - The document is OpenAPI 3.0.1 (`springdoc.api-docs.version: openapi_3_0`), for the best code generator support.
 - Response DTOs: Kotlin nullability is the contract. A non-null property is `required`, a nullable one is `nullable`.
 - Request DTOs deliberately differ: every property is nullable in Kotlin with no default, so missing and `null` fields become `REQUIRED` field errors and all broken fields are reported at once. `@Required` marks the fields the endpoint needs. In the document, only `@Required` properties are `required`, and no request property is `nullable`: optional fields are omitted, never sent as `null`.
@@ -237,7 +242,7 @@ The spec is generated code-first by springdoc from controllers and DTOs. Mobile 
 - Errors are `application/problem+json` with `type` `urn:cardigan:problem:<code in kebab-case>`, a fixed `title` and `detail` per code, `code`, and `fieldErrors`. No `instance`, and never 403 (other users' data is 404). This replaces `about:blank` and `ForbiddenException` in `spring-api-layer`.
 - Every operation documents 500, 401 when protected, 400/413/415 when it has a body, and its `@ApiErrors` statuses, each with the `Problem` schema and its codes in the description. `CardiganOpenApiCustomizer` adds these.
 - The `Accept` header is ignored. Responses are always JSON or problem+json, never 406.
-- `operationId`s (camelCase verb + resource) and tags (one plural PascalCase tag) are stable. Renaming them breaks generated clients.
+- `operationId`s (camelCase verb + resource) and tags (one plural PascalCase tag, or `Auth`) are stable. Renaming them breaks generated clients.
 - The generated spec is committed as `app/src/test/resources/openapi/openapi.json`, which client repos copy. `OpenApiSnapshotTest` fails when the generated spec differs from it; `./gradlew :app:updateOpenApiSnapshot` rewrites it. Update the snapshot on purpose, never just to make the test pass. No profile serves `/v3/api-docs` or Swagger UI at runtime.
 - No breaking change to a shipped endpoint (removing or renaming fields, making optional fields required, changing types or error codes). It needs a new version or the user's explicit approval.
 
@@ -272,7 +277,7 @@ All test types are expected. See `spring-unit-testing` and `spring-integration-t
 | Persistence | module `src/test`, `@DataJpaTest` | Postgres, entities, adapters, plus Flyway once the baseline migration exists |
 | Module integration | module `src/test`, `@SpringBootTest` with the module's test app | Services, transactions, events, Postgres. `:board` tests import `BoardTestConfig` (`MutableClock`, `DatabaseCleaner`, `RequestValidator`) and set `cardigan.board.lock-timeout` themselves |
 | HTTP client | module `src/test` | Our client against WireMock |
-| E2E | `:app` `src/test`, `@SpringBootTest(RANDOM_PORT)` + `RestTestClient` | The whole app over HTTP. Until `be-auth` exists, `E2eTest.signIn` creates the user with `UserFixtures` and mints a real token with the issuer; `be-auth` switches it to register → login |
+| E2E | `:app` `src/test`, `@SpringBootTest(RANDOM_PORT)` + `RestTestClient` | The whole app over HTTP. `E2eTest.signIn` registers and logs in over HTTP. `setUpE2e` clears the rate limiter before every test. `UserFixtures` stays for tests that need a user without going through the API |
 
 - Every test that needs a database uses a **Testcontainers Postgres** with the same major version as Supabase (17). Never the Supabase instance, never H2.
 - Until the baseline migration exists, tests use the `test` profile: Hibernate `create-drop` with Flyway off. After that they use real migrations with `validate`, as `spring-integration-testing` describes.

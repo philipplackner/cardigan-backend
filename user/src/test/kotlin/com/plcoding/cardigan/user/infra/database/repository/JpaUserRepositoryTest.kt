@@ -9,6 +9,7 @@ import assertk.assertions.isNull
 import assertk.assertions.isTrue
 import com.plcoding.cardigan.common.MutableClock
 import com.plcoding.cardigan.common.PostgresTestConfig
+import com.plcoding.cardigan.user.domain.exception.EmailAlreadyUsedException
 import com.plcoding.cardigan.user.domain.model.User
 import org.hibernate.exception.ConstraintViolationException
 import org.junit.jupiter.api.Test
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
 import org.springframework.context.annotation.Import
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
 import java.sql.Timestamp
 import java.time.Instant
@@ -69,9 +71,7 @@ class JpaUserRepositoryTest @Autowired constructor(
         repository.save(user("ann@example.com"))
         flushAndClear()
 
-        repository.save(user("ann@example.com"))
-
-        assertFailure { entityManager.flush() }.isInstanceOf<ConstraintViolationException>()
+        assertFailure { repository.save(user("ann@example.com")) }.isInstanceOf<EmailAlreadyUsedException>()
     }
 
     @Test
@@ -79,9 +79,60 @@ class JpaUserRepositoryTest @Autowired constructor(
         repository.save(user("ann@example.com"))
         flushAndClear()
 
-        repository.save(user("Ann@EXAMPLE.com".lowercase(Locale.ROOT)))
+        assertFailure { repository.save(user("Ann@EXAMPLE.com".lowercase(Locale.ROOT))) }
+            .isInstanceOf<EmailAlreadyUsedException>()
+    }
 
-        assertFailure { entityManager.flush() }.isInstanceOf<ConstraintViolationException>()
+    @Test
+    fun `duplicate email is reported with its field`() {
+        repository.save(user("ann@example.com"))
+
+        assertFailure { repository.save(user("ann@example.com")) }
+            .isInstanceOf<EmailAlreadyUsedException>()
+            .transform { it.field }
+            .isEqualTo("email")
+    }
+
+    @Test
+    fun `duplicate id with another email is not an email conflict`() {
+        val first = repository.save(user("ann@example.com"))
+        flushAndClear()
+
+        val updated = repository.save(first.copy(email = "bob@example.com"))
+        flushAndClear()
+
+        assertThat(repository.findById(first.id)).isEqualTo(updated)
+    }
+
+    @Test
+    fun `another broken constraint is not reported as a used email`() {
+        val tooLong = user("a".repeat(250) + "@example.com")
+
+        assertFailure { repository.save(tooLong) }
+            .isInstanceOf<DataIntegrityViolationException>()
+    }
+
+    @Test
+    fun `findByEmail matches the stored email only`() {
+        val ann = repository.save(user("ann@example.com"))
+        flushAndClear()
+
+        assertThat(repository.findByEmail("ann@example.com")).isEqualTo(ann)
+        assertThat(repository.findByEmail("Ann@example.com")).isNull()
+        assertThat(repository.findByEmail("bob@example.com")).isNull()
+        assertThat(repository.findByEmail("")).isNull()
+    }
+
+    @Test
+    fun `email unique constraint has its agreed name`() {
+        val names = entityManager.entityManager.createNativeQuery(
+            """
+            SELECT conname FROM pg_constraint
+            WHERE conrelid = 'user_service.users'::regclass AND contype = 'u'
+            """,
+        ).resultList
+
+        assertThat(names).isEqualTo(listOf<Any>("users_email_unique"))
     }
 
     @Test

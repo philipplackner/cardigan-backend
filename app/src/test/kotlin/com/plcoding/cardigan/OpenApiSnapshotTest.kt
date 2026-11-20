@@ -96,7 +96,8 @@ class OpenApiSnapshotTest @Autowired constructor(
             @Suppress("UNCHECKED_CAST")
             val tags = operation["tags"] as List<String>
             assertThat(tags.size, "tags of ${operation["operationId"]}").isEqualTo(1)
-            assertThat(tags.single()).matches(Regex("^[A-Z][a-zA-Z]*s$"))
+            // `Auth` is the agreed exception: the auth routes are not a plural resource.
+            assertThat(tags.single()).matches(Regex("^([A-Z][a-zA-Z]*s|Auth)$"))
         }
     }
 
