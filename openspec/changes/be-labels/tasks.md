@@ -7,8 +7,8 @@
 
 ## 2. Case folding and domain model
 
-- [ ] 2.1 Add `foldCase` and the `codePointOrder` comparator in `:board` `domain/text`. Verify with adversarial unit tests: `Bug`/`bug`, `Straße`/`STRASSE`, capital `ẞ`, Greek `Σ`/`σ`/`ς`, Turkish `İ` and `I` (locale-independent), the ligature `ﬃ` folding to three code points, text that is already folded, and the order `apple`, `Zebra`, `Äpfel`, `ｚ` (U+FF5A), `😀`.
-- [ ] 2.2 Add `LabelColor` (20 upper-case constants), `Label` (with the computed `nameKey`), `LabelChanges`, `LabelRepository`, `LabelNotFoundException` and `LabelNameAlreadyUsedException` (field `name`) in `:board` `domain`. Remove the `.gitkeep` of each package that now holds code. Verify with unit tests that `LabelColor` has exactly the 20 names from `decisions.md` D1 and that `nameKey` follows the name, and with a check that `domain` imports no Spring and no `jakarta.persistence`.
+- [x] 2.1 Add `foldCase` and the `codePointOrder` comparator in `:board` `domain/text`. Verify with adversarial unit tests: `Bug`/`bug`, `Straße`/`STRASSE`, capital `ẞ`, Greek `Σ`/`σ`/`ς`, Turkish `İ` and `I` (locale-independent), the ligature `ﬃ` folding to three code points, text that is already folded, and the order `apple`, `Zebra`, `Äpfel`, `ｚ` (U+FF5A), `😀`.
+- [x] 2.2 Add `LabelColor` (20 upper-case constants), `Label` (with the computed `nameKey`), `LabelChanges`, `LabelRepository`, `LabelNotFoundException` and `LabelNameAlreadyUsedException` (field `name`) in `:board` `domain`. Remove the `.gitkeep` of each package that now holds code. Verify with unit tests that `LabelColor` has exactly the 20 names from `decisions.md` D1 and that `nameKey` follows the name, and with a check that `domain` imports no Spring and no `jakarta.persistence`.
 
 ## 3. Persistence
 
