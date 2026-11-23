@@ -41,5 +41,9 @@ gradlePlugin {
             id = "cardigan.pitest"
             implementationClass = "PitestConventionPlugin"
         }
+        register("pitestReport") {
+            id = "cardigan.pitest.report"
+            implementationClass = "PitestReportConventionPlugin"
+        }
     }
 }

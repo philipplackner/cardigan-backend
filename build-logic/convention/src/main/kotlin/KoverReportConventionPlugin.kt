@@ -30,8 +30,8 @@ class KoverReportConventionPlugin : Plugin<Project> {
                 }
             }
 
-            val minLine = parseCoveragePercent(MIN_LINE_PROPERTY, providers.gradleProperty(MIN_LINE_PROPERTY).orNull)
-            val minBranch = parseCoveragePercent(MIN_BRANCH_PROPERTY, providers.gradleProperty(MIN_BRANCH_PROPERTY).orNull)
+            val minLine = parsePercent(MIN_LINE_PROPERTY, providers.gradleProperty(MIN_LINE_PROPERTY).orNull)
+            val minBranch = parsePercent(MIN_BRANCH_PROPERTY, providers.gradleProperty(MIN_BRANCH_PROPERTY).orNull)
 
             extensions.configure<KoverProjectExtension> {
                 reports {
@@ -78,7 +78,8 @@ class KoverReportConventionPlugin : Plugin<Project> {
             }
 
             gradle.projectsEvaluated {
-                val selected = parseCoverageModules(
+                val selected = parseModuleSelection(
+                    MODULES_PROPERTY,
                     target.providers.gradleProperty(MODULES_PROPERTY).orNull,
                     optedInPaths.keys,
                 )
