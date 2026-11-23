@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.convention.spring.module)
     `java-test-fixtures`
     alias(libs.plugins.convention.kover)
+    alias(libs.plugins.convention.pitest)
 }
 
 dependencies {

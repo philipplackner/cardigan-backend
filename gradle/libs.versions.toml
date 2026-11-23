@@ -9,6 +9,9 @@ bucket4j = "8.22.0"
 kover = "0.9.11"
 diff-cover = "11.0.4"
 diff-cover-exclude-newer = "2026-11-20"
+pitest-gradle = "1.19.0"
+pitest = "1.30.2"
+pitest-junit5 = "1.2.2"
 
 [libraries]
 # Gradle plugin artifacts for build-logic
@@ -17,6 +20,7 @@ kotlin-allopen-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-allopen", 
 kotlin-noarg-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-noarg", version.ref = "kotlin" }
 spring-boot-gradlePlugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
 kover-gradlePlugin = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
+pitest-gradlePlugin = { module = "info.solidsoft.gradle.pitest:gradle-pitest-plugin", version.ref = "pitest-gradle" }
 
 # BOM
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -66,6 +70,7 @@ kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotl
 kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+pitest = { id = "info.solidsoft.pitest", version.ref = "pitest-gradle" }
 
 convention-kotlin-jvm = { id = "cardigan.kotlin.jvm" }
 convention-spring-module = { id = "cardigan.spring.module" }
@@ -73,3 +78,5 @@ convention-spring-jpa = { id = "cardigan.spring.jpa" }
 convention-spring-application = { id = "cardigan.spring.application" }
 convention-kover = { id = "cardigan.kover" }
 convention-kover-report = { id = "cardigan.kover.report" }
+convention-pitest = { id = "cardigan.pitest" }
+convention-pitest-report = { id = "cardigan.pitest.report" }

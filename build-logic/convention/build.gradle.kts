@@ -8,6 +8,7 @@ dependencies {
     compileOnly(libs.kotlin.noarg.gradlePlugin)
     compileOnly(libs.spring.boot.gradlePlugin)
     compileOnly(libs.kover.gradlePlugin)
+    compileOnly(libs.pitest.gradlePlugin)
 }
 
 gradlePlugin {
@@ -35,6 +36,10 @@ gradlePlugin {
         register("koverReport") {
             id = "cardigan.kover.report"
             implementationClass = "KoverReportConventionPlugin"
+        }
+        register("pitest") {
+            id = "cardigan.pitest"
+            implementationClass = "PitestConventionPlugin"
         }
     }
 }
