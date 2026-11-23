@@ -9,6 +9,15 @@ dependencies {
     compileOnly(libs.spring.boot.gradlePlugin)
     compileOnly(libs.kover.gradlePlugin)
     compileOnly(libs.pitest.gradlePlugin)
+
+    testImplementation(platform(libs.spring.boot.bom))
+    testImplementation(libs.junit.jupiter)
+    testImplementation(libs.assertk)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 gradlePlugin {

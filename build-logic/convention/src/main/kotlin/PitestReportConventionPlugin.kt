@@ -5,7 +5,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
-import java.io.File
 
 /**
  * Applied to the root project. Registers `mutationReport`, which runs PIT on the selected modules
@@ -63,14 +62,7 @@ class PitestReportConventionPlugin : Plugin<Project> {
 
                 val aggregate = target.tasks.named<AggregateReportTask>("pitestReportAggregate") {
                     dependsOn(pitestTasks)
-                    reportDir.set(target.layout.buildDirectory.dir("reports/pitest"))
                     reportFile.set(combinedReport)
-                    mutationFiles.setFrom(reportDirs.map { dir -> dir.map { it.file("mutations.xml") } })
-                    lineCoverageFiles.setFrom(reportDirs.map { dir -> dir.map { it.file("linecoverage.xml") } })
-                    sourceDirs.setFrom(pitestTasks.map { task -> task.map { it.sourceDirs } })
-                    additionalClasspath.setFrom(
-                        pitestTasks.map { task -> task.map { it.additionalClasspath.filter(File::isDirectory) } }
-                    )
                 }
 
                 report.configure {

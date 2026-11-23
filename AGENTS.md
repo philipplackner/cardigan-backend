@@ -318,7 +318,8 @@ Mutation testing:
 - Only unit tests run against mutants, so Docker isn't needed. Test classes tagged `@Tag("integration")` are left out. Every test class that starts a Spring context or a container must carry the tag, directly or through its base class (`E2eTest` has it). Normal test runs still run every test.
 - `:common`, `:user` and `:board` take part. `mutation.modules` is a comma-separated list of them, with or without a leading `:`. Without it, all are run. An empty value, an empty entry or an unknown name fails before any test runs.
 - Reports: HTML and XML per module in `<module>/build/reports/pitest/`, and the combined HTML report in `build/reports/pitest/index.html`.
-- `mutation.threads` (a positive whole number) overrides the thread count, which defaults to the number of processors.
+- Modules run one after another and PIT runs again on every request, never from Gradle's cache. `mutation.threads` (a positive whole number) overrides the thread count, which defaults to the number of processors.
+- The score counting in build-logic has unit tests: `./gradlew -p build-logic test`. `./gradlew build` doesn't run them.
 - `mutation.minScore` (0 to 100, decimals allowed) makes the run fail after the reports are written when the selection's mutation score is below it. Score = killed / all mutants, test strength = killed / mutants with coverage; timed-out and memory-error mutants count as killed. Nothing sets it by default.
 - The application class, `@Configuration`, `@ConfigurationProperties` and `@SpringBootApplication` classes, Kotlin null-check intrinsics and the generated data-class methods (`componentN`, `copy`, `equals`, `hashCode`, `toString`) are not mutated.
 

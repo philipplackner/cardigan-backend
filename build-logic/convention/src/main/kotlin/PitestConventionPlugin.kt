@@ -2,6 +2,8 @@ import info.solidsoft.gradle.pitest.PitestPluginExtension
 import info.solidsoft.gradle.pitest.PitestTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.services.BuildService
+import org.gradle.api.services.BuildServiceParameters
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
@@ -17,6 +19,8 @@ class PitestConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
         with(target) {
             if (!gradle.isMutationRequested()) return
+            // The aggregator merges every project that has PIT, so unselected modules must not get it.
+            if (!isSelectedForMutation(providers.gradleProperty(MUTATION_MODULES_PROPERTY).orNull, name)) return
 
             pluginManager.apply("info.solidsoft.pitest")
 
@@ -47,14 +51,26 @@ class PitestConventionPlugin : Plugin<Project> {
                 outputFormats.set(listOf("HTML", "XML"))
                 exportLineCoverage.set(true)
                 timestampedReports.set(false)
+                failWhenNoMutations.set(false)
+            }
+
+            // Running modules one at a time keeps the thread count a total for the machine.
+            val runLimit = gradle.sharedServices.registerIfAbsent("pitestRunLimit", PitestRunLimit::class.java) {
+                maxParallelUsages.set(1)
             }
 
             tasks.named<PitestTask>("pitest") {
                 dependsOn(scan)
+                usesService(runLimit)
+                outputs.upToDateWhen { false }
+                outputs.cacheIf { false }
             }
         }
     }
 }
+
+/** Lets at most one module's PIT run execute at a time. */
+abstract class PitestRunLimit : BuildService<BuildServiceParameters.None>
 
 /** Methods the Kotlin compiler generates for data classes. */
 private val KOTLIN_GENERATED_METHODS = listOf("component*", "copy", "copy\$default", "equals", "hashCode", "toString")

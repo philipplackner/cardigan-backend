@@ -13,9 +13,9 @@
 
 ## 3. Root task and properties
 
-- [x] 3.1 Add `cardigan.pitest.report` with the `mutationReport` task, the aggregator, the `mutation.modules` selection and the abbreviation guard. Verify that:
+- [ ] 3.1 Add `cardigan.pitest.report` with the `mutationReport` task, the aggregator, the `mutation.modules` selection and the abbreviation guard. Verify that:
   - `./gradlew mutationReport` writes `build/reports/pitest/index.html` with mutants from all three modules and prints its path;
-  - the mutation score and test strength computed from `mutations.xml` (killed = `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR`, `NON_VIABLE`) match the combined HTML report, and test strength is 0 when no mutant is covered (unit test of the counting);
+  - the mutation score and test strength computed from `mutations.xml` (killed = `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR`, `NON_VIABLE`) match the combined HTML report, and test strength is 0 when no mutant is covered (unit test of the counting); OPEN: the code counts only the first three statuses until the user settles T1, see design.md;
   - `-Pmutation.modules=board` runs only `:board`'s `pitest`, `=user,:board` runs `:user` and `:board`, `=user,:user` runs `:user` once, and no property runs all three;
   - `-Pmutation.modules=board` right after a full run writes a combined report with only `:board` classes;
   - with parallel execution on, the three modules' PIT runs don't overlap (`--info` timestamps);

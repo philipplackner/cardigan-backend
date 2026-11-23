@@ -48,7 +48,7 @@ Alternative: our own `JavaExec` task around PIT's command-line entry point. More
 
 ### Root plugin `cardigan.pitest.report` and `mutationReport`
 
-A root plugin, applied in the root `build.gradle.kts` like `cardigan.kover.report`, always registers `mutationReport`, so an abbreviation resolves and reaches the guard, and applies `info.solidsoft.pitest.aggregator` to the root only when mutation testing is requested. The aggregator collects the reports of every module with PIT applied, so the root plugin resets its `mutationFiles`, `lineCoverageFiles`, `sourceDirs` and `additionalClasspath` to the selected modules; otherwise a stale report of an unselected module would leak into the combined report. It finds opted-in modules with `subprojects { pluginManager.withPlugin("cardigan.pitest") { … } }`.
+A root plugin, applied in the root `build.gradle.kts` like `cardigan.kover.report`, always registers `mutationReport`, so an abbreviation resolves and reaches the guard, and applies `info.solidsoft.pitest.aggregator` to the root only when mutation testing is requested. It finds opted-in modules with `subprojects { pluginManager.withPlugin("cardigan.pitest") { … } }`.
 
 `mutationReport` depends on the `pitest` task of each selected module and on the root `pitestReportAggregate`, which merges those modules' XML into `build/reports/pitest/index.html`. The aggregator collects from every project that has the PIT plugin, so it sees only selected modules because the module plugin applies PIT only to them (above). Unselected modules get no PIT task and run nothing.
 
@@ -103,6 +103,10 @@ Other Kotlin noise (elvis, safe casts, `when` branches) stays in the report (D7)
 - **`RUN_ERROR` mutants.** PIT's HTML report counts `RUN_ERROR` as detected, the agreed definition does not. The first full run had one `RUN_ERROR` mutant in `:user`, so `mutationReport` computes 321/659 killed where the HTML shows 322/659. Kept as agreed and reported to the user.
 - **PIT adds a synthetic field to mutated classes.** Two `BoardDtoMappersTest` tests compared `declaredFields` of DTOs with an exact set and failed under PIT's coverage instrumentation. They now ignore synthetic fields, which keeps their meaning (Kotlin declares no synthetic fields on these DTOs).
 - **`pitest-junit5-plugin` 1.2.3 exists.** The approved 1.2.2 works with JUnit 6.0.3 from the Spring Boot BOM, so it stays.
+- **Implemented late.** The first implementation missed the review findings D1, D2, A1, A2 and T2 that had been applied to this change; they were added afterwards. `doNotTrackState` on `pitest` did not stop it from being `UP-TO-DATE`, so the task uses `outputs.upToDateWhen { false }` and `outputs.cacheIf { false }` as written above.
+- **Counting is unit tested** in `build-logic/convention/src/test` (`./gradlew -p build-logic test`). The root `build` doesn't run build-logic tests.
+- **Open: which statuses count as killed (T1).** The spec and this design list `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR`, `NON_VIABLE`. The code and its unit test still count only the first three, as in D12 and as mobile was told. Waiting for the user, because mobile must use the same list.
+- **A module without mutants** succeeds and adds no row to PIT's combined HTML report, since PIT lists packages, not modules.
 - **Deprecation warning.** The PIT plugins call `Configuration.setVisible`, deprecated for removal in Gradle 11. The same warning already appears in a normal build without this change.
 
 ## Risks / Trade-offs
