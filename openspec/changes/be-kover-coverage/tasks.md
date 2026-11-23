@@ -42,11 +42,11 @@
 
 ## 4. Documentation
 
-- [ ] 4.1 Add `coverageReport` and `coverageDiff` to the `CLAUDE.md` Testing command table. Cover the `coverage.modules`, `coverage.minLine`, `coverage.minBranch` and `coverage.compareBranch` properties, the report paths, the `uv` and Docker prerequisites, that every test runs whatever the selection, that untracked files count in `coverageDiff`, that `coverageDiff` compares against the merge base and never fetches (run `git fetch` first for a fresh `origin/master`), and that coverage tasks need their full names (an abbreviation such as `cR` fails with a message saying so). Note `cardigan.kover` in the "Where does X go?" or module setup guidance so a new module opts in. Verify that every documented command runs as written.
+- [x] 4.1 Add `coverageReport` and `coverageDiff` to the `CLAUDE.md` Testing command table. Cover the `coverage.modules`, `coverage.minLine`, `coverage.minBranch` and `coverage.compareBranch` properties, the report paths, the `uv` and Docker prerequisites, that every test runs whatever the selection, that untracked files count in `coverageDiff`, that `coverageDiff` compares against the merge base and never fetches (run `git fetch` first for a fresh `origin/master`), and that coverage tasks need their full names (an abbreviation such as `cR` fails with a message saying so). Note `cardigan.kover` in the "Where does X go?" or module setup guidance so a new module opts in. Verify that every documented command runs as written.
 
 ## 5. Integration check
 
-- [ ] 5.1 Run `./gradlew build` and confirm it passes with no coverage task in its output, and that `.github/workflows/ci.yml` is unchanged. Run `openspec validate be-kover-coverage --strict` and confirm it passes.
+- [x] 5.1 Run `./gradlew build` and confirm it passes with no coverage task in its output, and that `.github/workflows/ci.yml` is unchanged. Run `openspec validate be-kover-coverage --strict` and confirm it passes.
 
 ## Workflow follow-up
 

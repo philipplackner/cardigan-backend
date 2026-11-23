@@ -19,6 +19,7 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 | Rate limiting | bucket4j, in-memory buckets in a Caffeine cache, keyed by email, for login and register only |
 | API contract | OpenAPI 3.0.1, generated code-first with springdoc-openapi, committed as a JSON snapshot |
 | Tests | JUnit 5, AssertK, hand-written fakes, Testcontainers (Postgres), WireMock, Awaitility |
+| Coverage | Kover (on demand only), diff-cover through `uvx` for changed lines |
 
 **Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users`, `sessions` and `refresh_tokens` tables, `GET /api/v1/users/me`, register, login, refresh and logout under `/api/v1/auth`, the per-email rate limit on login and register, and the daily cleanup of ended sessions. `:board` has the `boards`, `columns` and `labels` tables, the board and column endpoints under `/api/v1/boards` and the label endpoints under `/api/v1/labels`. Label colors are upper-case constants such as `RED`. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
 
@@ -165,6 +166,7 @@ app/src/
 | Auth rate limiting | `:user`: `AuthRateLimiter` in `domain`, `Bucket4jAuthRateLimiter` in `infra/ratelimit` |
 | A fake for tests | Module `src/test/.../fake`, or `:common` `testFixtures` if several modules need it |
 | An E2E test | `:app` `src/test`, extending the `E2eTest` base class |
+| A new module in coverage reports | Apply `alias(libs.plugins.convention.kover)` (`cardigan.kover`) in its `build.gradle.kts`. Nothing else |
 
 ---
 
@@ -293,6 +295,18 @@ Commands:
 | One module | `./gradlew :<feature>:test` |
 | E2E | `./gradlew :app:test` |
 | Everything (compile + all tests) | `./gradlew build` |
+| Coverage report | `./gradlew coverageReport [-Pcoverage.modules=user,board] [-Pcoverage.minLine=80] [-Pcoverage.minBranch=70]` |
+| Coverage of changed lines | `./gradlew coverageDiff [-Pcoverage.modules=user] [-Pcoverage.compareBranch=origin/master]` |
+
+Coverage:
+
+- Coverage runs only on demand. `build`, `check` and CI never run it, and normal test runs are not instrumented.
+- Use the full task names. An abbreviation such as `./gradlew cR` fails with a message saying so, because instrumentation is only switched on for the literal names `coverageReport`, `coverageDiff` and `kover*`.
+- Every test of every module runs whatever the selection, `:app` E2E tests included, so Docker must be running. Lines hit by any test count for every module.
+- `coverage.modules` is a comma-separated list of `app`, `board`, `common`, `user`, with or without a leading `:`. Without it, all modules are reported. `:app` has no reportable classes, because the application class and `@Configuration` and `@ConfigurationProperties` classes are excluded everywhere.
+- `coverageReport` writes `build/reports/kover/report.xml` and `build/reports/kover/html/index.html` and prints line and branch coverage. `coverage.minLine` and `coverage.minBranch` (0 to 100, decimals allowed) make it fail when the selection misses them. Nothing sets them by default.
+- `coverageDiff` needs `uv` (https://docs.astral.sh/uv/). It runs diff-cover at the version pinned in `libs.versions.toml` and writes `build/reports/diff-coverage/index.html`. It compares against the merge base with `coverage.compareBranch` (default `origin/master`), counts staged, unstaged and untracked files, and never fails on low coverage.
+- `coverageDiff` never fetches. Run `git fetch` first for a fresh `origin/master`. If you install `uv` while a Gradle daemon is running, run `./gradlew --stop` so the daemon sees it.
 
 ---
 
