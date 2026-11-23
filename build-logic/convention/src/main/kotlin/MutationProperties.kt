@@ -5,7 +5,6 @@ import org.gradle.api.provider.ProviderFactory
 internal const val MUTATION_REPORT_TASK = "mutationReport"
 internal const val MUTATION_MODULES_PROPERTY = "mutation.modules"
 internal const val MUTATION_THREADS_PROPERTY = "mutation.threads"
-internal const val MUTATION_INCREMENTAL_PROPERTY = "mutation.incremental"
 internal const val MUTATION_MIN_SCORE_PROPERTY = "mutation.minScore"
 
 /**
@@ -28,17 +27,3 @@ internal fun ProviderFactory.mutationThreads(): Int? {
     return value
 }
 
-/**
- * Parses `mutation.incremental`. Gradle passes the bare flag `-Pmutation.incremental` as an empty
- * string, so empty counts as on.
- */
-internal fun ProviderFactory.mutationIncremental(): Boolean {
-    val raw = gradleProperty(MUTATION_INCREMENTAL_PROPERTY).orNull ?: return false
-    return when (raw.trim().lowercase()) {
-        "", "true" -> true
-        "false" -> false
-        else -> throw GradleException(
-            "Invalid $MUTATION_INCREMENTAL_PROPERTY '$raw': expected no value, 'true' or 'false'."
-        )
-    }
-}

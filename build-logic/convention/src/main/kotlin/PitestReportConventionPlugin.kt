@@ -30,8 +30,7 @@ class PitestReportConventionPlugin : Plugin<Project> {
             val report = tasks.register<MutationReportTask>(MUTATION_REPORT_TASK) {
                 group = "verification"
                 description = "Runs mutation testing and writes the combined report. Options: " +
-                    "-P$MUTATION_MODULES_PROPERTY, -P$MUTATION_THREADS_PROPERTY, " +
-                    "-P$MUTATION_INCREMENTAL_PROPERTY, -P$MUTATION_MIN_SCORE_PROPERTY."
+                    "-P$MUTATION_MODULES_PROPERTY, -P$MUTATION_THREADS_PROPERTY, -P$MUTATION_MIN_SCORE_PROPERTY."
                 htmlReport.set(combinedReport)
             }
 
@@ -47,7 +46,6 @@ class PitestReportConventionPlugin : Plugin<Project> {
 
             pluginManager.apply("info.solidsoft.pitest.aggregator")
             providers.mutationThreads()
-            providers.mutationIncremental()
             val minScore = parsePercent(
                 MUTATION_MIN_SCORE_PROPERTY,
                 providers.gradleProperty(MUTATION_MIN_SCORE_PROPERTY).orNull,

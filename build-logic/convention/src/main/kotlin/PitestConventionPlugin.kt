@@ -21,7 +21,6 @@ class PitestConventionPlugin : Plugin<Project> {
             pluginManager.apply("info.solidsoft.pitest")
 
             val threads = providers.mutationThreads() ?: Runtime.getRuntime().availableProcessors()
-            val incremental = providers.mutationIncremental()
             val sourceSets = extensions.getByType<SourceSetContainer>()
             val mainSourceSet = sourceSets.getByName("main")
 
@@ -48,11 +47,6 @@ class PitestConventionPlugin : Plugin<Project> {
                 outputFormats.set(listOf("HTML", "XML"))
                 exportLineCoverage.set(true)
                 timestampedReports.set(false)
-                if (incremental) {
-                    val history = layout.buildDirectory.file("pitest/history.bin")
-                    historyInputLocation.set(history)
-                    historyOutputLocation.set(history)
-                }
             }
 
             tasks.named<PitestTask>("pitest") {

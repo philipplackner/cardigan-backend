@@ -300,7 +300,7 @@ Commands:
 | Everything (compile + all tests) | `./gradlew build` |
 | Coverage report | `./gradlew coverageReport [-Pcoverage.modules=user,board] [-Pcoverage.minLine=80] [-Pcoverage.minBranch=70]` |
 | Coverage of changed lines | `./gradlew coverageDiff [-Pcoverage.modules=user] [-Pcoverage.compareBranch=origin/master]` |
-| Mutation report | `./gradlew mutationReport [-Pmutation.modules=user,board] [-Pmutation.threads=4] [-Pmutation.incremental] [-Pmutation.minScore=60]` |
+| Mutation report | `./gradlew mutationReport [-Pmutation.modules=user,board] [-Pmutation.threads=4] [-Pmutation.minScore=60]` |
 
 Coverage:
 
@@ -319,7 +319,6 @@ Mutation testing:
 - `:common`, `:user` and `:board` take part. `mutation.modules` is a comma-separated list of them, with or without a leading `:`. Without it, all are run. An empty value, an empty entry or an unknown name fails before any test runs.
 - Reports: HTML and XML per module in `<module>/build/reports/pitest/`, and the combined HTML report in `build/reports/pitest/index.html`.
 - `mutation.threads` (a positive whole number) overrides the thread count, which defaults to the number of processors.
-- `mutation.incremental` (no value or `true` on, `false` off) turns on PIT's incremental analysis with `<module>/build/pitest/history.bin`. It currently fails: open-source PIT 1.30 has no history plugin. Pending a decision in the `be-pitest-mutation-testing` change.
 - `mutation.minScore` (0 to 100, decimals allowed) makes the run fail after the reports are written when the selection's mutation score is below it. Score = killed / all mutants, test strength = killed / mutants with coverage; timed-out and memory-error mutants count as killed. Nothing sets it by default.
 - The application class, `@Configuration`, `@ConfigurationProperties` and `@SpringBootApplication` classes, Kotlin null-check intrinsics and the generated data-class methods (`componentN`, `copy`, `equals`, `hashCode`, `toString`) are not mutated.
 

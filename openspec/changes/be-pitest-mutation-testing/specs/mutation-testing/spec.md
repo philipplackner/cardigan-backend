@@ -89,33 +89,6 @@ Mutation testing SHALL use as many worker threads as the machine has available p
 - **WHEN** `./gradlew mutationReport -Pmutation.threads=0` or `-Pmutation.threads=abc` runs
 - **THEN** the command fails before any test runs, naming `mutation.threads`
 
-### Requirement: Incremental analysis is opt-in
-Each run SHALL be a full analysis that reads no earlier results, unless incremental analysis is turned on. `-Pmutation.incremental` with an empty value (the bare flag) or `true` SHALL turn it on; `false` SHALL leave it off; values are compared case-insensitively. Any other value SHALL fail the command before any test runs, naming the property and the value. When on, each module SHALL read and write `<module>/build/pitest/history.bin` and reuse earlier results for unchanged code and tests.
-
-#### Scenario: Default full run
-- **WHEN** `./gradlew mutationReport` runs twice without `mutation.incremental`
-- **THEN** both runs analyse every mutant, and no history file is read
-
-#### Scenario: Incremental run
-- **WHEN** `./gradlew mutationReport -Pmutation.incremental` runs twice with no code change in between
-- **THEN** the second run reuses the history from the first and writes the same results
-
-#### Scenario: Empty value is the bare flag
-- **WHEN** `./gradlew mutationReport -Pmutation.incremental=` runs
-- **THEN** incremental analysis is on, the same as with `-Pmutation.incremental`, because Gradle passes both as an empty value
-
-#### Scenario: Explicit values
-- **WHEN** `./gradlew mutationReport -Pmutation.incremental=TRUE` runs
-- **THEN** incremental analysis is on
-
-#### Scenario: Turned off explicitly
-- **WHEN** `./gradlew mutationReport -Pmutation.incremental=false` runs
-- **THEN** no history file is read, the same as without the property
-
-#### Scenario: Invalid value
-- **WHEN** `./gradlew mutationReport -Pmutation.incremental=yes` runs
-- **THEN** the command fails before any test runs, with a message naming `mutation.incremental` and `yes`
-
 ### Requirement: Score and test strength are defined as in PIT's report
 The mutation score SHALL be killed mutants divided by all mutants of the selected modules together. Test strength SHALL be killed mutants divided by mutants with test coverage. Killed mutants SHALL be those with status `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR` or `NON_VIABLE`, as PIT counts them as detected. Mutants with test coverage SHALL be all mutants except `NO_COVERAGE`. When no mutant has test coverage, test strength SHALL be 0%.
 

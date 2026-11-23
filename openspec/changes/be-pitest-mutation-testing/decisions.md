@@ -4,7 +4,7 @@ Confirmed with Philipp Lackner on 2026-11-23. The orchestrator session `cardigan
 
 ## Summary
 
-The backend gets on-demand mutation testing with PIT. Each module opts in with one convention plugin. One root task, `mutationReport`, runs PIT with unit tests only and writes an HTML report per module plus one combined HTML report. Optional properties select modules, set the thread count, turn on incremental analysis and set a minimum score. Nothing runs in `build`, `check`, CI or hooks. The property names and their meaning match mobile.
+The backend gets on-demand mutation testing with PIT. Each module opts in with one convention plugin. One root task, `mutationReport`, runs PIT with unit tests only and writes an HTML report per module plus one combined HTML report. Optional properties select modules, set the thread count and set a minimum score. Nothing runs in `build`, `check`, CI or hooks. The property names and their meaning match mobile.
 
 ## Decisions
 
@@ -63,12 +63,11 @@ The backend gets on-demand mutation testing with PIT. Each module opts in with o
 - **Depends on**: —
 
 ### D9 — Incremental analysis
-- **Question**: Is PIT's history (incremental analysis) on?
-- **Decision**: Opt-in. Off by default, so every run is a full analysis. `-Pmutation.incremental` turns it on, with the history file under `build/`. Same on mobile and web.
-- **Detail**: `-Pmutation.incremental` without a value or `=true` turns it on, `=false` turns it off, compared case-insensitively; any other value fails before any test runs, naming the property and the value. When on, it reads and writes `<module>/build/pitest/history.bin`; otherwise no history is read. Same as mobile (revised by the user through `cardigan-f2` on 2026-11-23, replacing "on whenever present").
-- **Alternatives**: Always off; always on.
-- **Why**: Decided by the user to keep clean baselines by default and allow fast reruns on request.
-- **Depends on**: —
+- **Question**: Is PIT's history (incremental analysis) available?
+- **Decision**: No. The backend has no incremental analysis and no `mutation.incremental` property. Every run is a full analysis. Web keeps its own Stryker incremental mode.
+- **Alternatives**: Opt-in with `-Pmutation.incremental` (the first decision, replaced); downgrade PIT to a version with built-in history; Arcmutate's history plugin.
+- **Why**: Found during implementation (task 3.2): open-source PIT 1.25.8 and later has no history plugin, so PIT 1.30.2 (D6) fails when history is turned on. Decided by the user through `cardigan-f2` on 2026-11-23: remove it completely.
+- **Depends on**: D6, D7
 
 ### D10 — Threads and timeouts
 - **Question**: How many worker threads and which timeouts?
@@ -93,7 +92,7 @@ The backend gets on-demand mutation testing with PIT. Each module opts in with o
 
 ### D13 — Task name and module selection
 - **Question**: What is the task called, and can it be limited to modules?
-- **Decision**: Root task `mutationReport` with optional `-Pmutation.modules=user,board`, like `coverageReport`. The names `mutationReport`, `mutation.modules`, `mutation.threads`, `mutation.incremental` and `mutation.minScore` and their meaning are identical on mobile.
+- **Decision**: Root task `mutationReport` with optional `-Pmutation.modules=user,board`, like `coverageReport`. The names `mutationReport`, `mutation.modules`, `mutation.threads` and `mutation.minScore` and their meaning are identical on mobile.
 - **Detail**: `mutation.modules` follows the `coverage.modules` rules: trimmed and deduplicated, leading `:` allowed, absent means all modules; an empty value, an empty entry (`user,`, `a,,b`) or an unknown module fails with the list of valid ones. Same as mobile (revised by the user through `cardigan-f2` on 2026-11-23, replacing "empty means all").
 - **Alternatives**: `mutationReport` without selection; the plugin's stock tasks only.
 - **Depends on**: D2

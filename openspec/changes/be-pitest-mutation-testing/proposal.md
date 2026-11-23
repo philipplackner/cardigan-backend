@@ -11,7 +11,6 @@ Line and branch coverage show which code the tests run, not whether the tests wo
 - Optional properties, with the same names and meaning as on mobile:
   - `-Pmutation.modules=user,board` limits the run to those modules.
   - `-Pmutation.threads=<n>` overrides the thread count (default: available processors).
-  - `-Pmutation.incremental` turns on PIT's incremental analysis, with the history under `build/`. Off by default.
   - `-Pmutation.minScore=<percent>` fails the task when the selection's mutation score is below it. Never set by default.
 - PIT runs only unit tests. Spring context and Testcontainers tests get a JUnit tag, `integration`, and are left out. Mutation testing needs no Docker.
 - `DEFAULTS` mutators and PIT's default timeouts.
@@ -28,7 +27,7 @@ This change implements and depends on no `cardigan-shared-specs` requirement. No
 ## Capabilities
 
 ### New Capabilities
-- `mutation-testing`: on-demand PIT mutation reports for chosen backend modules, with optional thread count, incremental analysis and minimum score.
+- `mutation-testing`: on-demand PIT mutation reports for chosen backend modules, with optional thread count and minimum score. No incremental analysis (D9).
 
 ### Modified Capabilities
 

@@ -35,9 +35,9 @@ See proposal.md for the motivation and decisions.md for the settled choices. Fac
 - `mutators = [DEFAULTS]` (D8), PIT's default `timeoutFactor` and `timeoutConstInMillis` (D10).
 - `threads` from `mutation.threads`, else `Runtime.getRuntime().availableProcessors()` (D10).
 - `outputFormats = [HTML, XML]`, `exportLineCoverage = true` (needed by the aggregator), `timestampedReports = false` (D14).
-- With incremental analysis on: `historyInputLocation` and `historyOutputLocation` both set to `<module>/build/pitest/history.bin` (D9). Without it, neither is set, so no history is read or written.
+- No `historyInputLocation` or `historyOutputLocation`: there is no incremental analysis (D9).
 - `failWhenNoMutations = false`, so a module without mutants yields an empty report instead of failing; the root task treats zero mutants as the spec describes.
-- `outputs.upToDateWhen { false }` and `outputs.cacheIf { false }` on the `pitest` task. `PitestTask` is `@CacheableTask` and the build cache is on, so without this an unchanged second run would analyse nothing (D9). Speed-ups come only from `mutation.incremental`.
+- `outputs.upToDateWhen { false }` and `outputs.cacheIf { false }` on the `pitest` task. `PitestTask` is `@CacheableTask` and the build cache is on, so without this an unchanged second run would analyse nothing (D9).
 - A shared build service registered with `maxParallelUsages = 1`, used by every `pitest` task, so module runs don't overlap under `org.gradle.parallel`. Otherwise each module starts one minion JVM per processor at the same time, and out-of-memory minions show up as `MEMORY_ERROR`, which counts as killed.
 - No `mutationThreshold` or `coverageThreshold`. PIT's own threshold is per module; `mutation.minScore` is about the selection as a whole and is checked in the root task.
 - Kotlin and class exclusions, below.
@@ -65,14 +65,13 @@ The definitions follow PIT's own detected statuses, so they match the combined H
 
 ### Property parsing at configuration time
 
-All four `mutation.*` properties are read with `providers.gradleProperty` and validated in a `gradle.projectsEvaluated` hook of the root plugin, once the opted-in modules are known. A bad value throws a `GradleException` before any task, so no test runs:
+All three `mutation.*` properties are read with `providers.gradleProperty` and validated in a `gradle.projectsEvaluated` hook of the root plugin, once the opted-in modules are known. A bad value throws a `GradleException` before any task, so no test runs:
 
 - `mutation.modules`: the same rules as `coverage.modules`, using the existing `parseCoverageModules` changed to take the property name as a parameter, so each error names the property the user passed: trimmed, deduplicated, leading `:` allowed; absent means all opted-in modules; an empty value, an empty entry (`user,`, `a,,b`) or an unknown name fails with the list of valid names.
 - `mutation.threads`: a positive whole number.
-- `mutation.incremental`: absent → off; empty (bare `-Pmutation.incremental`, which Gradle passes as an empty string) or `true` → on; `false` → off; compared case-insensitively. Any other value fails, naming the property and the value.
 - `mutation.minScore`: a number from 0 to 100, same parsing as `coverage.minLine`.
 
-Module plugins read the parsed threads and incremental values from a shared function, so module and root can't disagree.
+Module plugins read the parsed thread count from a shared function, so module and root can't disagree.
 
 ### Integration tests are excluded by a JUnit tag
 
@@ -100,7 +99,7 @@ Other Kotlin noise (elvis, safe casts, `when` branches) stays in the report (D7)
 
 ### Findings during implementation
 
-- **Incremental analysis is not available in open-source PIT 1.30.2.** With history locations set, PIT fails with "History has been enabled but no history plugin has been installed/activated". The built-in history store (`DefaultHistoryFactory`, `ObjectOutputStreamHistory`) exists in `pitest-entry` 1.22.1 and is gone in 1.25.8 and 1.30.x, where only `ErroringHistoryFactory` and `NullHistory` remain; history moved to Arcmutate. `mutation.incremental` is implemented as specified (parsing, history file locations), but a run with it fails. Reported to the user; D6, D7 and D9 conflict until they decide.
+- **Incremental analysis is not available in open-source PIT 1.30.2.** With history locations set, PIT fails with "History has been enabled but no history plugin has been installed/activated". The built-in history store (`DefaultHistoryFactory`, `ObjectOutputStreamHistory`) exists in `pitest-entry` 1.22.1 and is gone in 1.25.8 and 1.30.x; history moved to Arcmutate. The user dropped incremental analysis from the backend (D9).
 - **`RUN_ERROR` mutants.** PIT's HTML report counts `RUN_ERROR` as detected, the agreed definition does not. The first full run had one `RUN_ERROR` mutant in `:user`, so `mutationReport` computes 321/659 killed where the HTML shows 322/659. Kept as agreed and reported to the user.
 - **PIT adds a synthetic field to mutated classes.** Two `BoardDtoMappersTest` tests compared `declaredFields` of DTOs with an exact set and failed under PIT's coverage instrumentation. They now ignore synthetic fields, which keeps their meaning (Kotlin declares no synthetic fields on these DTOs).
 - **`pitest-junit5-plugin` 1.2.3 exists.** The approved 1.2.2 works with JUnit 6.0.3 from the Spring Boot BOM, so it stays.
@@ -112,9 +111,8 @@ Other Kotlin noise (elvis, safe casts, `when` branches) stays in the report (D7)
 - [`info.solidsoft.pitest` 1.19.0 is documented for Gradle 9.0, not 9.8.1, and may report configuration-cache problems.] → Task 1.1 checks it. A problem goes back to the user.
 - [A new Spring test without the `integration` tag makes PIT start Spring contexts and containers.] → Accepted by D4. `CLAUDE.md` states the tag rule.
 - [With unit tests only, controllers and JPA adapters show as "no coverage" and pull the raw score down, also for `mutation.minScore`.] → Accepted by D3 and D11. The report shows test strength next to the score.
-- [Incremental history can carry over results after build-logic or dependency changes PIT doesn't track.] → Off by default (D9). Delete `build/pitest` or run without the property for a clean baseline.
 - [The plugin switch matches requested task names literally, so an abbreviation such as `./gradlew mR` resolves the root task but PIT isn't applied to modules.] → The root plugin always registers `mutationReport` and, like the coverage guard, fails in `gradle.taskGraph.whenReady` with "Run with the full task name, e.g. ./gradlew mutationReport." when the graph has `mutationReport` but the switch is off.
-- [A full run is slow: every mutant runs its covering tests.] → `mutation.modules`, `mutation.threads` and `mutation.incremental` shorten runs.
+- [A full run is slow: every mutant runs its covering tests.] → `mutation.modules` and `mutation.threads` shorten runs.
 - [The root plugin configures subprojects, which doesn't work with isolated projects.] → Same as Kover; revisit if isolated projects is turned on.
 
 ## Migration Plan

@@ -24,12 +24,10 @@
   - `=cards`, `=`, `=user,` and `=user,,board` fail before any test runs, listing `board, common, user`;
   - `./gradlew mR` fails with the "full task name" message before any test runs;
   - a second run with configuration-cache reuse works.
-- [ ] 3.2 (Threads done and verified. Incremental blocked: open-source PIT 1.30.2 has no history plugin, see design.md "Findings during implementation". Waiting for the user.) Add `mutation.threads` and `mutation.incremental`. Verify that:
+- [x] 3.2 Add `mutation.threads`. Verify that:
   - the default run uses one thread per available processor and `-Pmutation.threads=2` uses two (check PIT's logged config with `--info`);
-  - `-Pmutation.threads=0` and `=abc` fail before any test runs;
-  - without `mutation.incremental` no `build/pitest/history.bin` is read or written;
-  - with `-Pmutation.incremental` (and with `=true`, `=TRUE`) a second unchanged run reuses `<module>/build/pitest/history.bin` (faster, same results), and `-Pmutation.incremental=false` reads no history;
-  - `-Pmutation.incremental=yes` fails before any test runs, naming the property and `yes`.
+  - `-Pmutation.threads=0` and `=abc` fail before any test runs.
+  - Dropped: `mutation.incremental`. Open-source PIT 1.25.8 and later has no history plugin, so the user removed incremental analysis (D9).
 - [x] 3.3 Add `mutation.minScore`. Verify that:
   - `-Pmutation.minScore=100` fails after the reports are written, printing the mutation score and test strength with two decimals and the required 100%;
   - `-Pmutation.minScore=0` and a decimal such as `=0.5` succeed;
@@ -38,7 +36,7 @@
 
 ## 4. Documentation
 
-- [x] 4.1 Add `mutationReport` to the `CLAUDE.md` Testing command table and a short paragraph after the coverage notes: the four `mutation.*` properties and their defaults, the report paths, that only unit tests run and Docker isn't needed, that new Spring or Testcontainers test classes need `@Tag("integration")`, that the full task name is required, and that it never runs in `build` or CI. Add `cardigan.pitest` to "Where does X go?". Verify that every documented command runs as written.
+- [x] 4.1 Add `mutationReport` to the `CLAUDE.md` Testing command table and a short paragraph after the coverage notes: the three `mutation.*` properties and their defaults, the report paths, that only unit tests run and Docker isn't needed, that new Spring or Testcontainers test classes need `@Tag("integration")`, that the full task name is required, and that it never runs in `build` or CI. Add `cardigan.pitest` to "Where does X go?". Verify that every documented command runs as written.
 
 ## 5. Integration check
 
