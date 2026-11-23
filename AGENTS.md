@@ -20,6 +20,7 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 | API contract | OpenAPI 3.0.1, generated code-first with springdoc-openapi, committed as a JSON snapshot |
 | Tests | JUnit 5, AssertK, hand-written fakes, Testcontainers (Postgres), WireMock, Awaitility |
 | Coverage | Kover (on demand only), diff-cover through `uvx` for changed lines |
+| Mutation testing | PIT through the `info.solidsoft.pitest` Gradle plugin (on demand only, unit tests only) |
 
 **Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users`, `sessions` and `refresh_tokens` tables, `GET /api/v1/users/me`, register, login, refresh and logout under `/api/v1/auth`, the per-email rate limit on login and register, and the daily cleanup of ended sessions. `:board` has the `boards`, `columns` and `labels` tables, the board and column endpoints under `/api/v1/boards` and the label endpoints under `/api/v1/labels`. Label colors are upper-case constants such as `RED`. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
 
@@ -167,6 +168,8 @@ app/src/
 | A fake for tests | Module `src/test/.../fake`, or `:common` `testFixtures` if several modules need it |
 | An E2E test | `:app` `src/test`, extending the `E2eTest` base class |
 | A new module in coverage reports | Apply `alias(libs.plugins.convention.kover)` (`cardigan.kover`) in its `build.gradle.kts`. Nothing else |
+| A new module in mutation reports | Apply `alias(libs.plugins.convention.pitest)` (`cardigan.pitest`) in its `build.gradle.kts`. Nothing else |
+| A test class that starts a Spring context or a container | Annotate it (or its base class) with `@Tag("integration")`, so mutation testing leaves it out |
 
 ---
 
@@ -297,6 +300,7 @@ Commands:
 | Everything (compile + all tests) | `./gradlew build` |
 | Coverage report | `./gradlew coverageReport [-Pcoverage.modules=user,board] [-Pcoverage.minLine=80] [-Pcoverage.minBranch=70]` |
 | Coverage of changed lines | `./gradlew coverageDiff [-Pcoverage.modules=user] [-Pcoverage.compareBranch=origin/master]` |
+| Mutation report | `./gradlew mutationReport [-Pmutation.modules=user,board] [-Pmutation.threads=4] [-Pmutation.incremental] [-Pmutation.minScore=60]` |
 
 Coverage:
 
@@ -307,6 +311,17 @@ Coverage:
 - `coverageReport` writes `build/reports/kover/report.xml` and `build/reports/kover/html/index.html` and prints line and branch coverage. `coverage.minLine` and `coverage.minBranch` (0 to 100, decimals allowed) make it fail when the selection misses them. Nothing sets them by default.
 - `coverageDiff` needs `uv` (https://docs.astral.sh/uv/). It runs diff-cover at the version pinned in `libs.versions.toml` and writes `build/reports/diff-coverage/index.html`. It compares against the merge base with `coverage.compareBranch` (default `origin/master`), counts staged, unstaged and untracked files, and never fails on low coverage.
 - `coverageDiff` never fetches. Run `git fetch` first for a fresh `origin/master`. If you install `uv` while a Gradle daemon is running, run `./gradlew --stop` so the daemon sees it.
+
+Mutation testing:
+
+- `mutationReport` runs PIT only on demand. `build`, `check` and CI never run it, and modules get no PIT task unless `mutationReport` or a `pitest*` task is requested. Use the full task name: an abbreviation such as `./gradlew mR` fails with a message saying so.
+- Only unit tests run against mutants, so Docker isn't needed. Test classes tagged `@Tag("integration")` are left out. Every test class that starts a Spring context or a container must carry the tag, directly or through its base class (`E2eTest` has it). Normal test runs still run every test.
+- `:common`, `:user` and `:board` take part. `mutation.modules` is a comma-separated list of them, with or without a leading `:`. Without it, all are run. An empty value, an empty entry or an unknown name fails before any test runs.
+- Reports: HTML and XML per module in `<module>/build/reports/pitest/`, and the combined HTML report in `build/reports/pitest/index.html`.
+- `mutation.threads` (a positive whole number) overrides the thread count, which defaults to the number of processors.
+- `mutation.incremental` (no value or `true` on, `false` off) turns on PIT's incremental analysis with `<module>/build/pitest/history.bin`. It currently fails: open-source PIT 1.30 has no history plugin. Pending a decision in the `be-pitest-mutation-testing` change.
+- `mutation.minScore` (0 to 100, decimals allowed) makes the run fail after the reports are written when the selection's mutation score is below it. Score = killed / all mutants, test strength = killed / mutants with coverage; timed-out and memory-error mutants count as killed. Nothing sets it by default.
+- The application class, `@Configuration`, `@ConfigurationProperties` and `@SpringBootApplication` classes, Kotlin null-check intrinsics and the generated data-class methods (`componentN`, `copy`, `equals`, `hashCode`, `toString`) are not mutated.
 
 ---
 
