@@ -16,7 +16,7 @@
   - The timing of `./gradlew test --rerun` matches the time before Kover was added, within noise.
   - `./gradlew build --dry-run` lists no coverage, report or verify task (`koverFindJar` is allowed, D19), and `build` writes nothing under `build/reports/kover`. If `check` depends on `koverVerify`, remove that dependency in the plugins and verify again.
   - If any of these checks can't be guaranteed, stop and report it to the user as a finding instead of working around it silently.
-- [ ] 2.5 Move the instrumentation decision into one shared build-logic function used by both plugins. In `cardigan.kover.report`, add the `gradle.taskGraph.whenReady` guard that fails with "Coverage needs instrumentation. Run with the full task name, e.g. ./gradlew coverageReport." when instrumentation is off and the graph has `coverageReport`, `diffCoverage` or any Kover report task. Verify these:
+- [x] 2.5 Move the instrumentation decision into one shared build-logic function used by both plugins. In `cardigan.kover.report`, add the `gradle.taskGraph.whenReady` guard that fails with "Coverage needs instrumentation. Run with the full task name, e.g. ./gradlew coverageReport." when instrumentation is off and the graph has `coverageReport`, `diffCoverage` or any Kover report task. Verify these:
   - `./gradlew cR` and `./gradlew dC` fail with that message, no test task runs, and `build/reports/kover` and `build/reports/diff-coverage` are untouched (delete them first, check they don't exist afterwards).
   - `./gradlew kXR` (abbreviated `koverXmlReport`) fails the same way.
   - `./gradlew coverageReport` passes the guard.
@@ -31,7 +31,7 @@
 
 ## 3. Diff coverage
 
-- [ ] 3.1 Add the `diffCoverage` task: `uv` check, `git rev-parse --verify` of `coverage.compareBranch` (default `origin/master`), then `uvx --exclude-newer <catalog date> diff-cover==<catalog version> --include-untracked`, run from the root project directory, on `build/reports/kover/report.xml` with every opted-in module's `src/main/kotlin` as repo-relative `--src-roots` and the HTML report at `build/reports/diff-coverage/index.html`. Use the HTML flag the pinned version supports. Verify on this branch with a scratch change:
+- [x] 3.1 Add the `diffCoverage` task: `uv` check, `git rev-parse --verify` of `coverage.compareBranch` (default `origin/master`), then `uvx --exclude-newer <catalog date> diff-cover==<catalog version> --include-untracked`, run from the root project directory, on `build/reports/kover/report.xml` with every opted-in module's `src/main/kotlin` as repo-relative `--src-roots` and the HTML report at `build/reports/diff-coverage/index.html`. Use the HTML flag the pinned version supports. Verify on this branch with a scratch change:
   - With an unstaged edit to a `:user` source file, `./gradlew diffCoverage` lists that file's specific changed line numbers and writes the HTML report.
   - A new, never `git add`-ed `:board` source file appears in the result.
   - `-Pcoverage.modules=board` omits the `:user` file.

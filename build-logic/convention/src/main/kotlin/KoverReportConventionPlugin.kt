@@ -60,6 +60,19 @@ class KoverReportConventionPlugin : Plugin<Project> {
                 minBranch?.let { this.minBranch.set(it) }
             }
 
+            tasks.register<DiffCoverageTask>("diffCoverage") {
+                group = "verification"
+                description = "Shows coverage of the lines changed since the merge base with a base ref. " +
+                    "Options: -P$MODULES_PROPERTY, -P$COMPARE_BRANCH_PROPERTY (default origin/master)."
+                dependsOn("koverXmlReport")
+                this.xmlReport.set(xmlReport)
+                this.htmlReport.set(layout.buildDirectory.file("reports/diff-coverage/index.html"))
+                repositoryRoot.set(layout.projectDirectory)
+                compareBranch.set(providers.gradleProperty(COMPARE_BRANCH_PROPERTY).orElse("origin/master"))
+                diffCoverVersion.set(libs.version("diff-cover"))
+                excludeNewer.set(libs.version("diff-cover-exclude-newer"))
+            }
+
             gradle.projectsEvaluated {
                 val selected = parseCoverageModules(
                     target.providers.gradleProperty(MODULES_PROPERTY).orNull,
@@ -80,6 +93,13 @@ class KoverReportConventionPlugin : Plugin<Project> {
                 }
                 target.tasks.named<CoverageReportTask>("coverageReport") {
                     modules.set(selected)
+                }
+                target.tasks.named<DiffCoverageTask>("diffCoverage") {
+                    sourceRoots.set(
+                        optedInPaths.values.map { path ->
+                            target.project(path).projectDir.resolve("src/main/kotlin").relativeTo(target.rootDir).invariantSeparatorsPath
+                        }
+                    )
                 }
             }
 
