@@ -5,8 +5,8 @@ import jakarta.validation.Payload
 import kotlin.reflect.KClass
 
 /**
- * The text, after `normalizeText`, is an RFC 5322 `addr-spec` in ASCII without comments or folding
- * whitespace, or `INVALID_FORMAT`. Empty, too long and invalid-character values pass here, because
+ * The text, after `normalizeText`, matches the `domain-user` reference email pattern, or
+ * `INVALID_FORMAT`. Empty, too long and invalid-character values pass here, because
  * `@ValidText` on the same field reports them.
  */
 @Target(AnnotationTarget.FIELD)

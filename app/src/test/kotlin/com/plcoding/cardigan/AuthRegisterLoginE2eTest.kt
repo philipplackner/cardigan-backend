@@ -87,6 +87,15 @@ class AuthRegisterLoginE2eTest : AuthE2eTestBase() {
     }
 
     @Test
+    fun `single-label domain is INVALID_FORMAT and no user is stored`() {
+        register(email = "mail@pl-coding").assertFieldErrors(
+            ErrorCode.VALIDATION_FAILED,
+            fieldError("email", "INVALID_FORMAT"),
+        )
+        assertThat(count("users")).isEqualTo(0)
+    }
+
+    @Test
     fun `password length limits carry min and max`() {
         register(password = "Correct hs7").assertFieldErrors(
             ErrorCode.VALIDATION_FAILED,

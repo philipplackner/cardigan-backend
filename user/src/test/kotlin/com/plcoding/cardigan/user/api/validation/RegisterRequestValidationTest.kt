@@ -39,6 +39,9 @@ class RegisterRequestValidationTest {
 
     private fun passwordErrors(password: String?) = errorsOf(request(password = password))
 
+    private val emailOf254Characters =
+        "a".repeat(64) + "@" + "a".repeat(63) + "." + "a".repeat(63) + "." + "a".repeat(57) + ".com"
+
     private val invalidFormat = ProblemFieldError("email", FieldErrorCode.INVALID_FORMAT)
     private val tooWeak = ProblemFieldError("password", FieldErrorCode.PASSWORD_TOO_WEAK)
     private val tooShort = ProblemFieldError("password", FieldErrorCode.TOO_SHORT, min = 12)
@@ -75,19 +78,14 @@ class RegisterRequestValidationTest {
         strings = [
             "ann.lee+cards@example.com",
             "  Ann@Example.com ",
-            "a@b",
-            "ann@localhost",
             "!#$%&'*+/=?^_`{|}~-@example.com",
-            "\"ann.lee\"@example.com",
-            "\"ann..lee\"@example.com",
-            "\"ann@work\"@example.com",
-            "\"ann\\ lee\"@example.com",
-            "\"\\\"ann\\\"\"@example.com",
-            "\"\"@example.com",
-            "ann@[192.168.0.1]",
-            "ann@[IPv6:2001:db8::1]",
-            "ann@[]",
-            "ann@1.2.3",
+            "a@b.co",
+            "ann@mail.example.com",
+            "ann@a.b.example.co.uk",
+            "ann@xn--mnchen-3ya.de",
+            "ann@my-example.com",
+            "ann@123.example.com",
+            "ANN@EXAMPLE.COM",
         ],
     )
     fun `valid addresses are accepted`(email: String) {
@@ -99,6 +97,21 @@ class RegisterRequestValidationTest {
         strings = [
             "ann@",
             "@example.com",
+            "mail@pl-coding",
+            "ann@localhost",
+            "a@b",
+            "ann@1.2.3",
+            "ann@example.c",
+            "ann@example.123",
+            "ann@example.xn--p1ai",
+            "ann@-example.com",
+            "ann@example-.com",
+            "ann@[192.168.0.1]",
+            "ann@[IPv6:2001:db8::1]",
+            "ann@[]",
+            "\"ann.lee\"@example.com",
+            "\"\"@example.com",
+            "an..n@example.com",
             "ann",
             "ann@@example.com",
             "ann@example@com",
@@ -141,18 +154,36 @@ class RegisterRequestValidationTest {
     }
 
     @Test
+    fun `local part of 64 characters is accepted and 65 is INVALID_FORMAT`() {
+        assertThat(emailErrors("a".repeat(64) + "@example.com")).isEmpty()
+        assertThat(emailErrors("a".repeat(65) + "@example.com")).containsExactly(invalidFormat)
+    }
+
+    @Test
+    fun `domain label of 63 characters is accepted and 64 is INVALID_FORMAT`() {
+        assertThat(emailErrors("ann@" + "a".repeat(63) + ".com")).isEmpty()
+        assertThat(emailErrors("ann@" + "a".repeat(64) + ".com")).containsExactly(invalidFormat)
+    }
+
+    @Test
+    fun `top-level label of 63 letters is accepted and 64 is INVALID_FORMAT`() {
+        assertThat(emailErrors("ann@example." + "a".repeat(63))).isEmpty()
+        assertThat(emailErrors("ann@example." + "a".repeat(64))).containsExactly(invalidFormat)
+    }
+
+    @Test
     fun `email of 254 characters is accepted`() {
-        assertThat(emailErrors("a".repeat(242) + "@example.com")).isEmpty()
+        assertThat(emailErrors(emailOf254Characters)).isEmpty()
     }
 
     @Test
     fun `email of 254 characters after trimming is accepted`() {
-        assertThat(emailErrors("  " + "a".repeat(242) + "@example.com  ")).isEmpty()
+        assertThat(emailErrors("  $emailOf254Characters  ")).isEmpty()
     }
 
     @Test
     fun `email of 255 characters reports only TOO_LONG`() {
-        val request = request(email = "a".repeat(243) + "@example.com")
+        val request = request(email = emailOf254Characters + "m")
 
         assertThat(validator.validate(request)).hasSize(1)
         assertThat(errorsOf(request)).containsExactly(ProblemFieldError("email", FieldErrorCode.TOO_LONG, max = 254))
@@ -172,6 +203,11 @@ class RegisterRequestValidationTest {
 
         assertThat(validator.validate(request)).hasSize(1)
         assertThat(errorsOf(request)).containsExactly(ProblemFieldError("email", FieldErrorCode.INVALID_CHARACTER))
+    }
+
+    @Test
+    fun `non-ASCII email is INVALID_FORMAT, not INVALID_CHARACTER`() {
+        assertThat(emailErrors("jürgen@münchen.de")).containsExactly(invalidFormat)
     }
 
     @Test
@@ -203,24 +239,37 @@ class RegisterRequestValidationTest {
     }
 
     @Test
-    fun `near-matching address at the length limit is checked without backtracking`() {
+    fun `250KB near-match is not an email format within 100 ms`() {
+        val nearMatch = "a@" + "a.".repeat(125_000) + "1"
+        hasEmailFormat(nearMatch)
+
+        val fastest = (1..5).minOf {
+            val start = System.nanoTime()
+            assertThat(hasEmailFormat(nearMatch)).isFalse()
+            System.nanoTime() - start
+        }
+        assertThat(fastest / 1_000_000).isLessThan(100)
+    }
+
+    @Test
+    fun `near-matches at the length limit are checked within 100 ms`() {
         val nearMatches = listOf(
-            "a.".repeat(126) + "@",
-            "a".repeat(253) + "@",
-            "\"" + "\\a".repeat(120) + "@example.c",
-            "ann@" + "a.".repeat(125),
+            "a".repeat(64) + "@" + "a.".repeat(94) + "1",
+            "a.".repeat(32) + "@example.com",
+            "a".repeat(64) + "@" + "a-".repeat(94) + "a",
+            "a".repeat(64) + "@" + "a".repeat(189),
         )
-        nearMatches.forEach { isAddrSpec(it) }
+        nearMatches.forEach { hasEmailFormat(it) }
 
         nearMatches.forEach { email ->
             val start = System.nanoTime()
-            val matches = isAddrSpec(email)
+            val matches = hasEmailFormat(email)
             val elapsed = System.nanoTime() - start
 
             assertThat(matches).isFalse()
             assertThat(elapsed / 1_000_000).isLessThan(100)
         }
-        assertThat(isAddrSpec("a.".repeat(120) + "a@example.com")).isTrue()
+        assertThat(hasEmailFormat("a".repeat(64) + "@" + "a.".repeat(92) + "com")).isTrue()
     }
 
     @Test
