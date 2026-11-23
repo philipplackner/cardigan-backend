@@ -6,6 +6,9 @@ assertk = "0.28.1"
 springdoc = "3.1.1"
 icu4j = "79.1"
 bucket4j = "8.22.0"
+kover = "0.9.11"
+diff-cover = "11.0.4"
+diff-cover-exclude-newer = "2026-11-20"
 
 [libraries]
 # Gradle plugin artifacts for build-logic
@@ -13,6 +16,7 @@ kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", ve
 kotlin-allopen-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-allopen", version.ref = "kotlin" }
 kotlin-noarg-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-noarg", version.ref = "kotlin" }
 spring-boot-gradlePlugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
+kover-gradlePlugin = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
 
 # BOM
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -66,3 +70,5 @@ convention-kotlin-jvm = { id = "cardigan.kotlin.jvm", version = "unspecified" }
 convention-spring-module = { id = "cardigan.spring.module", version = "unspecified" }
 convention-spring-jpa = { id = "cardigan.spring.jpa", version = "unspecified" }
 convention-spring-application = { id = "cardigan.spring.application", version = "unspecified" }
+convention-kover = { id = "cardigan.kover", version = "unspecified" }
+convention-kover-report = { id = "cardigan.kover.report", version = "unspecified" }

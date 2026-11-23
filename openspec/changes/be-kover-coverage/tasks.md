@@ -2,8 +2,8 @@
 
 ## 1. Versions and catalog
 
-- [ ] 1.1 Confirm the latest stable Kover Gradle plugin (0.9.11 at planning time) works with Kotlin 2.3.21 and Gradle 9.8.1 by reading its release notes. Add the `kover` version, the `kover-gradlePlugin` library and the `convention-kover` / `convention-kover-report` plugin aliases to `gradle/libs.versions.toml`. Verify that `./gradlew help` succeeds.
-- [ ] 1.2 Re-check the diff-cover pin 11.0.4 (the latest on PyPI at planning time, also pinned by web and mobile) and add it as `diff-cover = "11.0.4"` under `[versions]`, plus `diff-cover-exclude-newer` set to a date on or after that release. If a newer version exists, keep 11.0.4 and report it to the user, so the three repos stay aligned. Verify that `uvx --exclude-newer <date> diff-cover==<version> --version` prints that version.
+- [x] 1.1 Confirm the latest stable Kover Gradle plugin (0.9.11 at planning time) works with Kotlin 2.3.21 and Gradle 9.8.1 by reading its release notes. Add the `kover` version, the `kover-gradlePlugin` library and the `convention-kover` / `convention-kover-report` plugin aliases to `gradle/libs.versions.toml`. Verify that `./gradlew help` succeeds.
+- [x] 1.2 Re-check the diff-cover pin 11.0.4 (the latest on PyPI at planning time, also pinned by web and mobile) and add it as `diff-cover = "11.0.4"` under `[versions]`, plus `diff-cover-exclude-newer` set to a date on or after that release. If a newer version exists, keep 11.0.4 and report it to the user, so the three repos stay aligned. Verify that `uvx --exclude-newer <date> diff-cover==<version> --version` prints that version.
 
 ## 2. Coverage report
 
