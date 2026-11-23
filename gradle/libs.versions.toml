@@ -65,10 +65,11 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
 kotlin-jpa = { id = "org.jetbrains.kotlin.plugin.jpa", version.ref = "kotlin" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 
-convention-kotlin-jvm = { id = "cardigan.kotlin.jvm", version = "unspecified" }
-convention-spring-module = { id = "cardigan.spring.module", version = "unspecified" }
-convention-spring-jpa = { id = "cardigan.spring.jpa", version = "unspecified" }
-convention-spring-application = { id = "cardigan.spring.application", version = "unspecified" }
-convention-kover = { id = "cardigan.kover", version = "unspecified" }
-convention-kover-report = { id = "cardigan.kover.report", version = "unspecified" }
+convention-kotlin-jvm = { id = "cardigan.kotlin.jvm" }
+convention-spring-module = { id = "cardigan.spring.module" }
+convention-spring-jpa = { id = "cardigan.spring.jpa" }
+convention-spring-application = { id = "cardigan.spring.application" }
+convention-kover = { id = "cardigan.kover" }
+convention-kover-report = { id = "cardigan.kover.report" }

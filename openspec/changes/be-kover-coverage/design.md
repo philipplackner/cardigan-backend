@@ -25,7 +25,7 @@ See proposal.md for the motivation and decisions.md for the settled choices. Fac
 
 ### Two convention plugins: `cardigan.kover` for modules, `cardigan.kover.report` for the root
 
-`cardigan.kover` applies `org.jetbrains.kotlinx.kover` to a module. It is the only thing a module adds. It also sets `kover { currentProject { sources { excludedSourceSets.add("testFixtures") } } }`, so only `main` is measured (D15); Kover's default leaves out only `test`. `cardigan.kover.report` is applied once in the root `build.gradle.kts`. It applies Kover to the root project, which has no Kotlin plugin and serves as the merge point. It also registers `coverageReport` and `diffCoverage`, and adds every subproject that applies `cardigan.kover` as a `kover(project(...))` dependency of the root. It does this through `subprojects { pluginManager.withPlugin("cardigan.kover") { ... } }`, so opting in needs no edit in the root.
+`cardigan.kover` applies `org.jetbrains.kotlinx.kover` to a module. It is the only thing a module adds. It also sets `kover { currentProject { sources { excludedSourceSets.add("testFixtures") } } }`, so only `main` is measured (D15); Kover's default leaves out only `test`. It also lists every `Test` task other than `test` in `instrumentation.disabledForTestTasks`, which keeps them out of the reports' dependencies too. Otherwise a coverage run would also run `:app:updateOpenApiSnapshot`, which rewrites the committed snapshot. `cardigan.kover.report` is applied once in the root `build.gradle.kts`. It applies Kover to the root project, which has no Kotlin plugin and serves as the merge point. It also registers `coverageReport` and `diffCoverage`, and adds every subproject that applies `cardigan.kover` as a `kover(project(...))` dependency of the root. It does this through `subprojects { pluginManager.withPlugin("cardigan.kover") { ... } }`, so opting in needs no edit in the root.
 
 Alternatives:
 - **Kover's settings plugin `org.jetbrains.kotlinx.kover.aggregation`.** It has project filters built in and instruments only with `-Pkover`. It is applied in `settings.gradle.kts`, not per module, so it contradicts "opt in with one plugin id". It is also still marked experimental.
@@ -39,6 +39,8 @@ The root Kover report always merges all opted-in modules, both their classes and
 - **Fallback:** a class filter built from the selection as a whole, because Kover excludes always win over includes. If `app` is selected: include `com.plcoding.cardigan.*` and exclude `com.plcoding.cardigan.<m>.*` for every opted-in module `m` other than `app` that is *not* selected. If `app` is not selected: include `com.plcoding.cardigan.<m>.*` for each selected module and exclude nothing.
 
 Task 2.1 checks which one is available before anything else is built on it.
+
+**Result (task 2.1):** Kover 0.9.11's classic plugin supports `filters.includes.projects`, so the primary approach is used, with project paths such as `:user`. The filter is added in `projectsEvaluated` with `filtersAppend`, because a second `filters { }` block replaces the exclusions instead of adding to them.
 
 Alternative: only adding the selected modules as `kover` dependencies. This drops the tests of unselected modules, so E2E coverage would vanish when `app` isn't selected. It breaks D3.
 
@@ -81,13 +83,13 @@ The same rule as mobile, so the platforms behave alike. `cardigan.kover` sets `k
 - Task names are part of the configuration-cache key, so reading them at configuration time is safe.
 - This doesn't rely on Kover's own task-graph behavior, which isn't a documented guarantee.
 
-Separately, `check` must not pull in any Kover task. If the pinned Kover wires `koverVerify` into `check`, the plugins remove that dependency. With no verify rules defined, it would do nothing useful anyway. `./gradlew build --dry-run` must list no Kover or coverage task.
+Separately, `check` must not pull in any Kover report or verify task. Kover 0.9.11 wires `koverVerify` into `check`, so `cardigan.kover` sets `reports.total.verify.onCheck = false`. `./gradlew build --dry-run` lists no coverage, report or verify task. Kover still makes every test task depend on `koverFindJar`, which only copies the agent jar; that is accepted (D19).
 
 Alternative: rely on Kover instrumenting only when a Kover task is in the task graph. Rejected, because mobile uses the explicit switch, and an explicit switch can be checked.
 
 ### Coverage tasks refuse to run uninstrumented
 
-Name matching misses Gradle abbreviations: `./gradlew cR` resolves to `coverageReport`, but instrumentation stays off and the report would be empty. To prevent that, the root plugin registers a `gradle.taskGraph.whenReady` check. The instrumentation decision is computed once by a shared function in build-logic, so the module and root plugins can't disagree. If instrumentation is off and the graph contains `coverageReport`, `diffCoverage` or any Kover report task (`kover*Report`, `koverVerify`, `koverLog`, in the root or a module), the check throws a `GradleException`: "Coverage needs instrumentation. Run with the full task name, e.g. ./gradlew coverageReport." It runs once the task graph is built and before the first task executes, so no test runs and no report is written. `taskGraph.whenReady` is supported with the configuration cache.
+Name matching misses Gradle abbreviations: `./gradlew cR` resolves to `coverageReport`, but instrumentation stays off and the report would be empty. To prevent that, the root plugin registers a `gradle.taskGraph.whenReady` check. The instrumentation decision is computed once by a shared function in build-logic, so the module and root plugins can't disagree. If instrumentation is off and the graph contains `coverageReport`, `diffCoverage` or any Kover report task (`kover*Report*`, `koverVerify*`, `koverCachedVerify*`, `koverLog*`, in the root or a module), the check throws a `GradleException`: "Coverage needs instrumentation. Run with the full task name, e.g. ./gradlew coverageReport." It runs once the task graph is built and before the first task executes, so no test runs and no report is written. `taskGraph.whenReady` is supported with the configuration cache.
 
 This is the same rule as mobile's "Coverage tasks refuse to run uninstrumented".
 
@@ -105,7 +107,7 @@ Kover matches only direct annotations, which is why `@SpringBootApplication` is 
 ## Risks / Trade-offs
 
 - [Selecting one module still runs every opted-in module's tests, `:app` E2E included, so it needs Docker and takes as long as a full run.] → Required by D3. Documented in the `CLAUDE.md` commands table.
-- [`@Configuration` classes such as `WebConfig`, `SecurityConfig` and `JwtConfig` contain small amounts of logic that becomes invisible to coverage.] → Accepted by D7. Lambdas and nested classes inside them compile to separate classes without the annotation, so they stay measured.
+- [`@Configuration` classes such as `WebConfig`, `SecurityConfig` and `JwtConfig` contain small amounts of logic that becomes invisible to coverage.] → Accepted by D7. Nested classes inside them stay measured, but Kotlin compiles lambdas with invokedynamic, so lambda bodies are excluded with their class. As a result `:app` has no reportable classes (D18).
 - [The root plugin configures subprojects (`subprojects {}` + `withPlugin`). This is not compatible with Gradle's isolated projects, which this build doesn't use.] → Revisit if isolated projects is turned on.
 - [Instrumented and plain test runs have different task inputs, so switching between `build` and `coverageReport` reruns tests.] → The build cache keeps both variants, so repeat runs are cached.
 - [The instrumentation switch matches requested task names literally, so a Gradle abbreviation such as `./gradlew cR` leaves instrumentation off.] → The task-graph guard fails such runs with a clear message before anything runs, instead of writing an empty report. Expanding abbreviations ourselves would mean reimplementing Gradle's name matching.

@@ -111,6 +111,27 @@ The backend gets on-demand test coverage from the terminal. Each module opts in 
 - **Alternatives**: —
 - **Depends on**: D3, D4, D6
 
+### D18 — `:app` may have no reportable classes
+- **Question**: The D7 exclusions remove every `:app` main class (`CardiganApplication`, `CardiganApplicationKt`, `ApplicationConfig`, `SecurityConfig`). Kotlin compiles their lambdas with invokedynamic, so no lambda classes stay measured. What does that mean for `:app`?
+- **Decision**: Keep D7 as it is. `:app` stays opted in, so its E2E tests count (D3), but it may have no reportable classes. `-Pcoverage.modules=app` gives an empty report: line and branch coverage `n/a`, exit 0 without minimums.
+- **Alternatives**: Narrow D7 so `@Configuration` classes stay measured.
+- **Why**: Found during implementation (task 2.1). Answered by the user through `cardigan-3c` on 2026-11-23.
+- **Depends on**: D3, D7
+
+### D19 — `koverFindJar` may run in a normal build
+- **Question**: Kover makes every test task depend on `koverFindJar`, which copies the agent jar, even with instrumentation off. Is that acceptable in `./gradlew build`?
+- **Decision**: Yes. A normal build has no instrumentation and no coverage, report or verify task. `koverFindJar` is allowed.
+- **Alternatives**: Remove the dependency by working around Kover internals.
+- **Why**: Found during implementation (task 2.4). Answered by the user through `cardigan-3c` on 2026-11-23.
+- **Depends on**: D16
+
+### D20 — Convention plugin aliases without a version
+- **Question**: Applying `cardigan.kover.report` in the root puts build-logic on the root classpath, so subproject requests with version `unspecified` fail with "already on the classpath with an unknown version". How are the convention aliases declared?
+- **Decision**: The `convention-*` entries in `libs.versions.toml` have no `version`. The root also declares the new `kover` plugin alias with `apply false`, like `spring-boot` and the Kotlin plugins.
+- **Alternatives**: —
+- **Why**: Found during implementation (task 2.1). Accepted by the user through `cardigan-3c` on 2026-11-23.
+- **Depends on**: D2
+
 ## Facts
 
 - The modules are `:app`, `:common`, `:user` and `:board` — source: `settings.gradle.kts`.

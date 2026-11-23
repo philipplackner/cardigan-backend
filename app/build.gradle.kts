@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.convention.spring.application)
     alias(libs.plugins.convention.spring.jpa)
+    alias(libs.plugins.convention.kover)
 }
 
 dependencies {

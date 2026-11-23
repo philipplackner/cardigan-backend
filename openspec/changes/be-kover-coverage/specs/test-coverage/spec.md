@@ -11,7 +11,11 @@ A Gradle module SHALL take part in coverage when it applies the `cardigan.kover`
 
 #### Scenario: All backend modules opt in
 - **WHEN** `./gradlew coverageReport` runs
-- **THEN** the report contains classes from `:app`, `:common`, `:user` and `:board`
+- **THEN** the report contains classes from `:common`, `:user` and `:board`, and the tests of all four modules count
+
+#### Scenario: A module with only excluded classes
+- **WHEN** `./gradlew coverageReport -Pcoverage.modules=app` runs and every `:app` main class is excluded
+- **THEN** the command succeeds, and the summary shows line and branch coverage as `n/a`
 
 #### Scenario: A new module opts in
 - **WHEN** a new module applies only `cardigan.kover` in its build file
@@ -179,11 +183,11 @@ The reports SHALL exclude the application main class and its top-level `main` fu
 - **THEN** the command fails with a message saying `uv` is required
 
 ### Requirement: Coverage runs only on demand
-Coverage SHALL run only when `coverageReport`, `diffCoverage` or another coverage task is requested. `./gradlew build` and `./gradlew check` SHALL NOT generate coverage reports or check thresholds, and CI SHALL NOT run coverage.
+Coverage SHALL run only when `coverageReport`, `diffCoverage` or another coverage task is requested. `./gradlew build` and `./gradlew check` SHALL NOT instrument tests, run a coverage, report or verify task, generate coverage reports or check thresholds, and CI SHALL NOT run coverage. Kover's agent-jar lookup task `koverFindJar` MAY run.
 
 #### Scenario: Build without coverage
 - **WHEN** `./gradlew build` runs
-- **THEN** no coverage task runs and no coverage report is written
+- **THEN** no coverage, report or verify task runs and no coverage report is written
 
 ### Requirement: Tests are instrumented only for coverage runs
 Test tasks SHALL be instrumented for coverage only when the requested task names include `coverageReport`, `diffCoverage` or a task whose name starts with `kover`. Otherwise every test task SHALL run without coverage instrumentation, so `./gradlew build`, `./gradlew test` and module test runs are not slowed by coverage.
