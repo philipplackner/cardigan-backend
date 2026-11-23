@@ -4,6 +4,7 @@ import com.plcoding.cardigan.board.domain.model.Board
 import com.plcoding.cardigan.board.domain.model.Column
 import com.plcoding.cardigan.board.infra.config.BoardConfig
 import com.plcoding.cardigan.common.PostgresTestConfig
+import org.junit.jupiter.api.Tag
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
@@ -14,6 +15,7 @@ import java.time.OffsetDateTime
 import java.util.UUID
 
 /** Shared setup of the board and column persistence tests. */
+@Tag("integration")
 @DataJpaTest(properties = ["cardigan.board.lock-timeout=5s"])
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, BoardConfig::class, JpaBoardRepository::class, JpaColumnRepository::class)

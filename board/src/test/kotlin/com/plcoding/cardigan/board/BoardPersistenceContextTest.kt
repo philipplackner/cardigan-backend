@@ -3,6 +3,7 @@ package com.plcoding.cardigan.board
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import com.plcoding.cardigan.common.PostgresTestConfig
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
@@ -10,6 +11,7 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 
+@Tag("integration")
 @DataJpaTest
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class)

@@ -7,6 +7,7 @@ import com.plcoding.cardigan.common.DatabaseCleaner
 import com.plcoding.cardigan.common.MutableClock
 import com.plcoding.cardigan.common.PostgresTestConfig
 import com.plcoding.cardigan.common.api.validation.RequestValidator
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import java.time.Clock
 
+@Tag("integration")
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = ["cardigan.board.lock-timeout=5s"],

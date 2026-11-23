@@ -10,6 +10,7 @@ import com.plcoding.cardigan.common.MutableClock
 import com.plcoding.cardigan.common.PostgresTestConfig
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
@@ -66,6 +67,7 @@ class FailingColumnRepositoryConfig {
  * Base of the module integration tests: the real services and adapters against Postgres. Subclasses
  * are `@SpringBootTest`s that set `cardigan.board.lock-timeout`.
  */
+@Tag("integration")
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, BoardTestConfig::class, FailingColumnRepositoryConfig::class)
 abstract class BoardIntegrationTest {

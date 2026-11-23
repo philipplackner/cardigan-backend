@@ -21,6 +21,7 @@ import com.plcoding.cardigan.common.PostgresTestConfig
 import com.plcoding.cardigan.common.api.validation.RequestValidator
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -54,6 +55,7 @@ class RacingLabelRepository(
     }
 }
 
+@Tag("integration")
 @SpringBootTest(
     classes = [BoardTestApplication::class],
     webEnvironment = SpringBootTest.WebEnvironment.NONE,

@@ -13,6 +13,7 @@ import com.plcoding.cardigan.user.domain.model.User
 import com.plcoding.cardigan.user.domain.repository.UserRepository
 import com.plcoding.cardigan.user.infra.ratelimit.Bucket4jAuthRateLimiter
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
@@ -77,6 +78,7 @@ data class HttpResult(
     }
 }
 
+@Tag("integration")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, E2eTestConfig::class)

@@ -123,6 +123,7 @@ class OpenApiTestApplication {
 }
 
 /** Generates a document from a test DTO, since this change has no production request body. */
+@org.junit.jupiter.api.Tag("integration")
 @SpringBootTest(
     classes = [OpenApiTestApplication::class],
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,

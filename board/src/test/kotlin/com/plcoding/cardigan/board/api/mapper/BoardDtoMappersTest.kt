@@ -83,7 +83,7 @@ class BoardDtoMappersTest {
     @Test
     fun `list item has the board's fields and no columns`() {
         assertThat(board.toBoardSummaryDto()).isEqualTo(BoardSummaryDto(board.id, "Roadmap", "CRD", created, updated))
-        assertThat(BoardSummaryDto::class.java.declaredFields.map { it.name }.toSet())
+        assertThat(BoardSummaryDto::class.java.declaredFields.filterNot { it.isSynthetic }.map { it.name }.toSet())
             .isEqualTo(setOf("id", "name", "key", "createdAt", "updatedAt"))
     }
 
@@ -100,7 +100,7 @@ class BoardDtoMappersTest {
         val column = column("Review", 3)
 
         assertThat(column.toColumnDto()).isEqualTo(ColumnDto(column.id, "Review", 3, created, updated))
-        assertThat(ColumnDto::class.java.declaredFields.map { it.name }.toSet())
+        assertThat(ColumnDto::class.java.declaredFields.filterNot { it.isSynthetic }.map { it.name }.toSet())
             .isEqualTo(setOf("id", "name", "position", "createdAt", "updatedAt"))
     }
 

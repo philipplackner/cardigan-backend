@@ -9,6 +9,7 @@ import assertk.assertions.isNotNull
 import assertk.assertions.isNull
 import assertk.assertions.matches
 import com.plcoding.cardigan.common.PostgresTestConfig
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.opentest4j.AssertionFailedError
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,6 +27,7 @@ import java.nio.file.Path
  * Compares the generated OpenAPI document with the committed snapshot that clients copy. Run
  * `./gradlew :app:updateOpenApiSnapshot` to rewrite the snapshot after a deliberate API change.
  */
+@Tag("integration")
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = ["springdoc.api-docs.enabled=true"],

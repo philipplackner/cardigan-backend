@@ -15,6 +15,7 @@ import com.plcoding.cardigan.user.domain.model.Session
 import com.plcoding.cardigan.user.domain.model.User
 import com.plcoding.cardigan.user.domain.model.hashRefreshToken
 import org.hibernate.exception.ConstraintViolationException
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
@@ -25,6 +26,7 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+@Tag("integration")
 @DataJpaTest
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, JpaUserRepository::class, JpaSessionRepository::class, JpaRefreshTokenRepository::class)

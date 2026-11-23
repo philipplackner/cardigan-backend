@@ -16,6 +16,7 @@ import com.plcoding.cardigan.board.domain.model.LabelColor
 import com.plcoding.cardigan.common.MutableClock
 import com.plcoding.cardigan.common.PostgresTestConfig
 import org.hibernate.exception.ConstraintViolationException
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
@@ -29,6 +30,7 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import java.util.UUID
 
+@Tag("integration")
 @DataJpaTest
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, JpaLabelRepository::class)

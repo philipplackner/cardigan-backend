@@ -12,6 +12,7 @@ import com.plcoding.cardigan.common.PostgresTestConfig
 import com.plcoding.cardigan.user.domain.exception.EmailAlreadyUsedException
 import com.plcoding.cardigan.user.domain.model.User
 import org.hibernate.exception.ConstraintViolationException
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
@@ -24,6 +25,7 @@ import java.time.Instant
 import java.util.Locale
 import java.util.UUID
 
+@Tag("integration")
 @DataJpaTest
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, JpaUserRepository::class)
