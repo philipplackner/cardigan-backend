@@ -101,7 +101,7 @@ The backend gets on-demand test coverage from the terminal. Each module opts in 
 
 ### D16 — No instrumentation outside coverage runs
 - **Question**: How is it guaranteed that normal builds aren't instrumented or slowed by Kover?
-- **Decision**: Every opted-in module sets Kover's `instrumentation.disabledForAll` unless the requested task names (`startParameter.taskNames`) include `coverageReport`, `coverageDiff` or a `kover*` task. A task checks this. If it can't be guaranteed, that is reported as a finding. When instrumentation is off, `coverageReport`, `coverageDiff` and every Kover report task refuse to run: they fail with "run with the full task name" before any test runs or report is written. This covers abbreviations such as `./gradlew cR`. This matches the mobile setup.
+- **Decision**: (Mechanism refined by D19.) Every opted-in module sets Kover's `instrumentation.disabledForAll` unless the requested task names (`startParameter.taskNames`) include `coverageReport`, `coverageDiff` or a `kover*` task. A task checks this. If it can't be guaranteed, that is reported as a finding. When instrumentation is off, `coverageReport`, `coverageDiff` and every Kover report task refuse to run: they fail with "run with the full task name" before any test runs or report is written. This covers abbreviations such as `./gradlew cR`. This matches the mobile setup.
 - **Alternatives**: Rely on Kover's own task-graph behavior.
 - **Depends on**: D13
 
@@ -118,11 +118,11 @@ The backend gets on-demand test coverage from the terminal. Each module opts in 
 - **Why**: Found during implementation (task 2.1). Answered by the user through `cardigan-3c` on 2026-11-23.
 - **Depends on**: D3, D7
 
-### D19 — `koverFindJar` may run in a normal build
-- **Question**: Kover makes every test task depend on `koverFindJar`, which copies the agent jar, even with instrumentation off. Is that acceptable in `./gradlew build`?
-- **Decision**: Yes. A normal build has no instrumentation and no coverage, report or verify task. `koverFindJar` is allowed.
-- **Alternatives**: Remove the dependency by working around Kover internals.
-- **Why**: Found during implementation (task 2.4). Answered by the user through `cardigan-3c` on 2026-11-23.
+### D19 — Modules apply Kover only for coverage runs
+- **Question**: With Kover applied to every module, each test task depends on `koverFindJar`, which copies the agent jar, even with instrumentation off. How is that kept out of a normal build?
+- **Decision**: Mobile's approach, for both repos. `cardigan.kover` applies Kover to a module only when `coverageReport`, `coverageDiff` or a `kover*` task is requested, and otherwise does nothing. The root report plugin always applies Kover, so an abbreviation such as `kXR` resolves and hits the task-graph guard. `verify.onCheck = false` stays. A normal build runs no Kover task at all, checked with `./gradlew build --dry-run`.
+- **Alternatives**: Accept `koverFindJar` in a normal build (the first answer, replaced); remove the dependency by working around Kover internals.
+- **Why**: Found during implementation (task 2.4). Decided by the user through `cardigan-3c` on 2026-11-23, to keep backend and mobile identical.
 - **Depends on**: D16
 
 ### D20 — Convention plugin aliases without a version

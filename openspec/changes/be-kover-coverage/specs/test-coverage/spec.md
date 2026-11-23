@@ -183,11 +183,11 @@ The reports SHALL exclude the application main class and its top-level `main` fu
 - **THEN** the command fails with a message saying `uv` is required
 
 ### Requirement: Coverage runs only on demand
-Coverage SHALL run only when `coverageReport`, `coverageDiff` or another coverage task is requested. `./gradlew build` and `./gradlew check` SHALL NOT instrument tests, run a coverage, report or verify task, generate coverage reports or check thresholds, and CI SHALL NOT run coverage. Kover's agent-jar lookup task `koverFindJar` MAY run.
+Coverage SHALL run only when `coverageReport`, `coverageDiff` or another coverage task is requested. `./gradlew build` and `./gradlew check` SHALL NOT instrument tests, run any Kover or coverage task, generate coverage reports or check thresholds, and CI SHALL NOT run coverage.
 
 #### Scenario: Build without coverage
 - **WHEN** `./gradlew build` runs
-- **THEN** no coverage, report or verify task runs and no coverage report is written
+- **THEN** no Kover or coverage task runs and no coverage report is written
 
 ### Requirement: Tests are instrumented only for coverage runs
 Test tasks SHALL be instrumented for coverage only when the requested task names include `coverageReport`, `coverageDiff` or a task whose name starts with `kover`. Otherwise every test task SHALL run without coverage instrumentation, so `./gradlew build`, `./gradlew test` and module test runs are not slowed by coverage.

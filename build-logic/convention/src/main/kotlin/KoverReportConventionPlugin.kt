@@ -8,21 +8,25 @@ import org.gradle.kotlin.dsl.register
 
 /**
  * Applied to the root project. Merges the coverage of every module that applies `cardigan.kover`
- * and registers `coverageReport`.
+ * and registers `coverageReport` and `coverageDiff`.
  */
 class KoverReportConventionPlugin : Plugin<Project> {
 
     override fun apply(target: Project) {
         with(target) {
             check(this == rootProject) { "cardigan.kover.report must be applied to the root project" }
+            // The root always has Kover, so an abbreviation such as kXR resolves and reaches the guard below.
             pluginManager.apply("org.jetbrains.kotlinx.kover")
 
+            val instrumented = gradle.isCoverageInstrumented()
             val optedInPaths = sortedMapOf<String, String>()
             subprojects {
                 val module = this
                 module.pluginManager.withPlugin("cardigan.kover") {
                     optedInPaths[module.name] = module.path
-                    target.dependencies.add("kover", target.dependencies.project(mapOf("path" to module.path)))
+                    if (instrumented) {
+                        target.dependencies.add("kover", target.dependencies.project(mapOf("path" to module.path)))
+                    }
                 }
             }
 
@@ -103,7 +107,6 @@ class KoverReportConventionPlugin : Plugin<Project> {
                 }
             }
 
-            val instrumented = gradle.isCoverageInstrumented()
             gradle.taskGraph.whenReady {
                 val needsInstrumentation = allTasks.any { isCoverageReportTask(it.name) }
                 if (!instrumented && needsInstrumentation) {

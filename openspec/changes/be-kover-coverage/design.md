@@ -78,12 +78,12 @@ diff-cover runs with the root project directory, the Git top level, as its worki
 
 ### Instrumentation is switched off unless coverage is requested
 
-The same rule as mobile, so the platforms behave alike. `cardigan.kover` sets `kover { currentProject { instrumentation { disabledForAll = true } } }` unless `gradle.startParameter.taskNames` contains a coverage task. A name matches when its last path segment (after the last `:`) is `coverageReport` or `coverageDiff`, or starts with `kover`.
+The same rule as mobile, so the platforms behave alike. `cardigan.kover` applies Kover to its module only when `gradle.startParameter.taskNames` contains a coverage task, and otherwise does nothing, so a normal build runs no Kover task at all (D19). The root plugin always applies Kover, so that an abbreviation such as `kXR` resolves and reaches the guard below, and adds the `kover(project(...))` dependencies only when coverage is requested. A name matches when its last path segment (after the last `:`) is `coverageReport` or `coverageDiff`, or starts with `kover`.
 
 - Task names are part of the configuration-cache key, so reading them at configuration time is safe.
 - This doesn't rely on Kover's own task-graph behavior, which isn't a documented guarantee.
 
-Separately, `check` must not pull in any Kover report or verify task. Kover 0.9.11 wires `koverVerify` into `check`, so `cardigan.kover` sets `reports.total.verify.onCheck = false`. `./gradlew build --dry-run` lists no coverage, report or verify task. Kover still makes every test task depend on `koverFindJar`, which only copies the agent jar; that is accepted (D19).
+Separately, `check` must not pull in any Kover report or verify task. Kover 0.9.11 wires `koverVerify` into `check`, so `cardigan.kover` sets `reports.total.verify.onCheck = false`. With Kover applied unconditionally, every test task would also depend on `koverFindJar`, even with instrumentation off. Applying Kover only for coverage runs avoids that: `./gradlew build --dry-run` lists no Kover or coverage task.
 
 Alternative: rely on Kover instrumenting only when a Kover task is in the task graph. Rejected, because mobile uses the explicit switch, and an explicit switch can be checked.
 
