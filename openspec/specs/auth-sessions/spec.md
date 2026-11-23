@@ -48,7 +48,7 @@ A successful refresh SHALL return the schema `AuthTokensDto` with `accessToken`,
 - **THEN** the body has exactly `accessToken` and `accessTokenExpiresAt`
 
 ### Requirement: Register validates email and password
-Register SHALL require `email`, `password` and `refreshTokenTransport`, and SHALL check the email and password against every rule of the shared spec `domain-user` ("Email is stored lowercased and identifies one user", "Email follows the RFC 5322 address format", "Passwords follow one composition rule"). Broken rules SHALL produce 400 `VALIDATION_FAILED` with one field error per broken field, and no user SHALL be stored.
+Register SHALL require `email`, `password` and `refreshTokenTransport`, and SHALL check the email and password against every rule of the shared spec `domain-user` ("Email is stored lowercased and identifies one user", "Email local part is a dot-atom", "Email domain has at least two labels", "Email format has one reference pattern", "Register enforces the email format", "Passwords follow one composition rule"). Broken rules SHALL produce 400 `VALIDATION_FAILED` with one field error per broken field, and no user SHALL be stored.
 
 #### Scenario: Empty body
 - **WHEN** a client registers with `{}`
@@ -57,6 +57,14 @@ Register SHALL require `email`, `password` and `refreshTokenTransport`, and SHAL
 #### Scenario: Bad email and weak password
 - **WHEN** a client registers with the email `ann@` and the password `alllowercase12`
 - **THEN** the field errors are `email` `INVALID_FORMAT` and `password` `PASSWORD_TOO_WEAK`, and no user is stored
+
+#### Scenario: Single-label domain
+- **WHEN** a client registers with the email `mail@pl-coding` and a valid password
+- **THEN** the response is 400 `VALIDATION_FAILED` with `email` `INVALID_FORMAT`, and no user is stored
+
+#### Scenario: Address RFC 5322 allowed
+- **WHEN** a client registers with the email `"ann lee"@example.com` or `ann@[192.168.0.1]` and a valid password
+- **THEN** the field error is `email` `INVALID_FORMAT`
 
 #### Scenario: Password length limits
 - **WHEN** a client registers with a password of 11 characters, and another with 129
@@ -85,8 +93,9 @@ Register with an email that is already stored, compared after normalization and 
 - **WHEN** a client registers a used email with a weak password
 - **THEN** the response is 400 `VALIDATION_FAILED`, not 409
 
-### Requirement: Login validates required fields only
-Login SHALL answer 400 `VALIDATION_FAILED` only when `email`, `password` or `refreshTokenTransport` is missing, `null`, empty after normalization (the email is trimmed, the password is not), or the transport is unknown. It SHALL NOT apply the email format, the length limits or the password composition rule: any other email or password that does not match a user SHALL produce 401 `INVALID_CREDENTIALS`.
+### Requirement: Login validates required fields and email limits
+Login SHALL answer 400 `VALIDATION_FAILED` only when `email`, `password` or `refreshTokenTransport` is missing, `null`, empty after normalization (the email is trimmed, the password is not), the transport is unknown, or the email breaks the shared spec `domain-user` ("Login does not check the email format") with `INVALID_CHARACTER` or `TOO_LONG`. It SHALL NOT apply the email format or the password rules: any other email or password that does not match a user SHALL produce 401 `INVALID_CREDENTIALS`.
+
 #### Scenario: Missing password
 - **WHEN** a client logs in without `password`
 - **THEN** the response is 400 `VALIDATION_FAILED` with `password` `REQUIRED`
@@ -94,6 +103,18 @@ Login SHALL answer 400 `VALIDATION_FAILED` only when `email`, `password` or `ref
 #### Scenario: Malformed email
 - **WHEN** a client logs in with the email `not an email` and any password
 - **THEN** the response is 401 `INVALID_CREDENTIALS`
+
+#### Scenario: Single-label domain on login
+- **WHEN** a client logs in with the email `ann@localhost`, no user has that email, and any password
+- **THEN** the response is 401 `INVALID_CREDENTIALS`, not a validation error
+
+#### Scenario: Control character in the email
+- **WHEN** a client logs in with an email containing U+0000 and any password
+- **THEN** the response is 400 `VALIDATION_FAILED` with `email` `INVALID_CHARACTER`
+
+#### Scenario: Email over the limit
+- **WHEN** a client logs in with an email of 255 characters after normalization and any password
+- **THEN** the response is 400 `VALIDATION_FAILED` with `email` `TOO_LONG` and `max` 254
 
 #### Scenario: Short password
 - **WHEN** a client logs in with a known email and the password `abc`
@@ -114,13 +135,6 @@ Login SHALL answer 400 `VALIDATION_FAILED` only when `email`, `password` or `ref
 #### Scenario: Unknown transport on login
 - **WHEN** a client logs in with valid credentials and `refreshTokenTransport` `HEADER`
 - **THEN** the response is 400 `VALIDATION_FAILED` with `refreshTokenTransport` `INVALID_VALUE` and no session is created
-
-### Requirement: A login email that cannot be stored counts as unknown
-A login email that could never be stored (a character `text-length` forbids, or more than 254 characters) SHALL be treated as an unknown email: 401 `INVALID_CREDENTIALS` with the same password verification work, without a database lookup.
-
-#### Scenario: Control character in the email
-- **WHEN** a client logs in with an email containing U+0000 and any password
-- **THEN** the response is 401 `INVALID_CREDENTIALS`, identical to the response for an unknown email
 
 ### Requirement: Login matches the lowercased email and the exact password
 Login SHALL normalize and lowercase the email before matching it, and SHALL compare the password after NFC normalization without trimming it. A wrong password and an unknown email SHALL produce identical 401 `INVALID_CREDENTIALS` responses, as the shared spec `api-errors` ("Login failures look the same") requires.
