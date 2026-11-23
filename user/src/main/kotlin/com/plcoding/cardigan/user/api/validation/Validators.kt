@@ -64,12 +64,6 @@ class ValidPasswordValidator : ConstraintValidator<ValidPassword, String> {
     }
 }
 
-class NotBlankTextValidator : ConstraintValidator<NotBlankText, String> {
-
-    override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean =
-        value == null || normalizeText(value).isNotEmpty() || context.reject(FieldViolation(FieldErrorCode.REQUIRED))
-}
-
 class NotEmptyPasswordValidator : ConstraintValidator<NotEmptyPassword, String> {
 
     override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean =

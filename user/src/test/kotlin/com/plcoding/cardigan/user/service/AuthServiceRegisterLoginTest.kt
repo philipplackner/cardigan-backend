@@ -158,31 +158,12 @@ class AuthServiceRegisterLoginTest : AuthServiceTestBase() {
     }
 
     @Test
-    fun `email with U+0000 takes the unknown-email path without a lookup`() {
-        register()
+    fun `stored email that breaks the format logs in with the right password`() {
+        register(email = "ann@localhost")
 
-        assertFailure { service.login(credentials("ann\u0000@example.com")) }.isInstanceOf<InvalidCredentialsException>()
+        val session = login(email = "ann@localhost")
 
-        assertThat(users.emailLookups).isEqualTo(0)
-        assertThat(hasher.verified).containsExactly(password to null)
-    }
-
-    @Test
-    fun `email of more than 254 characters takes the unknown-email path without a lookup`() {
-        val tooLong = "a".repeat(243) + "@example.com"
-
-        assertFailure { service.login(credentials(tooLong)) }.isInstanceOf<InvalidCredentialsException>()
-
-        assertThat(users.emailLookups).isEqualTo(0)
-        assertThat(hasher.verified).containsExactly(password to null)
-    }
-
-    @Test
-    fun `email of exactly 254 characters is looked up`() {
-        assertFailure { service.login(credentials("a".repeat(242) + "@example.com")) }
-            .isInstanceOf<InvalidCredentialsException>()
-
-        assertThat(users.emailLookups).isEqualTo(1)
+        assertThat(session.user.email).isEqualTo("ann@localhost")
     }
 
     @Test

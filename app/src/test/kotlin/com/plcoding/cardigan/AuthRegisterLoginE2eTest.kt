@@ -265,20 +265,20 @@ class AuthRegisterLoginE2eTest : AuthE2eTestBase() {
     }
 
     @Test
-    fun `login email with U+0000 answers like an unknown email`() {
-        register().assertStatus(201)
-
-        val controlCharacter = login(email = "ann\u0000@example.com")
-        val unknown = login(email = "nobody@example.com")
-
-        controlCharacter.assertProblem(ErrorCode.INVALID_CREDENTIALS)
-        assertThat(controlCharacter.body).isEqualTo(unknown.body)
-        assertThat(comparableHeaders(controlCharacter)).isEqualTo(comparableHeaders(unknown))
+    fun `login email with U+0000 is 400 INVALID_CHARACTER`() {
+        login(email = "ann\u0000@example.com")
+            .assertFieldErrors(ErrorCode.VALIDATION_FAILED, fieldError("email", "INVALID_CHARACTER"))
     }
 
     @Test
-    fun `login email over 254 characters is 401`() {
-        login(email = "a".repeat(300) + "@example.com").assertProblem(ErrorCode.INVALID_CREDENTIALS)
+    fun `login email over 254 characters is 400 TOO_LONG`() {
+        login(email = "a".repeat(243) + "@example.com")
+            .assertFieldErrors(ErrorCode.VALIDATION_FAILED, fieldError("email", "TOO_LONG", "max" to 254))
+    }
+
+    @Test
+    fun `login with a single-label domain is 401, not a field error`() {
+        login(email = "ann@localhost").assertProblem(ErrorCode.INVALID_CREDENTIALS)
     }
 
     @Test

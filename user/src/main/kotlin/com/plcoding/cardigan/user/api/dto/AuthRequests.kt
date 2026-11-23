@@ -3,7 +3,6 @@ package com.plcoding.cardigan.user.api.dto
 import com.plcoding.cardigan.common.api.validation.Required
 import com.plcoding.cardigan.common.api.validation.ValidEnum
 import com.plcoding.cardigan.common.api.validation.ValidText
-import com.plcoding.cardigan.user.api.validation.NotBlankText
 import com.plcoding.cardigan.user.api.validation.NotEmptyPassword
 import com.plcoding.cardigan.user.api.validation.ValidEmail
 import com.plcoding.cardigan.user.api.validation.ValidPassword
@@ -27,10 +26,13 @@ data class RegisterRequest(
     override fun toString(): String = "RegisterRequest(email=$email, refreshTokenTransport=$refreshTokenTransport)"
 }
 
-/** Login checks only that the fields are there. Any other email or password is a wrong credential. */
+/**
+ * Login checks that the fields are there and that the email has no forbidden character and isn't too
+ * long. It never checks the email format or the password rules: anything else is a wrong credential.
+ */
 data class LoginRequest(
     @Required
-    @NotBlankText
+    @ValidText(min = 1, max = EMAIL_MAX_LENGTH)
     val email: String?,
     @Required
     @NotEmptyPassword

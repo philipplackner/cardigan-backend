@@ -57,10 +57,32 @@ class LoginRequestValidationTest {
     }
 
     @Test
-    fun `no format, length or composition rule applies`() {
+    fun `no email format or password rule applies`() {
         assertThat(errorsOf(login(email = "not an email", password = "abc"))).isEmpty()
-        assertThat(errorsOf(login(email = "a".repeat(5000), password = "x".repeat(5000)))).isEmpty()
-        assertThat(errorsOf(login(email = "ann\u0000@example.com", password = "a\u0000b"))).isEmpty()
+        assertThat(errorsOf(login(email = "ann@localhost"))).isEmpty()
+        assertThat(errorsOf(login(email = "jürgen@münchen.de"))).isEmpty()
+        assertThat(errorsOf(login(password = "x".repeat(5000)))).isEmpty()
+        assertThat(errorsOf(login(password = "a\u0000b"))).isEmpty()
+    }
+
+    @Test
+    fun `email with a control character is INVALID_CHARACTER`() {
+        assertThat(errorsOf(login(email = "ann\u0000@example.com")))
+            .containsExactly(ProblemFieldError("email", FieldErrorCode.INVALID_CHARACTER))
+    }
+
+    @Test
+    fun `email of 254 characters passes and 255 is TOO_LONG with max 254`() {
+        assertThat(errorsOf(login(email = "a".repeat(254)))).isEmpty()
+        assertThat(errorsOf(login(email = "  " + "a".repeat(254) + "  "))).isEmpty()
+        assertThat(errorsOf(login(email = "a".repeat(255))))
+            .containsExactly(ProblemFieldError("email", FieldErrorCode.TOO_LONG, max = 254))
+    }
+
+    @Test
+    fun `INVALID_CHARACTER wins over TOO_LONG`() {
+        assertThat(errorsOf(login(email = "\u0000" + "a".repeat(300))))
+            .containsExactly(ProblemFieldError("email", FieldErrorCode.INVALID_CHARACTER))
     }
 
     @Test

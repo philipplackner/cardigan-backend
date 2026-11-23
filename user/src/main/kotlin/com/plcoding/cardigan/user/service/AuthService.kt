@@ -2,16 +2,13 @@ package com.plcoding.cardigan.user.service
 
 import com.plcoding.cardigan.common.domain.exception.InvalidCredentialsException
 import com.plcoding.cardigan.common.domain.security.AccessTokenIssuer
-import com.plcoding.cardigan.common.domain.text.checkText
 import com.plcoding.cardigan.user.domain.model.AuthAction
 import com.plcoding.cardigan.user.domain.model.Credentials
-import com.plcoding.cardigan.user.domain.model.EMAIL_MAX_LENGTH
 import com.plcoding.cardigan.user.domain.model.IssuedRefreshToken
 import com.plcoding.cardigan.user.domain.model.IssuedSession
 import com.plcoding.cardigan.user.domain.model.IssuedTokens
 import com.plcoding.cardigan.user.domain.model.RefreshResult
 import com.plcoding.cardigan.user.domain.model.RefreshTokenTransport
-import com.plcoding.cardigan.user.domain.model.User
 import com.plcoding.cardigan.user.domain.model.hashRefreshToken
 import com.plcoding.cardigan.user.domain.model.normalizeEmail
 import com.plcoding.cardigan.user.domain.repository.AuthRateLimiter
@@ -54,12 +51,9 @@ class AuthService(
         return IssuedSession(user, tokensFor(user.id, refreshToken, credentials.transport))
     }
 
-    /**
-     * An unknown email and a wrong password fail the same way and after the same hashing work. An
-     * email that could never be stored counts as unknown without a lookup.
-     */
+    /** An unknown email and a wrong password fail the same way and after the same hashing work. */
     fun login(credentials: Credentials): IssuedSession {
-        val user = findUser(credentials.email)
+        val user = userRepository.findByEmail(credentials.email)
         val matches = passwordHasher.matches(credentials.password, user?.passwordHash)
         if (user == null || !matches) throw InvalidCredentialsException()
         val refreshToken = sessionService.start(user.id, credentials.transport)
@@ -106,13 +100,6 @@ class AuthService(
             sessionRepository.revoke(session.id, now)
         }
     }
-
-    private fun findUser(email: String): User? =
-        if (checkText(email, min = 1, max = EMAIL_MAX_LENGTH, multiline = false) == null) {
-            userRepository.findByEmail(email)
-        } else {
-            null
-        }
 
     private fun tokensFor(userId: UUID, refreshToken: IssuedRefreshToken, transport: RefreshTokenTransport): IssuedTokens {
         val accessToken = accessTokenIssuer.issue(userId)

@@ -34,17 +34,6 @@ annotation class ValidPassword(
     val payload: Array<KClass<out Payload>> = [],
 )
 
-/** The text is not empty after `normalizeText`, or `REQUIRED`. No other rule applies. */
-@Target(AnnotationTarget.FIELD)
-@Retention(AnnotationRetention.RUNTIME)
-@MustBeDocumented
-@Constraint(validatedBy = [NotBlankTextValidator::class])
-annotation class NotBlankText(
-    val message: String = "REQUIRED",
-    val groups: Array<KClass<*>> = [],
-    val payload: Array<KClass<out Payload>> = [],
-)
-
 /** The password is not the empty string, or `REQUIRED`. It isn't trimmed: spaces are a value. */
 @Target(AnnotationTarget.FIELD)
 @Retention(AnnotationRetention.RUNTIME)
