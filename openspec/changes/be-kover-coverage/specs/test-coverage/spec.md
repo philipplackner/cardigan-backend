@@ -123,74 +123,74 @@ The reports SHALL exclude the application main class and its top-level `main` fu
 - **THEN** the next report excludes it with no change to the coverage setup
 
 ### Requirement: Diff coverage shows coverage of changed lines
-`./gradlew diffCoverage` SHALL generate the XML report for the same module selection as `coverageReport` and then report coverage of only the lines changed since the merge base of `HEAD` and a base ref, plus uncommitted and untracked changes. The base ref SHALL be `origin/master` unless `-Pcoverage.compareBranch=<ref>` is given. Committed, staged, unstaged and untracked changes SHALL count. Changed lines in modules outside the selection SHALL NOT be reported.
+`./gradlew coverageDiff` SHALL generate the XML report for the same module selection as `coverageReport` and then report coverage of only the lines changed since the merge base of `HEAD` and a base ref, plus uncommitted and untracked changes. The base ref SHALL be `origin/master` unless `-Pcoverage.compareBranch=<ref>` is given. Committed, staged, unstaged and untracked changes SHALL count. Changed lines in modules outside the selection SHALL NOT be reported.
 
 #### Scenario: Branch compared with origin/master
-- **WHEN** `./gradlew diffCoverage` runs on a branch with committed changes to `:board` code
+- **WHEN** `./gradlew coverageDiff` runs on a branch with committed changes to `:board` code
 - **THEN** the terminal shows coverage of the changed `:board` lines relative to `origin/master`
 
 #### Scenario: Other base ref
-- **WHEN** `./gradlew diffCoverage -Pcoverage.compareBranch=HEAD~3` runs
+- **WHEN** `./gradlew coverageDiff -Pcoverage.compareBranch=HEAD~3` runs
 - **THEN** changed lines are computed relative to `HEAD~3`
 
 #### Scenario: Uncommitted changes count
-- **WHEN** a `:user` source file has unstaged changes and `./gradlew diffCoverage` runs
+- **WHEN** a `:user` source file has unstaged changes and `./gradlew coverageDiff` runs
 - **THEN** the changed lines in that file appear in the diff coverage result
 
 #### Scenario: Untracked files count
-- **WHEN** a new `:board` source file has never been `git add`-ed and `./gradlew diffCoverage` runs
+- **WHEN** a new `:board` source file has never been `git add`-ed and `./gradlew coverageDiff` runs
 - **THEN** that file's lines appear in the diff coverage result
 
 #### Scenario: Selection limits the diff
-- **WHEN** both `:user` and `:board` code changed and `./gradlew diffCoverage -Pcoverage.modules=user` runs
+- **WHEN** both `:user` and `:board` code changed and `./gradlew coverageDiff -Pcoverage.modules=user` runs
 - **THEN** only the changed `:user` lines are reported
 
 #### Scenario: Unknown base ref
-- **WHEN** `./gradlew diffCoverage -Pcoverage.compareBranch=does-not-exist` runs
+- **WHEN** `./gradlew coverageDiff -Pcoverage.compareBranch=does-not-exist` runs
 - **THEN** the command fails with a message naming the ref
 
 ### Requirement: Diff coverage uses the local base ref without fetching
-`diffCoverage` SHALL NOT run `git fetch`. It SHALL use the base ref as it exists locally, so a stale `origin/master` needs a `git fetch` first.
+`coverageDiff` SHALL NOT run `git fetch`. It SHALL use the base ref as it exists locally, so a stale `origin/master` needs a `git fetch` first.
 
 #### Scenario: Stale origin/master
-- **WHEN** the local `origin/master` is behind the remote and `./gradlew diffCoverage` runs
+- **WHEN** the local `origin/master` is behind the remote and `./gradlew coverageDiff` runs
 - **THEN** no fetch happens, and changed lines are computed against the merge base with the local `origin/master`
 
 ### Requirement: Diff coverage writes a terminal and an HTML report and never fails on coverage
-`diffCoverage` SHALL print its result to the terminal and write an HTML report to `build/reports/diff-coverage/index.html` in the root project. It SHALL NOT fail because of the coverage of the changed lines, and the threshold properties SHALL NOT apply to it.
+`coverageDiff` SHALL print its result to the terminal and write an HTML report to `build/reports/diff-coverage/index.html` in the root project. It SHALL NOT fail because of the coverage of the changed lines, and the threshold properties SHALL NOT apply to it.
 
 #### Scenario: HTML report
-- **WHEN** `./gradlew diffCoverage` completes
+- **WHEN** `./gradlew coverageDiff` completes
 - **THEN** `build/reports/diff-coverage/index.html` exists and the terminal shows the diff coverage summary and the path of that file
 
 #### Scenario: Low coverage of changed lines
 - **WHEN** none of the changed lines are covered
-- **THEN** `diffCoverage` succeeds
+- **THEN** `coverageDiff` succeeds
 
 #### Scenario: Thresholds are ignored
-- **WHEN** `./gradlew diffCoverage -Pcoverage.minLine=100` runs and the changed lines are below 100% coverage
+- **WHEN** `./gradlew coverageDiff -Pcoverage.minLine=100` runs and the changed lines are below 100% coverage
 - **THEN** the command succeeds
 
 ### Requirement: Diff coverage needs only uv
-`diffCoverage` SHALL run the diff coverage tool at a version pinned in the repository, with `uv` as the only prerequisite beyond the JDK and Git. When `uv` is not on the path, the command SHALL fail with a message saying that `uv` is required.
+`coverageDiff` SHALL run the diff coverage tool at a version pinned in the repository, with `uv` as the only prerequisite beyond the JDK and Git. When `uv` is not on the path, the command SHALL fail with a message saying that `uv` is required.
 
 #### Scenario: Pinned version
-- **WHEN** two developers run `./gradlew diffCoverage` on different machines
+- **WHEN** two developers run `./gradlew coverageDiff` on different machines
 - **THEN** both use the same diff coverage tool version, without installing it themselves
 
 #### Scenario: uv missing
-- **WHEN** `uv` is not installed and `./gradlew diffCoverage` runs
+- **WHEN** `uv` is not installed and `./gradlew coverageDiff` runs
 - **THEN** the command fails with a message saying `uv` is required
 
 ### Requirement: Coverage runs only on demand
-Coverage SHALL run only when `coverageReport`, `diffCoverage` or another coverage task is requested. `./gradlew build` and `./gradlew check` SHALL NOT instrument tests, run a coverage, report or verify task, generate coverage reports or check thresholds, and CI SHALL NOT run coverage. Kover's agent-jar lookup task `koverFindJar` MAY run.
+Coverage SHALL run only when `coverageReport`, `coverageDiff` or another coverage task is requested. `./gradlew build` and `./gradlew check` SHALL NOT instrument tests, run a coverage, report or verify task, generate coverage reports or check thresholds, and CI SHALL NOT run coverage. Kover's agent-jar lookup task `koverFindJar` MAY run.
 
 #### Scenario: Build without coverage
 - **WHEN** `./gradlew build` runs
 - **THEN** no coverage, report or verify task runs and no coverage report is written
 
 ### Requirement: Tests are instrumented only for coverage runs
-Test tasks SHALL be instrumented for coverage only when the requested task names include `coverageReport`, `diffCoverage` or a task whose name starts with `kover`. Otherwise every test task SHALL run without coverage instrumentation, so `./gradlew build`, `./gradlew test` and module test runs are not slowed by coverage.
+Test tasks SHALL be instrumented for coverage only when the requested task names include `coverageReport`, `coverageDiff` or a task whose name starts with `kover`. Otherwise every test task SHALL run without coverage instrumentation, so `./gradlew build`, `./gradlew test` and module test runs are not slowed by coverage.
 
 #### Scenario: Plain test run
 - **WHEN** `./gradlew test` or `./gradlew :user:test` runs
@@ -201,7 +201,7 @@ Test tasks SHALL be instrumented for coverage only when the requested task names
 - **THEN** the test JVMs of every opted-in module run with the coverage agent
 
 ### Requirement: Coverage tasks refuse to run uninstrumented
-When instrumentation is off for a build, `coverageReport`, `diffCoverage` and every Kover report task SHALL fail before any test runs and before any report is written. The failure message SHALL tell the developer to run with the full task name.
+When instrumentation is off for a build, `coverageReport`, `coverageDiff` and every Kover report task SHALL fail before any test runs and before any report is written. The failure message SHALL tell the developer to run with the full task name.
 
 #### Scenario: Abbreviated task name
 - **WHEN** `./gradlew cR` runs

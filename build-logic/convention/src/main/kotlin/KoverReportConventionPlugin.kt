@@ -60,7 +60,7 @@ class KoverReportConventionPlugin : Plugin<Project> {
                 minBranch?.let { this.minBranch.set(it) }
             }
 
-            tasks.register<DiffCoverageTask>("diffCoverage") {
+            tasks.register<CoverageDiffTask>("coverageDiff") {
                 group = "verification"
                 description = "Shows coverage of the lines changed since the merge base with a base ref. " +
                     "Options: -P$MODULES_PROPERTY, -P$COMPARE_BRANCH_PROPERTY (default origin/master)."
@@ -94,7 +94,7 @@ class KoverReportConventionPlugin : Plugin<Project> {
                 target.tasks.named<CoverageReportTask>("coverageReport") {
                     modules.set(selected)
                 }
-                target.tasks.named<DiffCoverageTask>("diffCoverage") {
+                target.tasks.named<CoverageDiffTask>("coverageDiff") {
                     sourceRoots.set(
                         optedInPaths.values.map { path ->
                             target.project(path).projectDir.resolve("src/main/kotlin").relativeTo(target.rootDir).invariantSeparatorsPath

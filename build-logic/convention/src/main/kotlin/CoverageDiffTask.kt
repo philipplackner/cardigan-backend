@@ -17,7 +17,7 @@ import javax.inject.Inject
 /**
  * Runs diff-cover through `uvx` on the Kover XML report. Report-only: it never fails on low coverage.
  */
-abstract class DiffCoverageTask @Inject constructor(
+abstract class CoverageDiffTask @Inject constructor(
     private val execOperations: ExecOperations,
 ) : DefaultTask() {
 
@@ -49,7 +49,7 @@ abstract class DiffCoverageTask @Inject constructor(
     }
 
     @TaskAction
-    fun diffCoverage() {
+    fun coverageDiff() {
         requireUv()
         requireRef(compareBranch.get())
 
@@ -84,7 +84,7 @@ abstract class DiffCoverageTask @Inject constructor(
             -1
         }
         if (exitValue != 0) {
-            throw GradleException("`uv` is required for diffCoverage: https://docs.astral.sh/uv/")
+            throw GradleException("`uv` is required for coverageDiff: https://docs.astral.sh/uv/")
         }
     }
 
@@ -98,7 +98,7 @@ abstract class DiffCoverageTask @Inject constructor(
         }
         if (result.exitValue != 0) {
             throw GradleException(
-                "Base ref '$ref' for diffCoverage doesn't exist. Run `git fetch` or pass -P$COMPARE_BRANCH_PROPERTY=<ref>."
+                "Base ref '$ref' for coverageDiff doesn't exist. Run `git fetch` or pass -P$COMPARE_BRANCH_PROPERTY=<ref>."
             )
         }
     }

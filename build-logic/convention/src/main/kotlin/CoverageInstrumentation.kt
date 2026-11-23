@@ -1,10 +1,10 @@
 import org.gradle.api.invocation.Gradle
 
-internal val COVERAGE_TASK_NAMES = setOf("coverageReport", "diffCoverage")
+internal val COVERAGE_TASK_NAMES = setOf("coverageReport", "coverageDiff")
 
 /**
  * Whether this build instruments test tasks for coverage. True only when a requested task name,
- * taken literally, ends in `coverageReport` or `diffCoverage`, or its last segment starts with `kover`.
+ * taken literally, ends in `coverageReport` or `coverageDiff`, or its last segment starts with `kover`.
  */
 internal fun Gradle.isCoverageInstrumented(): Boolean =
     startParameter.taskNames.any { name ->

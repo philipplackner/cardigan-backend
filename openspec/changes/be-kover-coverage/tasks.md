@@ -10,14 +10,14 @@
 - [x] 2.1 Add `cardigan.kover` (applies Kover and excludes the `testFixtures` source set) and `cardigan.kover.report` (root aggregation) to `build-logic/convention`, with `compileOnly` on the Kover plugin. Apply `cardigan.kover` in `:app`, `:common`, `:user`, `:board` and `cardigan.kover.report` in the root. Check whether the pinned Kover supports a project filter on reports, and record the result in design.md if the package-filter fallback is used. Verify that `./gradlew koverXmlReport` writes `build/reports/kover/report.xml` containing classes from all four modules (`:app` only before the 2.2 exclusions, see D18) and none of `MutableClock`, `PostgresTestConfig` or `DatabaseCleaner`.
 - [x] 2.2 Add the exclusions (annotations `@Configuration`, `@ConfigurationProperties`, `@SpringBootApplication`, pattern `*ApplicationKt`) to the root report. Verify that the XML contains none of `CardiganApplication`, `CardiganApplicationKt`, `WebConfig`, `JwtProperties` or `BoardProperties`, and still contains `RequestSizeLimitFilter`.
 - [x] 2.3 Add `coverage.modules` parsing and validation (configuration time) and the module filter. Verify that `-Pcoverage.modules=user` and `=user,board` (also `=:user, board`) produce reports with only those modules' classes, that `=app,user` contains `:user` classes, no `:app` classes (all excluded, D18) and no `:board` or `:common` classes, that `=app` succeeds with line and branch coverage `n/a`, and that `=cards`, `=` and `=user,` fail before any test with the message listing `app, board, common, user`. Verify that a `:user` class covered only by `:app` E2E tests (for example the user controller) shows as covered with `-Pcoverage.modules=user`.
-- [x] 2.4 In `cardigan.kover`, set `instrumentation.disabledForAll` unless `startParameter.taskNames` has an entry whose last path segment is `coverageReport` or `diffCoverage`, or starts with `kover`. Verify these:
+- [x] 2.4 In `cardigan.kover`, set `instrumentation.disabledForAll` unless `startParameter.taskNames` has an entry whose last path segment is `coverageReport` or `coverageDiff`, or starts with `kover`. Verify these:
   - `./gradlew :user:test --rerun` runs the test JVM without the Kover agent: no `-javaagent` with `kover` in the test task's JVM args (inspect with `--info` or a temporary `doFirst` print, removed afterwards), and no `build/kover` binary report.
   - `./gradlew coverageReport` runs the test JVMs with the agent.
   - The timing of `./gradlew test --rerun` matches the time before Kover was added, within noise.
   - `./gradlew build --dry-run` lists no coverage, report or verify task (`koverFindJar` is allowed, D19), and `build` writes nothing under `build/reports/kover`. If `check` depends on `koverVerify`, remove that dependency in the plugins and verify again.
   - If any of these checks can't be guaranteed, stop and report it to the user as a finding instead of working around it silently.
-- [x] 2.5 Move the instrumentation decision into one shared build-logic function used by both plugins. In `cardigan.kover.report`, add the `gradle.taskGraph.whenReady` guard that fails with "Coverage needs instrumentation. Run with the full task name, e.g. ./gradlew coverageReport." when instrumentation is off and the graph has `coverageReport`, `diffCoverage` or any Kover report task. Verify these:
-  - `./gradlew cR` and `./gradlew dC` fail with that message, no test task runs, and `build/reports/kover` and `build/reports/diff-coverage` are untouched (delete them first, check they don't exist afterwards).
+- [x] 2.5 Move the instrumentation decision into one shared build-logic function used by both plugins. In `cardigan.kover.report`, add the `gradle.taskGraph.whenReady` guard that fails with "Coverage needs instrumentation. Run with the full task name, e.g. ./gradlew coverageReport." when instrumentation is off and the graph has `coverageReport`, `coverageDiff` or any Kover report task. Verify these:
+  - `./gradlew cR` and `./gradlew cD` fail with that message, no test task runs, and `build/reports/kover` and `build/reports/diff-coverage` are untouched (delete them first, check they don't exist afterwards).
   - `./gradlew kXR` (abbreviated `koverXmlReport`) fails the same way.
   - `./gradlew coverageReport` passes the guard.
   - All of these also hold on a second run with configuration-cache reuse.
@@ -31,8 +31,8 @@
 
 ## 3. Diff coverage
 
-- [x] 3.1 Add the `diffCoverage` task: `uv` check, `git rev-parse --verify` of `coverage.compareBranch` (default `origin/master`), then `uvx --exclude-newer <catalog date> diff-cover==<catalog version> --include-untracked`, run from the root project directory, on `build/reports/kover/report.xml` with every opted-in module's `src/main/kotlin` as repo-relative `--src-roots` and the HTML report at `build/reports/diff-coverage/index.html`. Use the HTML flag the pinned version supports. Verify on this branch with a scratch change:
-  - With an unstaged edit to a `:user` source file, `./gradlew diffCoverage` lists that file's specific changed line numbers and writes the HTML report.
+- [x] 3.1 Add the `coverageDiff` task: `uv` check, `git rev-parse --verify` of `coverage.compareBranch` (default `origin/master`), then `uvx --exclude-newer <catalog date> diff-cover==<catalog version> --include-untracked`, run from the root project directory, on `build/reports/kover/report.xml` with every opted-in module's `src/main/kotlin` as repo-relative `--src-roots` and the HTML report at `build/reports/diff-coverage/index.html`. Use the HTML flag the pinned version supports. Verify on this branch with a scratch change:
+  - With an unstaged edit to a `:user` source file, `./gradlew coverageDiff` lists that file's specific changed line numbers and writes the HTML report.
   - A new, never `git add`-ed `:board` source file appears in the result.
   - `-Pcoverage.modules=board` omits the `:user` file.
   - `-Pcoverage.compareBranch=does-not-exist` fails with a message naming the ref.
@@ -42,7 +42,7 @@
 
 ## 4. Documentation
 
-- [ ] 4.1 Add `coverageReport` and `diffCoverage` to the `CLAUDE.md` Testing command table. Cover the `coverage.modules`, `coverage.minLine`, `coverage.minBranch` and `coverage.compareBranch` properties, the report paths, the `uv` and Docker prerequisites, that every test runs whatever the selection, that untracked files count in `diffCoverage`, that `diffCoverage` compares against the merge base and never fetches (run `git fetch` first for a fresh `origin/master`), and that coverage tasks need their full names (an abbreviation such as `cR` fails with a message saying so). Note `cardigan.kover` in the "Where does X go?" or module setup guidance so a new module opts in. Verify that every documented command runs as written.
+- [ ] 4.1 Add `coverageReport` and `coverageDiff` to the `CLAUDE.md` Testing command table. Cover the `coverage.modules`, `coverage.minLine`, `coverage.minBranch` and `coverage.compareBranch` properties, the report paths, the `uv` and Docker prerequisites, that every test runs whatever the selection, that untracked files count in `coverageDiff`, that `coverageDiff` compares against the merge base and never fetches (run `git fetch` first for a fresh `origin/master`), and that coverage tasks need their full names (an abbreviation such as `cR` fails with a message saying so). Note `cardigan.kover` in the "Where does X go?" or module setup guidance so a new module opts in. Verify that every documented command runs as written.
 
 ## 5. Integration check
 

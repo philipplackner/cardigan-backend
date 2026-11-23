@@ -71,7 +71,7 @@ The backend gets on-demand test coverage from the terminal. Each module opts in 
 
 ### D11 — diff-cover invocation
 - **Question**: How is the diff check run?
-- **Decision**: A Gradle task, `./gradlew diffCoverage [-Pcoverage.modules=…] [-Pcoverage.compareBranch=…]`, builds the Kover XML for the selection and then runs diff-cover on it.
+- **Decision**: A Gradle task, `./gradlew coverageDiff [-Pcoverage.modules=…] [-Pcoverage.compareBranch=…]`, builds the Kover XML for the selection and then runs diff-cover on it.
 - **Alternatives**: A shell script; documented manual commands.
 - **Depends on**: D4, D8, D10
 
@@ -101,7 +101,7 @@ The backend gets on-demand test coverage from the terminal. Each module opts in 
 
 ### D16 — No instrumentation outside coverage runs
 - **Question**: How is it guaranteed that normal builds aren't instrumented or slowed by Kover?
-- **Decision**: Every opted-in module sets Kover's `instrumentation.disabledForAll` unless the requested task names (`startParameter.taskNames`) include `coverageReport`, `diffCoverage` or a `kover*` task. A task checks this. If it can't be guaranteed, that is reported as a finding. When instrumentation is off, `coverageReport`, `diffCoverage` and every Kover report task refuse to run: they fail with "run with the full task name" before any test runs or report is written. This covers abbreviations such as `./gradlew cR`. This matches the mobile setup.
+- **Decision**: Every opted-in module sets Kover's `instrumentation.disabledForAll` unless the requested task names (`startParameter.taskNames`) include `coverageReport`, `coverageDiff` or a `kover*` task. A task checks this. If it can't be guaranteed, that is reported as a finding. When instrumentation is off, `coverageReport`, `coverageDiff` and every Kover report task refuse to run: they fail with "run with the full task name" before any test runs or report is written. This covers abbreviations such as `./gradlew cR`. This matches the mobile setup.
 - **Alternatives**: Rely on Kover's own task-graph behavior.
 - **Depends on**: D13
 
@@ -131,6 +131,13 @@ The backend gets on-demand test coverage from the terminal. Each module opts in 
 - **Alternatives**: —
 - **Why**: Found during implementation (task 2.1). Accepted by the user through `cardigan-3c` on 2026-11-23.
 - **Depends on**: D2
+
+### D21 — The diff task is named `coverageDiff`
+- **Question**: What is the diff coverage task called?
+- **Decision**: `coverageDiff`, the same name as on mobile. It was `diffCoverage` until implementation. The `coverage.*` properties and the `build/reports/diff-coverage` path don't change.
+- **Alternatives**: `diffCoverage`.
+- **Why**: On mobile, `dC` was ambiguous with Android's `deviceCheck`. Both repos use the same name. Decided by the user through `cardigan-3c` on 2026-11-23.
+- **Depends on**: D11
 
 ## Facts
 
