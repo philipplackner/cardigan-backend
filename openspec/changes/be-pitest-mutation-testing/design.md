@@ -100,12 +100,11 @@ Other Kotlin noise (elvis, safe casts, `when` branches) stays in the report (D7)
 ### Findings during implementation
 
 - **Incremental analysis is not available in open-source PIT 1.30.2.** With history locations set, PIT fails with "History has been enabled but no history plugin has been installed/activated". The built-in history store (`DefaultHistoryFactory`, `ObjectOutputStreamHistory`) exists in `pitest-entry` 1.22.1 and is gone in 1.25.8 and 1.30.x; history moved to Arcmutate. The user dropped incremental analysis from the backend (D9).
-- **`RUN_ERROR` mutants.** PIT's HTML report counts `RUN_ERROR` as detected, the agreed definition does not. The first full run had one `RUN_ERROR` mutant in `:user`, so `mutationReport` computes 321/659 killed where the HTML shows 322/659. Kept as agreed and reported to the user.
+- **`RUN_ERROR` mutants.** The first full run had one `RUN_ERROR` mutant in `:user`. The first implementation counted only `KILLED`, `TIMED_OUT` and `MEMORY_ERROR` and computed 321/659 killed where the HTML showed 322/659. The user settled T1 on PIT's five detected statuses, so both now agree.
 - **PIT adds a synthetic field to mutated classes.** Two `BoardDtoMappersTest` tests compared `declaredFields` of DTOs with an exact set and failed under PIT's coverage instrumentation. They now ignore synthetic fields, which keeps their meaning (Kotlin declares no synthetic fields on these DTOs).
 - **`pitest-junit5-plugin` 1.2.3 exists.** The approved 1.2.2 works with JUnit 6.0.3 from the Spring Boot BOM, so it stays.
 - **Implemented late.** The first implementation missed the review findings D1, D2, A1, A2 and T2 that had been applied to this change; they were added afterwards. `doNotTrackState` on `pitest` did not stop it from being `UP-TO-DATE`, so the task uses `outputs.upToDateWhen { false }` and `outputs.cacheIf { false }` as written above.
 - **Counting is unit tested** in `build-logic/convention/src/test` (`./gradlew -p build-logic test`). The root `build` doesn't run build-logic tests.
-- **Open: which statuses count as killed (T1).** The spec and this design list `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR`, `NON_VIABLE`. The code and its unit test still count only the first three, as in D12 and as mobile was told. Waiting for the user, because mobile must use the same list.
 - **A module without mutants** succeeds and adds no row to PIT's combined HTML report, since PIT lists packages, not modules.
 - **Deprecation warning.** The PIT plugins call `Configuration.setVisible`, deprecated for removal in Gradle 11. The same warning already appears in a normal build without this change.
 

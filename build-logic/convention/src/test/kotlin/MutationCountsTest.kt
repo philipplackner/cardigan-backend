@@ -21,10 +21,10 @@ class MutationCountsTest {
     }
 
     @Test
-    fun `run errors and non-viable mutants are not killed`() {
+    fun `run errors and non-viable mutants count as killed`() {
         val counts = MutationCounts.of(statuses("KILLED" to 1, "RUN_ERROR" to 1, "NON_VIABLE" to 1, "SURVIVED" to 1))
 
-        assertThat(counts).isEqualTo(MutationCounts(total = 4, killed = 1, covered = 4))
+        assertThat(counts).isEqualTo(MutationCounts(total = 4, killed = 3, covered = 4))
     }
 
     @Test

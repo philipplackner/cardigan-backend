@@ -320,7 +320,7 @@ Mutation testing:
 - Reports: HTML and XML per module in `<module>/build/reports/pitest/`, and the combined HTML report in `build/reports/pitest/index.html`.
 - Modules run one after another and PIT runs again on every request, never from Gradle's cache. `mutation.threads` (a positive whole number) overrides the thread count, which defaults to the number of processors.
 - The score counting in build-logic has unit tests: `./gradlew -p build-logic test`. `./gradlew build` doesn't run them.
-- `mutation.minScore` (0 to 100, decimals allowed) makes the run fail after the reports are written when the selection's mutation score is below it. Score = killed / all mutants, test strength = killed / mutants with coverage; timed-out and memory-error mutants count as killed. Nothing sets it by default.
+- `mutation.minScore` (0 to 100, decimals allowed) makes the run fail after the reports are written when the selection's mutation score is below it. Score = killed / all mutants, test strength = killed / mutants with coverage; mutants with status `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR` or `NON_VIABLE` count as killed, as in PIT's own report. Nothing sets it by default.
 - The application class, `@Configuration`, `@ConfigurationProperties` and `@SpringBootApplication` classes, Kotlin null-check intrinsics and the generated data-class methods (`componentN`, `copy`, `equals`, `hashCode`, `toString`) are not mutated.
 
 ---

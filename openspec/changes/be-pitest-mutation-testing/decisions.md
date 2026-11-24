@@ -86,7 +86,7 @@ The backend gets on-demand mutation testing with PIT. Each module opts in with o
 ### D12 — Thresholds
 - **Question**: Does anything fail on a low mutation score?
 - **Decision**: An optional `-Pmutation.minScore=<percent>`. It is never set in the build or CI, and the task fails only when it is passed and the selection's mutation score is below it. Same on mobile; web gets an optional break value.
-- **Detail**: Mutation score = killed / all mutants; test strength = killed / mutants with coverage; timed-out and memory-error mutants count as killed, as in PIT's report. `minScore` (0–100) checks the mutation score, not test strength. On failure the run prints both values after the reports are written. A value outside 0–100 or not a number fails before any test runs. Same as mobile.
+- **Detail**: Mutation score = killed / all mutants; test strength = killed / mutants with coverage; killed = `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR` and `NON_VIABLE`, the statuses PIT counts as detected, so the numbers match PIT's report (review finding T1, decided by the user through `cardigan-f2` on 2026-11-24). `minScore` (0–100) checks the mutation score, not test strength. On failure the run prints both values after the reports are written. A value outside 0–100 or not a number fails before any test runs. Same as mobile.
 - **Alternatives**: No thresholds.
 - **Depends on**: D1, D13
 

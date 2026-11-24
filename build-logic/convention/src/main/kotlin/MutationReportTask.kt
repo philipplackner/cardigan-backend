@@ -63,8 +63,8 @@ abstract class MutationReportTask : DefaultTask() {
     }
 }
 
-/** Statuses that count as killed for the mutation score and test strength. */
-internal val KILLED_STATUSES = setOf("KILLED", "TIMED_OUT", "MEMORY_ERROR")
+/** Statuses that count as killed for the mutation score and test strength: the ones PIT counts as detected. */
+internal val KILLED_STATUSES = setOf("KILLED", "TIMED_OUT", "MEMORY_ERROR", "RUN_ERROR", "NON_VIABLE")
 
 /** Mutant counts of a selection, from PIT's per-mutant `status` values. */
 internal data class MutationCounts(val total: Long, val killed: Long, val covered: Long) {
