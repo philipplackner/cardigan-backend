@@ -1,54 +1,65 @@
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFile
+import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.w3c.dom.Element
 import java.io.File
 import java.math.BigDecimal
-import java.math.RoundingMode
+import java.util.Locale
 import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * Prints the path of the combined mutation report and fails when an optional minimum mutation
- * score isn't met by the selected modules together.
+ * Prints a mutation summary per selected module and in total, and fails when an optional minimum
+ * mutation score isn't met by the selected modules together.
  */
 abstract class MutationReportTask : DefaultTask() {
 
-    @get:InputFiles
-    @get:PathSensitive(PathSensitivity.RELATIVE)
-    abstract val mutationFiles: ConfigurableFileCollection
+    /** Gradle paths of the selected modules, in the order the summary lists them. */
+    @get:Input
+    abstract val modulePaths: ListProperty<String>
 
     @get:Internal
-    abstract val htmlReport: RegularFileProperty
+    abstract val mutationFiles: MapProperty<String, RegularFile>
+
+    @get:Internal
+    abstract val combinedReportDir: DirectoryProperty
+
+    /** Path of the combined HTML report relative to the root project directory. */
+    @get:Input
+    abstract val htmlReportPath: Property<String>
 
     @get:Input
     @get:Optional
     abstract val minScore: Property<BigDecimal>
 
     init {
-        doNotTrackState("Checks the minimum score on every run")
+        doNotTrackState("Prints the summary and checks the minimum score on every run")
     }
 
     @TaskAction
     fun report() {
-        logger.lifecycle("Mutation report: ${htmlReport.get().asFile.absolutePath}")
+        val files = mutationFiles.get()
+        val perModule = modulePaths.get().map { path ->
+            val file = files.getValue(path).asFile
+            path to MutationCounts.of(if (file.isFile) readStatuses(file) else emptyList())
+        }
+        val total = perModule.map { it.second }.fold(MutationCounts(0, 0, 0), MutationCounts::plus)
+        if (total.total == 0L) {
+            // The aggregate task is skipped then, so a report left from an earlier run would be stale.
+            combinedReportDir.get().asFile.deleteRecursively()
+        }
+        mutationSummary(perModule, htmlReportPath.get()).forEach(logger::lifecycle)
 
         val min = minScore.orNull ?: return
-        val counts = MutationCounts.of(mutationFiles.files.filter { it.isFile }.flatMap(::readStatuses))
-        if (counts.meets(min)) return
-        throw GradleException(
-            "Mutation score ${counts.scorePercent()}% (test strength ${counts.strengthPercent()}%) is below the required " +
-                "${min.stripTrailingZeros().toPlainString()}% ($MUTATION_MIN_SCORE_PROPERTY)."
-        )
+        if (!total.meets(min)) throw GradleException(minScoreFailure(total, min))
     }
 
     private fun readStatuses(file: File): List<String> {
@@ -66,8 +77,35 @@ abstract class MutationReportTask : DefaultTask() {
 /** Statuses that count as killed for the mutation score and test strength: the ones PIT counts as detected. */
 internal val KILLED_STATUSES = setOf("KILLED", "TIMED_OUT", "MEMORY_ERROR", "RUN_ERROR", "NON_VIABLE")
 
-/** Mutant counts of a selection, from PIT's per-mutant `status` values. */
-internal data class MutationCounts(val total: Long, val killed: Long, val covered: Long) {
+internal const val NO_MUTANTS_MESSAGE = "No mutants in the selected modules. No combined report was written."
+
+/**
+ * The terminal summary for [perModule] (Gradle path to counts, in display order). Modules without
+ * mutants are left out; when no module has any, only [NO_MUTANTS_MESSAGE] is printed.
+ */
+internal fun mutationSummary(perModule: List<Pair<String, MutationCounts>>, htmlReportPath: String): List<String> {
+    val withMutants = perModule.filter { it.second.total > 0 }
+    if (withMutants.isEmpty()) return listOf(NO_MUTANTS_MESSAGE)
+    val count = withMutants.size
+    val total = withMutants.map { it.second }.reduce(MutationCounts::plus)
+    return buildList {
+        add("Mutation testing ($count ${if (count == 1) "module" else "modules"} with mutants):")
+        withMutants.forEach { (path, counts) -> add("  $path: ${counts.describe()}") }
+        add("Total: ${total.describe()}")
+        add("HTML: $htmlReportPath")
+    }
+}
+
+internal fun minScoreFailure(total: MutationCounts, min: BigDecimal): String =
+    "Mutation score ${total.scorePercent()} is below $MUTATION_MIN_SCORE_PROPERTY=${min.stripTrailingZeros().toPlainString()}"
+
+/** Mutant counts from PIT's per-mutant `status` values. */
+internal data class MutationCounts(val total: Long, val killed: Long, val noCoverage: Long) {
+
+    val survived: Long get() = total - killed - noCoverage
+
+    operator fun plus(other: MutationCounts) =
+        MutationCounts(total + other.total, killed + other.killed, noCoverage + other.noCoverage)
 
     /** Whether the unrounded mutation score reaches [min] percent. No mutants count as met. */
     fun meets(min: BigDecimal): Boolean =
@@ -75,18 +113,20 @@ internal data class MutationCounts(val total: Long, val killed: Long, val covere
 
     fun scorePercent(): String = percent(killed, total)
 
-    fun strengthPercent(): String = percent(killed, covered)
+    fun strengthPercent(): String = percent(killed, total - noCoverage)
+
+    fun describe(): String =
+        "mutation score ${scorePercent()}, test strength ${strengthPercent()} " +
+            "($killed killed, $survived survived, $noCoverage no coverage, $total total)"
 
     companion object {
         fun of(statuses: List<String>) = MutationCounts(
             total = statuses.size.toLong(),
             killed = statuses.count { it in KILLED_STATUSES }.toLong(),
-            covered = statuses.count { it != "NO_COVERAGE" }.toLong(),
+            noCoverage = statuses.count { it == "NO_COVERAGE" }.toLong(),
         )
 
-        // FLOOR, so a value just below the minimum never prints as equal to it.
         private fun percent(part: Long, whole: Long): String =
-            if (whole == 0L) "0.00"
-            else (BigDecimal(part) * BigDecimal(100)).divide(BigDecimal(whole), 2, RoundingMode.FLOOR).toPlainString()
+            if (whole == 0L) "n/a" else String.format(Locale.ROOT, "%.1f%%", part * 100.0 / whole)
     }
 }

@@ -18,7 +18,7 @@ A Gradle module SHALL take part in mutation testing when it applies the `cardiga
 - **THEN** the next `./gradlew mutationReport` mutates that module's main classes
 
 ### Requirement: One task writes HTML mutation reports
-`./gradlew mutationReport` SHALL run mutation testing on the selected modules and write an HTML and an XML report per module under `<module>/build/reports/pitest/`, and a combined HTML report at `build/reports/pitest/index.html` in the root project. Report paths SHALL be the same on every run. Only main source sets SHALL be mutated.
+`./gradlew mutationReport` SHALL run mutation testing on the selected modules and write an HTML and an XML report per module under `<module>/build/reports/pitest/`, and a combined HTML report at `build/reports/pitest/index.html` in the root project. Report paths SHALL be the same on every run. Only main source sets SHALL be mutated. When no selected module has mutants, no combined report SHALL be written and one left from an earlier run SHALL be removed.
 
 #### Scenario: Report for all modules
 - **WHEN** `./gradlew mutationReport` runs and all selected tests pass
@@ -37,7 +37,11 @@ Every `mutationReport` SHALL run PIT for each selected module. Gradle SHALL NOT 
 
 #### Scenario: A module without mutants
 - **WHEN** an opted-in module has no mutable main classes and `./gradlew mutationReport` runs
-- **THEN** the command succeeds and the combined report shows that module with no mutants
+- **THEN** the command succeeds and the summary leaves that module out
+
+#### Scenario: No selected module has mutants
+- **WHEN** only modules without mutable main classes are selected and `./gradlew mutationReport -Pmutation.minScore=50` runs
+- **THEN** the command succeeds, prints only "No mutants in the selected modules. No combined report was written." and `build/reports/pitest/` doesn't exist afterwards
 
 ### Requirement: A run can be limited to chosen modules
 `mutationReport` SHALL accept `-Pmutation.modules=<names>`, a comma-separated list of module names, with or without a leading `:`, trimmed and deduplicated. Only those modules SHALL then be mutated and reported. Without the property, all opted-in modules SHALL be. An unknown or not opted-in name, an empty value or an empty entry in the list SHALL fail the command before any test runs, naming the bad value and the valid module names.
@@ -90,7 +94,7 @@ Mutation testing SHALL use as many worker threads as the machine has available p
 - **THEN** the command fails before any test runs, naming `mutation.threads`
 
 ### Requirement: Score and test strength are defined as in PIT's report
-The mutation score SHALL be killed mutants divided by all mutants of the selected modules together. Test strength SHALL be killed mutants divided by mutants with test coverage. Killed mutants SHALL be those with status `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR` or `NON_VIABLE`, as PIT counts them as detected. Mutants with test coverage SHALL be all mutants except `NO_COVERAGE`. When no mutant has test coverage, test strength SHALL be 0%.
+The mutation score SHALL be killed mutants divided by all mutants of the selected modules together. Test strength SHALL be killed mutants divided by mutants with test coverage. Killed mutants SHALL be those with status `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR` or `NON_VIABLE`, as PIT counts them as detected. Mutants with test coverage SHALL be all mutants except `NO_COVERAGE`. When no mutant has test coverage, test strength SHALL be shown as `n/a`.
 
 #### Scenario: Score of a selection
 - **WHEN** the selection has 100 mutants, of which 50 are killed, 5 time out, 1 hits a memory error, 24 survive and 20 have no coverage
@@ -102,14 +106,53 @@ The mutation score SHALL be killed mutants divided by all mutants of the selecte
 
 #### Scenario: No covered mutants
 - **WHEN** every mutant in the selection has no coverage
-- **THEN** the mutation score and test strength are both 0%
+- **THEN** the mutation score is 0.0% and test strength is `n/a`
+
+### Requirement: The task prints a summary in the terminal
+After the reports are written, `mutationReport` SHALL print, line for line as on mobile:
+
+```
+Mutation testing (<N> modules with mutants):
+  <gradle path>: <counts>
+Total: <counts>
+HTML: build/reports/pitest/index.html
+```
+
+`<counts>` SHALL be `mutation score X%, test strength Y% (D killed, S survived, NC no coverage, T total)`, with survived = all − killed − no coverage. The total line SHALL sum the counts of the listed modules, not average their percentages. Percentages SHALL have one decimal, rounded half up, with a dot; counts SHALL be plain integers. The HTML path SHALL be relative to the root project directory.
+
+#### Scenario: Summary for all modules
+- **WHEN** `./gradlew mutationReport` runs
+- **THEN** it prints the header with 3 modules, the lines for `:board`, `:common` and `:user` in that order, the total line and `HTML: build/reports/pitest/index.html`
+
+#### Scenario: Counts and rounding
+- **WHEN** a module has 1477 mutants, of which 1010 are killed and 272 have no coverage
+- **THEN** its line reads `mutation score 68.4%, test strength 83.8% (1010 killed, 195 survived, 272 no coverage, 1477 total)`
+
+### Requirement: The summary lists modules with mutants in a fixed order
+The summary SHALL list only modules with at least one mutant, and N SHALL count only those; the header SHALL say `module` when N is 1. Modules SHALL be listed by Gradle path in plain string order, or in the order given in `mutation.modules` when it is set. When no selected module has mutants, the task SHALL print only `No mutants in the selected modules. No combined report was written.`
+
+#### Scenario: Listed order
+- **WHEN** `./gradlew mutationReport -Pmutation.modules=user,common` runs
+- **THEN** the `:user` line comes before the `:common` line
+
+#### Scenario: One module with mutants
+- **WHEN** only one selected module has mutants
+- **THEN** the header reads `Mutation testing (1 module with mutants):`
 
 ### Requirement: An optional minimum score fails the task
-`mutationReport` SHALL accept `-Pmutation.minScore=<percent>`, a number from 0 to 100, never set by default. It SHALL check the mutation score, not test strength, compared unrounded. When it is given and the score is below it, the command SHALL fail after writing the reports and print the mutation score and test strength with two decimals and the required score. Without the property, the command SHALL never fail on the score.
+`mutationReport` SHALL accept `-Pmutation.minScore=<percent>`, a number from 0 to 100, never set by default. It SHALL check the unrounded mutation score, not test strength. When the score is below it, the command SHALL fail after the summary with `Mutation score X% is below mutation.minScore=<value>`, X in the summary's format and `<value>` as an integer when whole. Without mutants or without the property, the command SHALL NOT fail on the score.
 
 #### Scenario: Minimum not met
 - **WHEN** the selection's mutation score is 61.37% and `./gradlew mutationReport -Pmutation.minScore=70` runs
-- **THEN** the reports are written and the command fails, printing the mutation score 61.37%, the test strength and the required 70%
+- **THEN** the reports are written, the summary prints, and the command fails with `Mutation score 61.4% is below mutation.minScore=70`
+
+#### Scenario: Score just below the minimum
+- **WHEN** the selection's mutation score is 69.96% and `./gradlew mutationReport -Pmutation.minScore=70` runs
+- **THEN** the command fails with `Mutation score 70.0% is below mutation.minScore=70`
+
+#### Scenario: Decimal minimum
+- **WHEN** the selection's mutation score is 61.37% and `./gradlew mutationReport -Pmutation.minScore=70.50` runs
+- **THEN** the command fails with `Mutation score 61.4% is below mutation.minScore=70.5`
 
 #### Scenario: Minimum met
 - **WHEN** the selection's mutation score is 72.5% and `./gradlew mutationReport -Pmutation.minScore=72.5` runs
@@ -125,7 +168,7 @@ The mutation score SHALL be killed mutants divided by all mutants of the selecte
 
 #### Scenario: No mutants in the selection
 - **WHEN** the selection produces no mutants and `-Pmutation.minScore=50` is given
-- **THEN** the minimum counts as met
+- **THEN** the minimum isn't checked and the command succeeds
 
 ### Requirement: Only unit tests run against mutants
 Mutation testing SHALL run only tests that start no Spring context and no container. Those tests SHALL carry a marker that mutation testing excludes, and SHALL still run in `./gradlew test` and `build` as before. Mutation testing SHALL NOT need Docker.

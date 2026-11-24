@@ -42,6 +42,14 @@
 
 - [x] 5.1 Run `./gradlew build` and confirm it passes with no PIT or mutation task in its output and `.github/workflows/ci.yml` unchanged. Run `openspec validate be-pitest-mutation-testing --strict` and confirm it passes.
 
+## 6. Terminal summary (amendment, D16)
+
+- [x] 6.1 Print the summary in `mutationReport` and change the `minScore` failure message as in design.md. Unit-test the line format, rounding, `n/a`, the singular header, the no-mutants message and the threshold format. Verify that:
+  - a full `./gradlew mutationReport` prints the header, `:board`, `:common`, `:user` in that order, the total and `HTML: build/reports/pitest/index.html`, and the totals match the combined HTML report;
+  - `-Pmutation.modules=user,<scratch module without mutants>,:common` lists `:user` before `:common` and leaves out the scratch module (revert afterwards);
+  - selecting only a module without mutants with `-Pmutation.minScore=50` succeeds, prints only the no-mutants message and leaves no `build/reports/pitest/`;
+  - `-Pmutation.minScore=50.5` fails with `... is below mutation.minScore=50.5` after the summary.
+
 ## Workflow follow-up
 
 - Commit each group per the project's Git workflow once `./gradlew build` passes, only after the user's OK to implement.

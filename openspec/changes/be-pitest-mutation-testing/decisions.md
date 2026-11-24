@@ -90,6 +90,13 @@ The backend gets on-demand mutation testing with PIT. Each module opts in with o
 - **Alternatives**: No thresholds.
 - **Depends on**: D1, D13
 
+### D16 — Terminal summary
+- **Question**: What does `mutationReport` print?
+- **Decision**: The same summary as mobile, line for line: `Mutation testing (N modules with mutants):`, one line per module with mutants (`  <gradle path>: mutation score X%, test strength Y% (D killed, S survived, NC no coverage, T total)`), `Total: …` with summed counts, and `HTML: <combined report path relative to the root>`. One decimal, rounded half up; test strength `n/a` without covered mutants. Modules by Gradle path, or in the order of `mutation.modules`. With no mutants at all, only `No mutants in the selected modules. No combined report was written.`, and `minScore` isn't checked. A `minScore` failure prints `Mutation score X% is below mutation.minScore=<value>` after the summary.
+- **Why**: Decided by the user through `cardigan-f2` on 2026-11-24, as an amendment after implementation, so both platforms print identical output. Replaces the earlier "Mutation report: <path>" line, the two-decimal failure message and test strength 0% without covered mutants (review finding T2).
+- **Alternatives**: Keep the path-only output.
+- **Depends on**: D12, D13, D14
+
 ### D13 — Task name and module selection
 - **Question**: What is the task called, and can it be limited to modules?
 - **Decision**: Root task `mutationReport` with optional `-Pmutation.modules=user,board`, like `coverageReport`. The names `mutationReport`, `mutation.modules`, `mutation.threads` and `mutation.minScore` and their meaning are identical on mobile.

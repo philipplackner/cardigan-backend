@@ -55,9 +55,11 @@ A root plugin, applied in the root `build.gradle.kts` like `cardigan.kover.repor
 `mutationReport` is a task class in build-logic. Its inputs are the selected modules' `mutations.xml` files and the optional minimum score. It:
 
 - reads every `mutations.xml` with external DTD loading off and counts mutants by `status`: killed = `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR`, `NON_VIABLE` (PIT's `isDetected()`); covered = all except `NO_COVERAGE`;
-- computes mutation score = killed / all and test strength = killed / covered, unrounded, over the selection as a whole; test strength is 0 when no mutant is covered;
-- prints the path of the combined report;
-- if `mutation.minScore` is set and the mutation score is below it, fails and prints the mutation score and test strength with two decimals and the required score. With zero mutants the minimum counts as met.
+- computes per module and in total (counts summed, not percentages averaged): mutation score = killed / all, test strength = killed / covered, survived = all − killed − no coverage; test strength is `n/a` when no mutant is covered;
+- prints the summary (D16): a header with the number of modules that have mutants, one line per such module, the total line and the combined report path relative to the root directory. Percentages use `String.format(Locale.ROOT, "%.1f%%", …)`, which rounds half up. Modules are ordered by Gradle path, or as listed in `mutation.modules`; the root plugin passes that order to the task, since `parseModuleSelection` returns sorted names;
+- if `mutation.minScore` is set and the unrounded mutation score is below it, fails after the summary with `Mutation score X% is below mutation.minScore=<value>`. Because X is rounded, 69.96% prints as "70.0% is below mutation.minScore=70"; accepted, as on mobile. The threshold prints with `stripTrailingZeros().toPlainString()`.
+
+When no selected module has mutants, PIT writes no `mutations.xml` and the aggregator fails with "no lineCoverageFiles have been set". So `pitestReportAggregate` runs only if a selected module has a `mutations.xml`. Otherwise `mutationReport` deletes `build/reports/pitest/`, prints only "No mutants in the selected modules. No combined report was written." and skips the minimum. Each module's `pitest` task deletes its report directory first, so a `mutations.xml` from an earlier run can't be counted.
 
 It declares no outputs and is never up to date, so the check always runs.
 
@@ -105,7 +107,7 @@ Other Kotlin noise (elvis, safe casts, `when` branches) stays in the report (D7)
 - **`pitest-junit5-plugin` 1.2.3 exists.** The approved 1.2.2 works with JUnit 6.0.3 from the Spring Boot BOM, so it stays.
 - **Implemented late.** The first implementation missed the review findings D1, D2, A1, A2 and T2 that had been applied to this change; they were added afterwards. `doNotTrackState` on `pitest` did not stop it from being `UP-TO-DATE`, so the task uses `outputs.upToDateWhen { false }` and `outputs.cacheIf { false }` as written above.
 - **Counting is unit tested** in `build-logic/convention/src/test` (`./gradlew -p build-logic test`). The root `build` doesn't run build-logic tests.
-- **A module without mutants** succeeds and adds no row to PIT's combined HTML report, since PIT lists packages, not modules.
+- **A module without mutants** succeeds and adds no row to PIT's combined HTML report, since PIT lists packages, not modules. A selection where no module has mutants failed in `pitestReportAggregate` until the summary amendment (D16) added the skip described above.
 - **Deprecation warning.** The PIT plugins call `Configuration.setVisible`, deprecated for removal in Gradle 11. The same warning already appears in a normal build without this change.
 
 ## Risks / Trade-offs

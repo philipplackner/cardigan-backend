@@ -30,7 +30,8 @@ class PitestReportConventionPlugin : Plugin<Project> {
                 group = "verification"
                 description = "Runs mutation testing and writes the combined report. Options: " +
                     "-P$MUTATION_MODULES_PROPERTY, -P$MUTATION_THREADS_PROPERTY, -P$MUTATION_MIN_SCORE_PROPERTY."
-                htmlReport.set(combinedReport)
+                combinedReportDir.set(layout.buildDirectory.dir("reports/pitest"))
+                htmlReportPath.set(combinedReport.map { it.asFile.relativeTo(rootDir).invariantSeparatorsPath })
             }
 
             gradle.taskGraph.whenReady {
@@ -51,23 +52,32 @@ class PitestReportConventionPlugin : Plugin<Project> {
             )
 
             gradle.projectsEvaluated {
-                val selected = parseModuleSelection(
-                    MUTATION_MODULES_PROPERTY,
-                    target.providers.gradleProperty(MUTATION_MODULES_PROPERTY).orNull,
-                    optedInPaths.keys,
-                ).map { target.project(optedInPaths.getValue(it)) }
+                val rawModules = target.providers.gradleProperty(MUTATION_MODULES_PROPERTY).orNull
+                val selectedNames = parseModuleSelection(MUTATION_MODULES_PROPERTY, rawModules, optedInPaths.keys)
+                val orderedPaths = if (rawModules == null) {
+                    selectedNames.map(optedInPaths::getValue).sorted()
+                } else {
+                    rawModules.split(",").map { it.trim().removePrefix(":") }.distinct().map(optedInPaths::getValue)
+                }
+                val selected = orderedPaths.map(target::project)
 
                 val pitestTasks = selected.map { it.tasks.named<PitestTask>("pitest") }
-                val reportDirs = selected.map { it.layout.buildDirectory.dir("reports/pitest") }
+                val mutationXml = selected.associate { module ->
+                    module.path to module.layout.buildDirectory.file("reports/pitest/mutations.xml")
+                }
 
                 val aggregate = target.tasks.named<AggregateReportTask>("pitestReportAggregate") {
                     dependsOn(pitestTasks)
                     reportFile.set(combinedReport)
+                    val xmlFiles = mutationXml.values.toList()
+                    // PIT writes no mutations.xml for a module without mutants, and the aggregator fails with none at all.
+                    onlyIf("a selected module has mutants") { xmlFiles.any { it.get().asFile.isFile } }
                 }
 
                 report.configure {
                     dependsOn(aggregate)
-                    mutationFiles.setFrom(reportDirs.map { dir -> dir.map { it.file("mutations.xml") } })
+                    modulePaths.set(orderedPaths)
+                    mutationXml.forEach { (path, file) -> mutationFiles.put(path, file) }
                     minScore?.let { this.minScore.set(it) }
                 }
             }

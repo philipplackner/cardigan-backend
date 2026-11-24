@@ -8,6 +8,7 @@ Line and branch coverage show which code the tests run, not whether the tests wo
 
 - A new convention plugin, `cardigan.pitest`, in `build-logic`, which applies the `info.solidsoft.pitest` Gradle plugin with pinned PIT and JUnit 5 plugin versions. `:common`, `:user` and `:board` apply it.
 - A root task, `./gradlew mutationReport`, runs PIT on the opted-in modules and writes HTML and XML reports per module and one combined HTML report at `build/reports/pitest/index.html`.
+- `mutationReport` prints the same terminal summary as mobile: mutation score, test strength and counts per module and in total, and the combined report path (D16).
 - Optional properties, with the same names and meaning as on mobile:
   - `-Pmutation.modules=user,board` limits the run to those modules.
   - `-Pmutation.threads=<n>` overrides the thread count (default: available processors).

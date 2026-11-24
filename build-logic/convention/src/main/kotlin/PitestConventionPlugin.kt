@@ -64,6 +64,9 @@ class PitestConventionPlugin : Plugin<Project> {
                 usesService(runLimit)
                 outputs.upToDateWhen { false }
                 outputs.cacheIf { false }
+                // PIT writes no mutations.xml when a module has no mutants, so an old one must not survive.
+                val reportDir = reportDir
+                doFirst { reportDir.get().asFile.deleteRecursively() }
             }
         }
     }
