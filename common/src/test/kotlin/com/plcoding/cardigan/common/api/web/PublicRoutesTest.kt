@@ -26,6 +26,15 @@ class PublicRoutesTest {
     }
 
     @Test
+    fun `a route exposes its method and path to the security chain`() {
+        assertThat(registry.routes.map { it.method to it.path }).containsExactly(
+            HttpMethod.POST to "/api/v1/auth/login",
+            HttpMethod.POST to "/api/v1/auth/register",
+            HttpMethod.GET to "/api/v1/health",
+        )
+    }
+
+    @Test
     fun `no module routes means no public route`() {
         assertThat(publicRouteRegistryOf().routes).isEmpty()
     }

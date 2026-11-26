@@ -34,6 +34,11 @@ class ValidatorsTest {
         val position: BigInteger?,
     )
 
+    data class OptionalMoveRequest(
+        @ValidRange(min = 0, max = 5)
+        val position: BigInteger?,
+    )
+
     data class LegacyRequest(
         @field:NotBlank
         val name: String?,
@@ -67,6 +72,11 @@ class ValidatorsTest {
 
         assertThat(errorsOf(MoveRequest(huge)))
             .containsExactly(ProblemFieldError("position", FieldErrorCode.OUT_OF_RANGE, min = 0, max = 5))
+    }
+
+    @Test
+    fun `missing optional range value is valid`() {
+        assertThat(errorsOf(OptionalMoveRequest(null))).isEmpty()
     }
 
     @Test
