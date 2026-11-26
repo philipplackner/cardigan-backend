@@ -45,6 +45,21 @@ class BoardKeyTest {
     }
 
     @Test
+    fun `the letters at both ends of the alphabet are valid in either case`() {
+        assertThat(normalizeBoardKey("az")).isEqualTo("AZ")
+        assertThat(check("AZ")).isNull()
+        assertThat(check("az")).isNull()
+    }
+
+    @Test
+    fun `the characters just outside A to Z are INVALID_FORMAT`() {
+        assertThat(check("A@")).isEqualTo(FieldErrorCode.INVALID_FORMAT)
+        assertThat(check("A[")).isEqualTo(FieldErrorCode.INVALID_FORMAT)
+        assertThat(check("A`")).isEqualTo(FieldErrorCode.INVALID_FORMAT)
+        assertThat(check("A{")).isEqualTo(FieldErrorCode.INVALID_FORMAT)
+    }
+
+    @Test
     fun `six letters are TOO_LONG`() {
         assertThat(check("ABCDEF")).isEqualTo(FieldErrorCode.TOO_LONG)
     }

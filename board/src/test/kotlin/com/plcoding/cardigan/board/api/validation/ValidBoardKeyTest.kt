@@ -21,6 +21,8 @@ class ValidBoardKeyTest {
     @AfterAll
     fun close() = factory.close()
 
+    private class KeyOnly(@field:ValidBoardKey val key: String?)
+
     private fun errorsOf(key: String?) = fieldErrorsOf(validator.validate(CreateBoardRequest(name = "Roadmap", key = key)))
 
     @Test
@@ -31,6 +33,11 @@ class ValidBoardKeyTest {
     @Test
     fun `missing key is one REQUIRED error`() {
         assertThat(errorsOf(null)).containsExactly(ProblemFieldError("key", FieldErrorCode.REQUIRED))
+    }
+
+    @Test
+    fun `missing key is left to @Required`() {
+        assertThat(fieldErrorsOf(validator.validate(KeyOnly(null)))).isEmpty()
     }
 
     @Test

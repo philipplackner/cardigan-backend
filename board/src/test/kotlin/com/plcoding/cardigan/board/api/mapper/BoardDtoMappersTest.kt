@@ -1,8 +1,10 @@
 package com.plcoding.cardigan.board.api.mapper
 
+import assertk.assertFailure
 import assertk.assertThat
 import assertk.assertions.containsExactly
 import assertk.assertions.isEqualTo
+import assertk.assertions.isInstanceOf
 import assertk.assertions.isNull
 import com.plcoding.cardigan.board.api.dto.BoardDto
 import com.plcoding.cardigan.board.api.dto.BoardListDto
@@ -51,6 +53,14 @@ class BoardDtoMappersTest {
         assertThat(CreateColumnRequest(" Review\t").toColumnName()).isEqualTo("Review")
         assertThat(UpdateColumnRequest().apply { name = " QA " }.toColumnName()).isEqualTo("QA")
         assertThat(UpdateColumnRequest().toColumnName()).isNull()
+    }
+
+    @Test
+    fun `required fields of an unvalidated request fail fast with IllegalStateException`() {
+        assertFailure { CreateBoardRequest(null, "CRD").toBoardName() }.isInstanceOf<IllegalStateException>()
+        assertFailure { CreateBoardRequest("Roadmap", null).toBoardKey() }.isInstanceOf<IllegalStateException>()
+        assertFailure { CreateColumnRequest(null).toColumnName() }.isInstanceOf<IllegalStateException>()
+        assertFailure { MoveColumnRequest(null).toPosition() }.isInstanceOf<IllegalStateException>()
     }
 
     @Test
