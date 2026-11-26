@@ -77,6 +77,6 @@ class BoardService(
     }
 
     companion object {
-        val DEFAULT_COLUMN_NAMES: List<String> = listOf("To do", "In progress", "Done")
+        private val DEFAULT_COLUMN_NAMES: List<String> = listOf("To do", "In progress", "Done")
     }
 }
