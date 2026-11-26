@@ -1,4 +1,4 @@
-schema: careful-planning
+schema: careful-planning-tdd
 
 references:
   - id: cardigan-shared-specs
