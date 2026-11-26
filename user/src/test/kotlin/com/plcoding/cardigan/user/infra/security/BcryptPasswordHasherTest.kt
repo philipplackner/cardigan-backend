@@ -136,6 +136,17 @@ class BcryptPasswordHasherTest {
     }
 
     @Test
+    fun `an encoder that returns no hash fails instead of storing null`() {
+        val nullEncoder = object : PasswordEncoder {
+            override fun encode(rawPassword: CharSequence?): String? = null
+
+            override fun matches(rawPassword: CharSequence?, encodedPassword: String?): Boolean = false
+        }
+
+        assertFailure { BcryptPasswordHasher(nullEncoder, 1, longWait) }.isInstanceOf(IllegalStateException::class)
+    }
+
+    @Test
     fun `stored value that is no BCrypt hash doesn't match`() {
         assertThat(hasher.matches("Correct horse 7", "not-a-real-hash")).isFalse()
     }

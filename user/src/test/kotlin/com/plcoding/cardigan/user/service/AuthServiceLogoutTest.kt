@@ -72,6 +72,17 @@ class AuthServiceLogoutTest : AuthServiceTestBase() {
     }
 
     @Test
+    fun `token whose session was deleted meanwhile changes nothing and doesn't throw`() {
+        val first = register().tokens.refreshToken
+        val second = login().tokens.refreshToken
+        sessions.sessions.remove(sessionOf(first).id)
+
+        service.logout(BODY, first)
+
+        assertThat(sessionOf(second).revokedAt).isNull()
+    }
+
+    @Test
     fun `expired unrotated token changes nothing`() {
         val tokens = register().tokens
 

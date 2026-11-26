@@ -77,6 +77,18 @@ class AuthServiceRefreshTest : AuthServiceTestBase() {
     }
 
     @Test
+    fun `token whose session was deleted meanwhile fails and issues nothing`() {
+        val token = register().tokens.refreshToken
+        sessions.sessions.remove(sessionOf(token).id)
+        val issuedBefore = accessTokens.issued.size
+
+        assertRejected(token)
+
+        assertThat(stored(token).rotatedAt).isNull()
+        assertThat(accessTokens.issued).hasSize(issuedBefore)
+    }
+
+    @Test
     fun `missing token fails`() {
         register()
 

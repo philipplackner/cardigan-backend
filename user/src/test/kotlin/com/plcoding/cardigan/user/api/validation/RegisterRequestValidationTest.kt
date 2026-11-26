@@ -62,6 +62,11 @@ class RegisterRequestValidationTest {
     }
 
     @Test
+    fun `missing fields break no rule other than REQUIRED`() {
+        assertThat(validator.validate(RegisterRequest(null, null, null))).hasSize(3)
+    }
+
+    @Test
     fun `bad email and weak password are reported together`() {
         assertThat(errorsOf(request(email = "ann@", password = "alllowercase12"))).containsExactly(invalidFormat, tooWeak)
     }

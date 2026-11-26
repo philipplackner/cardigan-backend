@@ -2,6 +2,7 @@ package com.plcoding.cardigan.user.api.validation
 
 import assertk.assertThat
 import assertk.assertions.containsExactly
+import assertk.assertions.hasSize
 import assertk.assertions.isEmpty
 import com.plcoding.cardigan.common.api.ProblemFieldError
 import com.plcoding.cardigan.common.api.validation.fieldErrorsOf
@@ -37,6 +38,11 @@ class LoginRequestValidationTest {
             ProblemFieldError("password", FieldErrorCode.REQUIRED),
             ProblemFieldError("refreshTokenTransport", FieldErrorCode.REQUIRED),
         )
+    }
+
+    @Test
+    fun `missing fields break no rule other than REQUIRED`() {
+        assertThat(validator.validate(LoginRequest(null, null, null))).hasSize(3)
     }
 
     @ParameterizedTest
