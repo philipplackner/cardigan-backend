@@ -21,8 +21,6 @@ import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.validation.ObjectError
-import org.springframework.web.HttpMediaTypeNotSupportedException
-import org.springframework.web.HttpRequestMethodNotSupportedException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.MissingPathVariableException
 import org.springframework.web.bind.annotation.ExceptionHandler
@@ -54,9 +52,7 @@ class CommonExceptionHandler : ResponseEntityExceptionHandler() {
         val response = when (ex) {
             is NoResourceFoundException,
             is NoHandlerFoundException,
-            is HttpRequestMethodNotSupportedException,
             -> problem(ErrorCode.ROUTE_NOT_FOUND)
-            is HttpMediaTypeNotSupportedException -> problem(ErrorCode.UNSUPPORTED_MEDIA_TYPE)
             is HttpMessageNotReadableException ->
                 if (ex.hasCause<PayloadTooLargeException>()) {
                     problem(ErrorCode.PAYLOAD_TOO_LARGE)
