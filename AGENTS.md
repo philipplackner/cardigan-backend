@@ -322,7 +322,7 @@ Mutation testing:
 - The score counting in build-logic has unit tests: `./gradlew -p build-logic test`. `./gradlew build` doesn't run them.
 - `mutationReport` prints the same summary as mobile: one line per module with mutants (mutation score, test strength, killed, survived, no coverage, total), a total line with the summed counts, and the combined report path. Score = killed / all mutants, test strength = killed / mutants with coverage (`n/a` when none is covered); mutants with status `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR` or `NON_VIABLE` count as killed, as in PIT's own report. Modules are listed by path, or in the order given in `mutation.modules`. When no selected module has mutants, it prints only a message and writes no combined report.
 - `mutation.minScore` (0 to 100, decimals allowed) makes the run fail after the summary when the selection's unrounded mutation score is below it. Nothing sets it by default.
-- The application class, `@Configuration`, `@ConfigurationProperties` and `@SpringBootApplication` classes, Kotlin null-check intrinsics and the generated data-class methods (`componentN`, `copy`, `equals`, `hashCode`, `toString`) are not mutated.
+- The application class, `@Configuration`, `@ConfigurationProperties`, `@SpringBootApplication`, `@Repository` and `@Entity` classes, Kotlin null-check intrinsics and the generated data-class methods (`componentN`, `copy`, `equals`, `hashCode`, `toString`) are not mutated.
 
 ---
 

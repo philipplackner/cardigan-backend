@@ -10,11 +10,16 @@ import org.gradle.api.tasks.TaskAction
 import java.io.DataInputStream
 import java.io.File
 
-/** Class annotations that mark a class as wiring or configuration, not logic worth mutating. */
+/**
+ * Class annotations that mark a class as wiring, configuration or JPA persistence, not logic worth
+ * mutating. `@Repository` marks the JPA adapters, which only persistence and E2E tests reach.
+ */
 internal val NON_LOGIC_CLASS_ANNOTATIONS = setOf(
     "org.springframework.context.annotation.Configuration",
     "org.springframework.boot.context.properties.ConfigurationProperties",
     "org.springframework.boot.autoconfigure.SpringBootApplication",
+    "org.springframework.stereotype.Repository",
+    "jakarta.persistence.Entity",
 )
 
 /**
