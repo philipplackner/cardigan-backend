@@ -62,8 +62,11 @@ class RequestSizeLimitFilter(
 
         override fun getInputStream(): ServletInputStream = stream
 
-        override fun getReader(): BufferedReader =
-            BufferedReader(InputStreamReader(stream, characterEncoding?.let(Charset::forName) ?: Charsets.UTF_8))
+        override fun getReader(): BufferedReader {
+            val encoding = characterEncoding
+            val charset = if (encoding == null) Charsets.UTF_8 else Charset.forName(encoding)
+            return BufferedReader(InputStreamReader(stream, charset))
+        }
     }
 
     private class LimitedInputStream(

@@ -6,6 +6,7 @@ import com.plcoding.cardigan.common.api.validation.ValidEnum
 import com.plcoding.cardigan.common.api.validation.ValidRange
 import com.plcoding.cardigan.common.api.validation.ValidUuid
 import com.plcoding.cardigan.common.api.web.API_BASE_PATH
+import com.plcoding.cardigan.common.api.web.PublicRoute
 import com.plcoding.cardigan.common.api.web.PublicRouteRegistry
 import com.plcoding.cardigan.common.domain.exception.ErrorCode
 import io.swagger.v3.oas.models.OpenAPI
@@ -56,7 +57,7 @@ class CardiganOpenApiCustomizer(
             }
         }
 
-        val schemas = openApi.components.schemas.orEmpty()
+        val schemas = openApi.components.schemas
         val requestClasses = handlers.values
             .flatMap { handler -> handler.methodParameters.filter { it.hasParameterAnnotation(RequestBody::class.java) } }
             .flatMap { appClasses(it.genericParameterType) }
@@ -80,11 +81,13 @@ class CardiganOpenApiCustomizer(
 
     private fun customizeOperation(path: String, method: PathItem.HttpMethod, operation: Operation, handler: HandlerMethod?) {
         val errors = sortedMapOf<Int, MutableSet<ErrorCode>>()
-        fun add(code: ErrorCode) = errors.getOrPut(code.status) { linkedSetOf() }.add(code)
+        fun add(code: ErrorCode) {
+            errors.getOrPut(code.status) { linkedSetOf() }.add(code)
+        }
 
         add(ErrorCode.INTERNAL_ERROR)
         val isProtected = (path == API_BASE_PATH || path.startsWith("$API_BASE_PATH/")) &&
-            publicRoutes.routes.none { it.method == HttpMethod.valueOf(method.name) && it.path == path }
+            PublicRoute(HttpMethod.valueOf(method.name), path) !in publicRoutes.routes
         if (isProtected) {
             add(ErrorCode.UNAUTHENTICATED)
             operation.security = listOf(SecurityRequirement().addList(OpenApiConfig.BEARER_AUTH))
@@ -119,7 +122,7 @@ class CardiganOpenApiCustomizer(
     @Suppress("UNCHECKED_CAST")
     private fun customizeRequestSchema(requestClass: Class<*>, schema: Schema<*>) {
         val fields = requestClass.declaredFields.filterNot { Modifier.isStatic(it.modifiers) }.associateBy { it.name }
-        schema.required = fields.values.filter { it.isAnnotationPresent(Required::class.java) }.map { it.name }.ifEmpty { null }
+        schema.required = fields.values.filter { it.isAnnotationPresent(Required::class.java) }.map { it.name }
         schema.properties.orEmpty().toMap().forEach { (name, property) ->
             // swagger-core wraps a reference to a named enum in allOf. Clients get the plain reference.
             val reference = property.allOf?.singleOrNull()?.`$ref`
@@ -145,8 +148,8 @@ class CardiganOpenApiCustomizer(
      * `nullable` in the document, except one that `@JsonInclude(NON_NULL)` leaves out instead.
      */
     private fun customizeResponseSchema(responseClass: Class<*>, schema: Schema<*>) {
-        val parameters = responseClass.kotlin.primaryConstructor?.parameters ?: return
-        schema.required = parameters.filterNot { it.type.isMarkedNullable }.mapNotNull { it.name }.ifEmpty { null }
+        val constructor = responseClass.kotlin.primaryConstructor ?: return
+        schema.required = constructor.parameters.filterNot { it.type.isMarkedNullable }.mapNotNull { it.name }
         // A property that is left out when it has no value is never sent as null.
         responseClass.declaredFields
             .filter { it.getAnnotation(JsonInclude::class.java)?.value == JsonInclude.Include.NON_NULL }
