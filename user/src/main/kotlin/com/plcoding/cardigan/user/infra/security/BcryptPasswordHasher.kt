@@ -55,7 +55,7 @@ class BcryptPasswordHasher internal constructor(
     private fun randomPassword(): String =
         Base64.getEncoder().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })
 
-    private inline fun <T> limited(block: () -> T): T {
+    private fun <T> limited(block: () -> T): T {
         if (!permits.tryAcquire(waitTimeout.toNanos(), TimeUnit.NANOSECONDS)) {
             throw PasswordHashingBusyException(retryAfterSeconds)
         }

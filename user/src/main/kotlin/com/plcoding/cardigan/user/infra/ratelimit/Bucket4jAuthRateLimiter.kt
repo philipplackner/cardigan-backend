@@ -59,10 +59,7 @@ class Bucket4jAuthRateLimiter(
 
     /** Forgets every counter. Tests call it, because a test clock that is set back never refills a bucket. */
     fun clear() {
-        buckets.values.forEach { cache ->
-            cache.invalidateAll()
-            cache.cleanUp()
-        }
+        buckets.values.forEach { it.invalidateAll() }
     }
 
     private fun limitOf(action: AuthAction): AuthRateLimitProperties.Limit = when (action) {

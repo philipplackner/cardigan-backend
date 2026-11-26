@@ -48,21 +48,20 @@ class ValidPasswordValidator : ConstraintValidator<ValidPassword, String> {
         )
     }
 
-    private fun hasEveryCharacterClass(password: String): Boolean {
-        val types = password.codePoints().map(Character::getType).toArray().toSet()
-        return REQUIRED_CLASSES.all { it in types }
-    }
+    private fun hasEveryCharacterClass(password: String): Boolean =
+        password.codePoints().map(Character::getType).toArray().toSet().containsAll(requiredCharacterClasses)
 
     private companion object {
         const val PASSWORD_MIN_LENGTH = 12
         const val PASSWORD_MAX_LENGTH = 128
-        val REQUIRED_CLASSES = listOf(
-            Character.LOWERCASE_LETTER.toInt(),
-            Character.UPPERCASE_LETTER.toInt(),
-            Character.DECIMAL_DIGIT_NUMBER.toInt(),
-        )
     }
 }
+
+private val requiredCharacterClasses = setOf(
+    Character.LOWERCASE_LETTER.toInt(),
+    Character.UPPERCASE_LETTER.toInt(),
+    Character.DECIMAL_DIGIT_NUMBER.toInt(),
+)
 
 class NotEmptyPasswordValidator : ConstraintValidator<NotEmptyPassword, String> {
 
