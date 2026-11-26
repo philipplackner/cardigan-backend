@@ -16,12 +16,11 @@ data class FieldViolation(
 )
 
 /**
- * Reports [violation] as the field error of the constraint being checked. Returns false, so a
- * validator can end with `return context.reject(...)`.
+ * Reports [violation] as the field error of the constraint being checked. The validator must still
+ * return false.
  */
-fun ConstraintValidatorContext.reject(violation: FieldViolation): Boolean {
+fun ConstraintValidatorContext.reject(violation: FieldViolation) {
     unwrap(HibernateConstraintValidatorContext::class.java).withDynamicPayload(violation)
-    return false
 }
 
 /**

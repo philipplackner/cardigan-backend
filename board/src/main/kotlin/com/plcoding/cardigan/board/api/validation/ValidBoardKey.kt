@@ -33,12 +33,13 @@ class ValidBoardKeyValidator : ConstraintValidator<ValidBoardKey, String> {
     override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean {
         if (value == null) return true
         val code = checkBoardKey(normalizeBoardKey(value)) ?: return true
-        return context.reject(
+        context.reject(
             FieldViolation(
                 code = code,
                 min = BOARD_KEY_MIN_LENGTH.toLong().takeIf { code == FieldErrorCode.TOO_SHORT },
                 max = BOARD_KEY_MAX_LENGTH.toLong().takeIf { code == FieldErrorCode.TOO_LONG },
             ),
         )
+        return false
     }
 }

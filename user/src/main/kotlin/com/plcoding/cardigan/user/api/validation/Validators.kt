@@ -27,7 +27,9 @@ class ValidEmailValidator : ConstraintValidator<ValidEmail, String> {
         if (value == null) return true
         val email = normalizeText(value)
         if (checkText(email, min = 1, max = EMAIL_MAX_LENGTH, multiline = false) != null) return true
-        return hasEmailFormat(email) || context.reject(FieldViolation(FieldErrorCode.INVALID_FORMAT))
+        if (hasEmailFormat(email)) return true
+        context.reject(FieldViolation(FieldErrorCode.INVALID_FORMAT))
+        return false
     }
 }
 
@@ -39,13 +41,14 @@ class ValidPasswordValidator : ConstraintValidator<ValidPassword, String> {
         val code = checkText(password, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, multiline = false)
             ?: FieldErrorCode.PASSWORD_TOO_WEAK.takeUnless { hasEveryCharacterClass(password) }
             ?: return true
-        return context.reject(
+        context.reject(
             FieldViolation(
                 code = code,
                 min = PASSWORD_MIN_LENGTH.toLong().takeIf { code == FieldErrorCode.TOO_SHORT },
                 max = PASSWORD_MAX_LENGTH.toLong().takeIf { code == FieldErrorCode.TOO_LONG },
             ),
         )
+        return false
     }
 
     private fun hasEveryCharacterClass(password: String): Boolean =
@@ -65,6 +68,9 @@ private val requiredCharacterClasses = setOf(
 
 class NotEmptyPasswordValidator : ConstraintValidator<NotEmptyPassword, String> {
 
-    override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean =
-        value == null || value.isNotEmpty() || context.reject(FieldViolation(FieldErrorCode.REQUIRED))
+    override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean {
+        if (value == null || value.isNotEmpty()) return true
+        context.reject(FieldViolation(FieldErrorCode.REQUIRED))
+        return false
+    }
 }

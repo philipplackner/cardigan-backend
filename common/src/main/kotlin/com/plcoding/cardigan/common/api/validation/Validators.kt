@@ -10,8 +10,11 @@ import java.math.BigInteger
 
 class RequiredValidator : ConstraintValidator<Required, Any> {
 
-    override fun isValid(value: Any?, context: ConstraintValidatorContext): Boolean =
-        value != null || context.reject(FieldViolation(FieldErrorCode.REQUIRED))
+    override fun isValid(value: Any?, context: ConstraintValidatorContext): Boolean {
+        if (value != null) return true
+        context.reject(FieldViolation(FieldErrorCode.REQUIRED))
+        return false
+    }
 }
 
 class ValidTextValidator : ConstraintValidator<ValidText, String> {
@@ -26,21 +29,24 @@ class ValidTextValidator : ConstraintValidator<ValidText, String> {
         if (value == null) return true
         val code = checkText(normalizeText(value), annotation.min, annotation.max, annotation.multiline)
             ?: return true
-        return context.reject(
+        context.reject(
             FieldViolation(
                 code = code,
                 min = annotation.min.toLong().takeIf { code == FieldErrorCode.TOO_SHORT },
                 max = annotation.max.toLong().takeIf { code == FieldErrorCode.TOO_LONG },
             ),
         )
+        return false
     }
 }
 
 class ValidUuidValidator : ConstraintValidator<ValidUuid, String> {
 
-    override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean =
-        value == null || parseCanonicalUuid(value) != null ||
-            context.reject(FieldViolation(FieldErrorCode.INVALID_FORMAT))
+    override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean {
+        if (value == null || parseCanonicalUuid(value) != null) return true
+        context.reject(FieldViolation(FieldErrorCode.INVALID_FORMAT))
+        return false
+    }
 }
 
 class ValidEnumValidator : ConstraintValidator<ValidEnum, String> {
@@ -51,8 +57,11 @@ class ValidEnumValidator : ConstraintValidator<ValidEnum, String> {
         names = constraintAnnotation.value.java.enumConstants.map { it.name }.toSet()
     }
 
-    override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean =
-        value == null || value in names || context.reject(FieldViolation(FieldErrorCode.INVALID_VALUE))
+    override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean {
+        if (value == null || value in names) return true
+        context.reject(FieldViolation(FieldErrorCode.INVALID_VALUE))
+        return false
+    }
 }
 
 class ValidRangeValidator : ConstraintValidator<ValidRange, BigInteger> {
@@ -66,6 +75,7 @@ class ValidRangeValidator : ConstraintValidator<ValidRange, BigInteger> {
     override fun isValid(value: BigInteger?, context: ConstraintValidatorContext): Boolean {
         if (value == null) return true
         if (value >= BigInteger.valueOf(annotation.min) && value <= BigInteger.valueOf(annotation.max)) return true
-        return context.reject(FieldViolation(FieldErrorCode.OUT_OF_RANGE, min = annotation.min, max = annotation.max))
+        context.reject(FieldViolation(FieldErrorCode.OUT_OF_RANGE, min = annotation.min, max = annotation.max))
+        return false
     }
 }
