@@ -79,12 +79,11 @@ private class CanonicalUuidEditor : PropertyEditorSupport() {
 private class ExplicitMethodsHandlerMapping : RequestMappingHandlerMapping() {
 
     override fun getMatchingMapping(info: RequestMappingInfo, request: HttpServletRequest): RequestMappingInfo? {
-        val match = super.getMatchingMapping(info, request) ?: return null
         val declared = info.methodsCondition.methods
         if (request.method == RequestMethod.HEAD.name && declared.isNotEmpty() && RequestMethod.HEAD !in declared) {
             return null
         }
-        return match
+        return super.getMatchingMapping(info, request)
     }
 
     override fun handleNoMatch(

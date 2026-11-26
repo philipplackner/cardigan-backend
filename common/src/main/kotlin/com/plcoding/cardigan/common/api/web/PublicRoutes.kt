@@ -30,10 +30,8 @@ class PublicRouteRegistry(
         publicRoutes.orderedStream().toList().flatMap { it.routes }
     }
 
-    fun isPublic(request: HttpServletRequest): Boolean {
-        val path = request.pathWithinApplication
-        return routes.any { it.method.matches(request.method) && it.path == path }
-    }
+    fun isPublic(request: HttpServletRequest): Boolean =
+        PublicRoute(HttpMethod.valueOf(request.method), request.pathWithinApplication) in routes
 }
 
 const val API_BASE_PATH = "/api/v1"
