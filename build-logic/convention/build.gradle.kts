@@ -3,6 +3,7 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
 plugins {
     `kotlin-dsl`
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 dependencies {
@@ -46,6 +47,40 @@ ktlint {
 
 tasks.named("check") {
     setDependsOn(dependsOn.filterNot { it is TaskProvider<*> && it.name.startsWith("ktlint") })
+}
+
+// Same setup as the cardigan.detekt convention plugin, which this build can't apply to itself.
+detekt {
+    config.setFrom(rootDir.resolve("../config/detekt/detekt.yml"))
+    buildUponDefaultConfig = true
+    parallel = true
+    failOnSeverity = dev.detekt.gradle.extensions.FailOnSeverity.Info
+    // An included build sees the task names requested from the root build only through its parent.
+    val requestedTasks = (gradle.parent ?: gradle).startParameter.taskNames
+    ignoreFailures = requestedTasks.any { it == "staticAnalysis" || it == ":staticAnalysis" }
+}
+
+tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+    baseline.set(null as File?)
+    reports {
+        html.required = true
+        sarif.required = true
+        markdown.required = false
+        checkstyle.required = false
+    }
+}
+
+val detektTypeResolutionTasks = tasks.withType<dev.detekt.gradle.Detekt>().matching {
+    it.name.startsWith("detekt") && it.name != "detekt" && !it.name.endsWith("SourceSet")
+}
+tasks.named<dev.detekt.gradle.Detekt>("detekt") {
+    description = "Runs detekt with type resolution on every source set of build-logic."
+    setSource(emptyList<Any>())
+    dependsOn(detektTypeResolutionTasks)
+}
+
+tasks.named("check") {
+    setDependsOn(dependsOn.filterNot { it is TaskProvider<*> && it.name.startsWith("detekt") })
 }
 
 gradlePlugin {
