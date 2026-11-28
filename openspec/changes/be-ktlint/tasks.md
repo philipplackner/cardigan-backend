@@ -24,7 +24,7 @@
 
 ## 4. Integration
 
-- [ ] 4.1 Run `openspec validate be-ktlint --strict`, `./gradlew ktlintCheck` and `./gradlew build`. Verify that all three pass.
+- [x] 4.1 Run `openspec validate be-ktlint --strict`, `./gradlew ktlintCheck` and `./gradlew build`. Verify that all three pass.
 
 ## Workflow follow-up
 
