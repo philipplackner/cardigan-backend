@@ -17,7 +17,6 @@ import java.time.Duration
 
 @ExtendWith(OutputCaptureExtension::class)
 class ErrorResponsesE2eTest : E2eTest() {
-
     @Test
     fun `unknown path with a token is ROUTE_NOT_FOUND and the path is not echoed`() {
         val token = signIn().token
@@ -64,13 +63,14 @@ class ErrorResponsesE2eTest : E2eTest() {
     fun `wrong content type is UNSUPPORTED_MEDIA_TYPE and the media type is not echoed`() {
         val token = signIn().token
 
-        val result = call(
-            HttpMethod.POST,
-            "/api/v1/test/echo",
-            token,
-            json = """{"name":"a","key":"ab"}""",
-            headers = mapOf("Content-Type" to "text/zz-marker"),
-        )
+        val result =
+            call(
+                HttpMethod.POST,
+                "/api/v1/test/echo",
+                token,
+                json = """{"name":"a","key":"ab"}""",
+                headers = mapOf("Content-Type" to "text/zz-marker"),
+            )
 
         result.assertProblem(ErrorCode.UNSUPPORTED_MEDIA_TYPE)
         assertThat(result.body).doesNotContain("zz-marker")
@@ -81,8 +81,9 @@ class ErrorResponsesE2eTest : E2eTest() {
     fun `invalid JSON is MALFORMED_REQUEST with empty fieldErrors`() {
         val token = signIn().token
 
-        val body = call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name": """)
-            .assertProblem(ErrorCode.MALFORMED_REQUEST)
+        val body =
+            call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name": """)
+                .assertProblem(ErrorCode.MALFORMED_REQUEST)
 
         assertThat(body.fieldErrors).isEmpty()
     }
@@ -91,12 +92,13 @@ class ErrorResponsesE2eTest : E2eTest() {
     fun `wrong JSON type is MALFORMED_REQUEST and the detail names nothing from the request`() {
         val token = signIn().token
 
-        val result = call(
-            HttpMethod.POST,
-            "/api/v1/test/echo",
-            token,
-            json = """{"name":"a","key":"ab","position":"zq9x"}""",
-        )
+        val result =
+            call(
+                HttpMethod.POST,
+                "/api/v1/test/echo",
+                token,
+                json = """{"name":"a","key":"ab","position":"zq9x"}""",
+            )
 
         val detail = result.assertProblem(ErrorCode.MALFORMED_REQUEST)["detail"] as String
         listOf("position", "zq9x", "Exception", "jackson", "kotlin.", "java.").forEach {
@@ -109,7 +111,8 @@ class ErrorResponsesE2eTest : E2eTest() {
         val token = signIn().token
 
         val invalid = call(HttpMethod.POST, "/api/v1/test/echo", token, json = "{")
-        val wrongType = call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name":"a","key":"ab","position":"x"}""")
+        val wrongType =
+            call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name":"a","key":"ab","position":"x"}""")
 
         assertThat(invalid.json()["detail"]).isEqualTo(wrongType.json()["detail"])
     }
@@ -234,7 +237,12 @@ class ErrorResponsesE2eTest : E2eTest() {
         clock.advanceBy(Duration.ofMinutes(16))
         val expired = call(HttpMethod.GET, "/api/v1/users/me", expiredToken)
 
-        val titles = listOf(missingToken, missingUser, expired).map { it.assertProblem(ErrorCode.UNAUTHENTICATED)["title"] }
+        val titles =
+            listOf(
+                missingToken,
+                missingUser,
+                expired,
+            ).map { it.assertProblem(ErrorCode.UNAUTHENTICATED)["title"] }
 
         assertThat(titles.toSet()).isEqualTo(setOf(ErrorCode.UNAUTHENTICATED.title))
     }

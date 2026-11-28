@@ -19,7 +19,10 @@ data class ProblemFieldError(
  * Builds the error body for [code]. `type`, `title` and `detail` come only from [ErrorCode], never
  * from an exception message or the request.
  */
-fun problemDetail(code: ErrorCode, fieldErrors: List<ProblemFieldError> = emptyList()): ProblemDetail =
+fun problemDetail(
+    code: ErrorCode,
+    fieldErrors: List<ProblemFieldError> = emptyList(),
+): ProblemDetail =
     ProblemDetail.forStatus(code.status).apply {
         type = URI.create(code.type)
         title = code.title

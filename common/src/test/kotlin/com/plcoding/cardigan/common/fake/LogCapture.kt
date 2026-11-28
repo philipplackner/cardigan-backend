@@ -7,8 +7,9 @@ import ch.qos.logback.core.read.ListAppender
 import org.slf4j.LoggerFactory
 
 /** Records the events logged by [loggerClass]'s logger until [close] is called. */
-class LogCapture(loggerClass: Class<*>) : AutoCloseable {
-
+class LogCapture(
+    loggerClass: Class<*>,
+) : AutoCloseable {
     private val logger = LoggerFactory.getLogger(loggerClass) as Logger
     private val appender = ListAppender<ILoggingEvent>().apply { start() }
 

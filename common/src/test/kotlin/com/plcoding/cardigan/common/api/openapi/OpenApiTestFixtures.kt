@@ -45,7 +45,6 @@ data class CreateWidgetRequest(
 )
 
 class UpdateWidgetRequest : PatchRequest() {
-
     @ValidText(min = 1, max = 10)
     var name: String? = null
         set(value) {
@@ -71,20 +70,26 @@ data class WidgetDto(
 @RestController
 @Tag(name = "Widgets")
 class WidgetController {
-
     @PostMapping("/api/v1/widgets")
     @Operation(operationId = "createWidget")
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(404, ErrorCode.NOT_FOUND)
-    fun createWidget(@RequestBody request: CreateWidgetRequest): WidgetDto = error("not called")
+    fun createWidget(
+        @RequestBody request: CreateWidgetRequest,
+    ): WidgetDto = error("not called")
 
     @PatchMapping("/api/v1/widgets/{id}")
     @Operation(operationId = "updateWidget")
-    fun updateWidget(@RequestBody request: UpdateWidgetRequest, @PathVariable id: UUID): WidgetDto = error("not called")
+    fun updateWidget(
+        @RequestBody request: UpdateWidgetRequest,
+        @PathVariable id: UUID,
+    ): WidgetDto = error("not called")
 
     @GetMapping("/api/v1/widgets/{id}")
     @Operation(operationId = "getWidget")
-    fun getWidget(@PathVariable id: UUID): WidgetDto = error("not called")
+    fun getWidget(
+        @PathVariable id: UUID,
+    ): WidgetDto = error("not called")
 
     @GetMapping("/api/v1/public-widgets")
     @Operation(operationId = "listPublicWidgets")

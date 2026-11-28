@@ -14,7 +14,6 @@ import tools.jackson.databind.json.JsonMapper
 
 /** Helpers for E2E tests that go through the auth endpoints. */
 abstract class AuthE2eTestBase : E2eTest() {
-
     @Autowired
     protected lateinit var jdbcTemplate: JdbcTemplate
 
@@ -22,7 +21,12 @@ abstract class AuthE2eTestBase : E2eTest() {
 
     protected fun json(vararg fields: Pair<String, Any?>): String = jsonMapper.writeValueAsString(mapOf(*fields))
 
-    protected fun post(path: String, json: String, token: String? = null, cookie: String? = null): HttpResult =
+    protected fun post(
+        path: String,
+        json: String,
+        token: String? = null,
+        cookie: String? = null,
+    ): HttpResult =
         call(
             HttpMethod.POST,
             "/api/v1/auth/$path",
@@ -35,7 +39,8 @@ abstract class AuthE2eTestBase : E2eTest() {
         email: String = "ann@example.com",
         password: String = this.password,
         transport: String = "BODY",
-    ): HttpResult = post("register", json("email" to email, "password" to password, "refreshTokenTransport" to transport))
+    ): HttpResult =
+        post("register", json("email" to email, "password" to password, "refreshTokenTransport" to transport))
 
     protected fun login(
         email: String = "ann@example.com",
@@ -43,19 +48,31 @@ abstract class AuthE2eTestBase : E2eTest() {
         transport: String = "BODY",
     ): HttpResult = post("login", json("email" to email, "password" to password, "refreshTokenTransport" to transport))
 
-    protected fun refreshWithBody(refreshToken: String?, cookie: String? = null): HttpResult =
-        post("refresh", transportJson("BODY", refreshToken), cookie = cookie)
+    protected fun refreshWithBody(
+        refreshToken: String?,
+        cookie: String? = null,
+    ): HttpResult = post("refresh", transportJson("BODY", refreshToken), cookie = cookie)
 
-    protected fun refreshWithCookie(cookie: String?, bodyToken: String? = null): HttpResult =
-        post("refresh", transportJson("COOKIE", bodyToken), cookie = cookie)
+    protected fun refreshWithCookie(
+        cookie: String?,
+        bodyToken: String? = null,
+    ): HttpResult = post("refresh", transportJson("COOKIE", bodyToken), cookie = cookie)
 
-    protected fun logoutWithBody(refreshToken: String?, token: String? = null, cookie: String? = null): HttpResult =
-        post("logout", transportJson("BODY", refreshToken), token = token, cookie = cookie)
+    protected fun logoutWithBody(
+        refreshToken: String?,
+        token: String? = null,
+        cookie: String? = null,
+    ): HttpResult = post("logout", transportJson("BODY", refreshToken), token = token, cookie = cookie)
 
-    protected fun logoutWithCookie(cookie: String?, bodyToken: String? = null): HttpResult =
-        post("logout", transportJson("COOKIE", bodyToken), cookie = cookie)
+    protected fun logoutWithCookie(
+        cookie: String?,
+        bodyToken: String? = null,
+    ): HttpResult = post("logout", transportJson("COOKIE", bodyToken), cookie = cookie)
 
-    private fun transportJson(transport: String, refreshToken: String?): String =
+    private fun transportJson(
+        transport: String,
+        refreshToken: String?,
+    ): String =
         if (refreshToken == null) {
             json("refreshTokenTransport" to transport)
         } else {
@@ -95,7 +112,12 @@ abstract class AuthE2eTestBase : E2eTest() {
         assertThat(attributes).contains("SameSite=Strict")
         assertThat(attributes).contains("Path=/api/v1/auth")
         assertThat(attributes).contains("Max-Age=$maxAge")
-        assertThat(attributes).none { it.transform { attribute -> attribute.startsWith("Domain", ignoreCase = true) }.isEqualTo(true) }
+        assertThat(attributes).none {
+            it
+                .transform { attribute ->
+                    attribute.startsWith("Domain", ignoreCase = true)
+                }.isEqualTo(true)
+        }
         return value
     }
 
@@ -109,12 +131,18 @@ abstract class AuthE2eTestBase : E2eTest() {
         return this
     }
 
-    protected fun HttpResult.assertFieldErrors(code: ErrorCode, vararg expected: Map<String, Any?>) {
+    protected fun HttpResult.assertFieldErrors(
+        code: ErrorCode,
+        vararg expected: Map<String, Any?>,
+    ) {
         assertThat(assertProblem(code).fieldErrors).isEqualTo(expected.toList())
     }
 
-    protected fun fieldError(field: String, code: String, vararg limits: Pair<String, Int>): Map<String, Any?> =
-        mapOf("field" to field, "code" to code) + limits
+    protected fun fieldError(
+        field: String,
+        code: String,
+        vararg limits: Pair<String, Int>,
+    ): Map<String, Any?> = mapOf("field" to field, "code" to code) + limits
 
     protected fun count(table: String): Int =
         jdbcTemplate.queryForObject("SELECT count(*) FROM user_service.$table", Int::class.java)!!

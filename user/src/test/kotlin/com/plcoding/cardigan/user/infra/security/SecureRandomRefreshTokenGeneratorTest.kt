@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test
 import java.util.Base64
 
 class SecureRandomRefreshTokenGeneratorTest {
-
     private val generator = SecureRandomRefreshTokenGenerator()
 
     @Test

@@ -44,8 +44,11 @@ class RequestSizeLimitFilter(
     private val properties: WebProperties,
     private val problemResponseWriter: ProblemResponseWriter,
 ) : OncePerRequestFilter() {
-
-    override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
+    override fun doFilterInternal(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        chain: FilterChain,
+    ) {
         val path = request.requestURI.removePrefix(request.contextPath)
         val limit = (properties.maxRequestBodySizePerPath[path] ?: properties.maxRequestBodySize).toBytes()
         if (request.contentLengthLong > limit) {
@@ -55,9 +58,10 @@ class RequestSizeLimitFilter(
         chain.doFilter(LimitedRequest(request, limit), response)
     }
 
-    private class LimitedRequest(request: HttpServletRequest, private val limit: Long) :
-        HttpServletRequestWrapper(request) {
-
+    private class LimitedRequest(
+        request: HttpServletRequest,
+        private val limit: Long,
+    ) : HttpServletRequestWrapper(request) {
         private val stream by lazy { LimitedInputStream(request.inputStream, limit) }
 
         override fun getInputStream(): ServletInputStream = stream
@@ -73,7 +77,6 @@ class RequestSizeLimitFilter(
         private val delegate: ServletInputStream,
         private val limit: Long,
     ) : ServletInputStream() {
-
         private var count = 0L
 
         override fun read(): Int {
@@ -82,7 +85,11 @@ class RequestSizeLimitFilter(
             return b
         }
 
-        override fun read(b: ByteArray, off: Int, len: Int): Int {
+        override fun read(
+            b: ByteArray,
+            off: Int,
+            len: Int,
+        ): Int {
             val n = delegate.read(b, off, len)
             if (n > 0) count(n)
             return n
@@ -103,7 +110,6 @@ class RequestSizeLimitFilter(
 
 @Configuration(proxyBeanMethods = false)
 class RequestSizeLimitConfig {
-
     /** Runs right after the security chain, so a missing token (401) wins over a large body (413). */
     @Bean
     fun requestSizeLimitFilter(

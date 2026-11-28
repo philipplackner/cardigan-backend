@@ -9,7 +9,6 @@ import java.util.UUID
 class FakeBoardRepository(
     private val columns: FakeColumnRepository,
 ) : BoardRepository {
-
     private val boards = linkedMapOf<UUID, Board>()
 
     var saveCount = 0
@@ -17,9 +16,15 @@ class FakeBoardRepository(
 
     val all: List<Board> get() = boards.values.toList()
 
-    override fun findByIdAndOwnerId(id: UUID, ownerId: UUID): Board? = boards[id]?.takeIf { it.ownerId == ownerId }
+    override fun findByIdAndOwnerId(
+        id: UUID,
+        ownerId: UUID,
+    ): Board? = boards[id]?.takeIf { it.ownerId == ownerId }
 
-    override fun lockByIdAndOwner(id: UUID, ownerId: UUID): Board? = findByIdAndOwnerId(id, ownerId)
+    override fun lockByIdAndOwner(
+        id: UUID,
+        ownerId: UUID,
+    ): Board? = findByIdAndOwnerId(id, ownerId)
 
     // Postgres orders uuid values like their lowercase strings; UUID.compareTo compares signed longs.
     override fun findAllByOwnerId(ownerId: UUID): List<Board> =
@@ -31,8 +36,10 @@ class FakeBoardRepository(
                     .thenBy { it.id.toString() },
             )
 
-    override fun existsByOwnerIdAndKey(ownerId: UUID, key: String): Boolean =
-        boards.values.any { it.ownerId == ownerId && it.key == key }
+    override fun existsByOwnerIdAndKey(
+        ownerId: UUID,
+        key: String,
+    ): Boolean = boards.values.any { it.ownerId == ownerId && it.key == key }
 
     override fun save(board: Board): Board {
         if (boards.values.any { it.id != board.id && it.ownerId == board.ownerId && it.key == board.key }) {

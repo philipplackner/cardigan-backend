@@ -25,22 +25,27 @@ import tools.jackson.databind.json.JsonMapper
 import java.io.ByteArrayInputStream
 
 class RequestSizeLimitFilterTest {
-
-    private val jsonMapper = JsonMapper.builder().addMixIn(ProblemDetail::class.java, ProblemDetailMixin::class.java).build()
-    private val filter = RequestSizeLimitFilter(
-        WebProperties(
-            maxRequestBodySize = DataSize.ofBytes(LIMIT.toLong()),
-            maxRequestBodySizePerPath = mapOf(IMPORT_PATH to DataSize.ofBytes(IMPORT_LIMIT.toLong())),
-        ),
-        ProblemResponseWriter(jsonMapper),
-    )
+    private val jsonMapper =
+        JsonMapper
+            .builder()
+            .addMixIn(
+                ProblemDetail::class.java,
+                ProblemDetailMixin::class.java,
+            ).build()
+    private val filter =
+        RequestSizeLimitFilter(
+            WebProperties(
+                maxRequestBodySize = DataSize.ofBytes(LIMIT.toLong()),
+                maxRequestBodySizePerPath = mapOf(IMPORT_PATH to DataSize.ofBytes(IMPORT_LIMIT.toLong())),
+            ),
+            ProblemResponseWriter(jsonMapper),
+        )
 
     /** A stream body without `Content-Length`, as a chunked request sends it. */
     private class StreamedRequest(
         body: ByteArray,
         private val ready: Boolean = true,
     ) : MockHttpServletRequest("POST", "/api/v1/boards") {
-
         private val input = FakeServletInputStream(body, ready)
 
         override fun getContentLengthLong(): Long = -1
@@ -50,14 +55,20 @@ class RequestSizeLimitFilterTest {
         override fun getInputStream(): ServletInputStream = input
     }
 
-    private class FakeServletInputStream(body: ByteArray, private val ready: Boolean) : ServletInputStream() {
-
+    private class FakeServletInputStream(
+        body: ByteArray,
+        private val ready: Boolean,
+    ) : ServletInputStream() {
         private val bytes = ByteArrayInputStream(body)
         var listener: ReadListener? = null
 
         override fun read(): Int = bytes.read()
 
-        override fun read(b: ByteArray, off: Int, len: Int): Int = bytes.read(b, off, len)
+        override fun read(
+            b: ByteArray,
+            off: Int,
+            len: Int,
+        ): Int = bytes.read(b, off, len)
 
         override fun isFinished(): Boolean = bytes.available() == 0
 
@@ -71,12 +82,18 @@ class RequestSizeLimitFilterTest {
     private class CapturingChain : FilterChain {
         var request: ServletRequest? = null
 
-        override fun doFilter(request: ServletRequest, response: jakarta.servlet.ServletResponse) {
+        override fun doFilter(
+            request: ServletRequest,
+            response: jakarta.servlet.ServletResponse,
+        ) {
             this.request = request
         }
     }
 
-    private fun declaredRequest(size: Int, path: String = "/api/v1/boards") = MockHttpServletRequest("POST", path).apply {
+    private fun declaredRequest(
+        size: Int,
+        path: String = "/api/v1/boards",
+    ) = MockHttpServletRequest("POST", path).apply {
         setContent(ByteArray(size) { 'a'.code.toByte() })
     }
 
@@ -212,11 +229,14 @@ class RequestSizeLimitFilterTest {
     @Test
     fun `read listener is handed to the original stream`() {
         val original = StreamedRequest(ByteArray(1))
-        val listener = object : ReadListener {
-            override fun onDataAvailable() = Unit
-            override fun onAllDataRead() = Unit
-            override fun onError(t: Throwable) = Unit
-        }
+        val listener =
+            object : ReadListener {
+                override fun onDataAvailable() = Unit
+
+                override fun onAllDataRead() = Unit
+
+                override fun onError(t: Throwable) = Unit
+            }
 
         passThrough(original).inputStream.setReadListener(listener)
 

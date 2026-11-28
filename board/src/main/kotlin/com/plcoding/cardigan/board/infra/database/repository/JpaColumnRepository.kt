@@ -14,9 +14,10 @@ class JpaColumnRepository(
     private val springDataColumnRepository: SpringDataColumnRepository,
     private val entityManager: EntityManager,
 ) : ColumnRepository {
-
-    override fun findByIdAndBoardId(id: UUID, boardId: UUID): Column? =
-        springDataColumnRepository.findByIdAndBoardId(id, boardId)?.toColumn()
+    override fun findByIdAndBoardId(
+        id: UUID,
+        boardId: UUID,
+    ): Column? = springDataColumnRepository.findByIdAndBoardId(id, boardId)?.toColumn()
 
     override fun findAllByBoardId(boardId: UUID): List<Column> =
         springDataColumnRepository.findAllByBoardIdOrderByPositionAsc(boardId).map { it.toColumn() }
@@ -33,11 +34,19 @@ class JpaColumnRepository(
         springDataColumnRepository.deleteById(id)
     }
 
-    override fun shiftPositions(boardId: UUID, first: Int, last: Int, delta: Int) {
+    override fun shiftPositions(
+        boardId: UUID,
+        first: Int,
+        last: Int,
+        delta: Int,
+    ) {
         springDataColumnRepository.shiftPositions(boardId, first, last, delta)
     }
 
-    override fun closeGapAfter(boardId: UUID, position: Int) {
+    override fun closeGapAfter(
+        boardId: UUID,
+        position: Int,
+    ) {
         springDataColumnRepository.closeGapAfter(boardId, position)
     }
 }

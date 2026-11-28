@@ -16,14 +16,14 @@ import org.slf4j.LoggerFactory
 import java.util.UUID
 
 class SessionCleanupServiceTest {
-
     private val clock = MutableClock()
     private val sessions = FakeSessionRepository(FakeRefreshTokenRepository())
     private val logger = LoggerFactory.getLogger(SessionCleanupService::class.java) as Logger
-    private val appender = ListAppender<ILoggingEvent>().also {
-        it.start()
-        logger.addAppender(it)
-    }
+    private val appender =
+        ListAppender<ILoggingEvent>().also {
+            it.start()
+            logger.addAppender(it)
+        }
 
     @AfterEach
     fun detachAppender() {

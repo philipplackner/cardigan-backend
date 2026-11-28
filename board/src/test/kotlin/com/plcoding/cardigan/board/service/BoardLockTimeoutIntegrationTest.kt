@@ -13,7 +13,6 @@ import org.springframework.dao.PessimisticLockingFailureException
     properties = ["cardigan.board.lock-timeout=300ms"],
 )
 class BoardLockTimeoutIntegrationTest : BoardIntegrationTest() {
-
     @Test
     fun `column create fails once the lock timeout has passed and stores nothing`() {
         val board = boardService.create(owner, "Roadmap", "CRD")

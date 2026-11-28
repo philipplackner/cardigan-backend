@@ -16,7 +16,6 @@ import java.sql.Timestamp
 import java.time.Duration
 
 class SessionCleanupServiceIntegrationTest : UserIntegrationTest() {
-
     @Autowired
     private lateinit var authService: AuthService
 
@@ -31,16 +30,18 @@ class SessionCleanupServiceIntegrationTest : UserIntegrationTest() {
     private fun login(email: String = "ann@example.com"): IssuedTokens =
         authService.login(Credentials(email, password, BODY)).tokens
 
-    private fun refresh(token: String): IssuedTokens = (authService.refresh(BODY, token) as RefreshResult.Refreshed).tokens
+    private fun refresh(token: String): IssuedTokens =
+        (authService.refresh(BODY, token) as RefreshResult.Refreshed).tokens
 
     private fun count(table: String): Int =
         jdbcTemplate.queryForObject("SELECT count(*) FROM user_service.$table", Int::class.java)!!
 
-    private fun isStored(refreshToken: String): Boolean = jdbcTemplate.queryForObject(
-        "SELECT count(*) FROM user_service.refresh_tokens WHERE token_hash = ?",
-        Int::class.java,
-        hashRefreshToken(refreshToken),
-    ) == 1
+    private fun isStored(refreshToken: String): Boolean =
+        jdbcTemplate.queryForObject(
+            "SELECT count(*) FROM user_service.refresh_tokens WHERE token_hash = ?",
+            Int::class.java,
+            hashRefreshToken(refreshToken),
+        ) == 1
 
     @Test
     fun `logged-out session and all its tokens are deleted`() {
@@ -117,7 +118,11 @@ class SessionCleanupServiceIntegrationTest : UserIntegrationTest() {
         assertThat(count("sessions")).isEqualTo(1)
         assertThat(count("refresh_tokens")).isEqualTo(41)
         assertThat(authService.refresh(BODY, first.refreshToken)).isEqualTo(RefreshResult.Rejected)
-        val revokedAt = jdbcTemplate.queryForObject("SELECT revoked_at FROM user_service.sessions", Timestamp::class.java)
+        val revokedAt =
+            jdbcTemplate.queryForObject(
+                "SELECT revoked_at FROM user_service.sessions",
+                Timestamp::class.java,
+            )
         assertThat(revokedAt).isNotNull()
         assertThat(authService.refresh(BODY, current.refreshToken)).isEqualTo(RefreshResult.Rejected)
     }

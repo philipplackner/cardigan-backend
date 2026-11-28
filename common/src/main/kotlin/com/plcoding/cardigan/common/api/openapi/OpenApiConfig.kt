@@ -14,18 +14,18 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 @Configuration(proxyBeanMethods = false)
 class OpenApiConfig {
-
     /** One relative server, so nothing in the document depends on the host or port. */
     @Bean
-    fun cardiganOpenApi(): OpenAPI = OpenAPI()
-        .info(Info().title("Cardigan API").version("v1"))
-        .servers(listOf(Server().url("/")))
-        .components(
-            Components().addSecuritySchemes(
-                BEARER_AUTH,
-                SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT"),
-            ),
-        )
+    fun cardiganOpenApi(): OpenAPI =
+        OpenAPI()
+            .info(Info().title("Cardigan API").version("v1"))
+            .servers(listOf(Server().url("/")))
+            .components(
+                Components().addSecuritySchemes(
+                    BEARER_AUTH,
+                    SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").bearerFormat("JWT"),
+                ),
+            )
 
     @Bean
     fun cardiganOpenApiCustomizer(

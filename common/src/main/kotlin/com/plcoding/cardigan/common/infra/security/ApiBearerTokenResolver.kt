@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component
 class ApiBearerTokenResolver(
     private val publicRoutes: PublicRouteRegistry,
 ) : BearerTokenResolver {
-
     private val delegate = DefaultBearerTokenResolver()
 
     override fun resolve(request: HttpServletRequest): String? =

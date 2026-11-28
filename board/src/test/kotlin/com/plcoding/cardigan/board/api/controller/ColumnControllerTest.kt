@@ -31,13 +31,13 @@ import java.time.Instant
 import java.util.UUID
 
 class ColumnControllerTest {
-
     private val start = Instant.parse("2026-11-15T09:15:30.123Z")
     private val clock = MutableClock(start)
     private val columns = FakeColumnRepository()
     private val boards = FakeBoardRepository(columns)
     private val boardService = BoardService(boards, columns, clock)
-    private val controller = ColumnController(boardService, ColumnService(boards, columns, clock), plainRequestValidator)
+    private val controller =
+        ColumnController(boardService, ColumnService(boards, columns, clock), plainRequestValidator)
 
     private val ann = UUID.randomUUID()
     private val bob = UUID.randomUUID()

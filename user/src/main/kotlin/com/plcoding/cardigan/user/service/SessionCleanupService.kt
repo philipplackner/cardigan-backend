@@ -12,7 +12,6 @@ class SessionCleanupService(
     private val sessionRepository: SessionRepository,
     private val clock: Clock,
 ) {
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     /**

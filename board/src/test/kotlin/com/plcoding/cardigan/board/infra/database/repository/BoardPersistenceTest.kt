@@ -20,7 +20,6 @@ import java.util.UUID
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, BoardConfig::class, JpaBoardRepository::class, JpaColumnRepository::class)
 abstract class BoardPersistenceTest {
-
     @Autowired
     protected lateinit var boards: JpaBoardRepository
 
@@ -54,8 +53,15 @@ abstract class BoardPersistenceTest {
         entityManager.clear()
     }
 
-    protected fun nativeInstant(sql: String, id: UUID): Instant {
-        val stored = entityManager.entityManager.createNativeQuery(sql).setParameter(1, id).singleResult
+    protected fun nativeInstant(
+        sql: String,
+        id: UUID,
+    ): Instant {
+        val stored =
+            entityManager.entityManager
+                .createNativeQuery(sql)
+                .setParameter(1, id)
+                .singleResult
         return when (stored) {
             is Instant -> stored
             is OffsetDateTime -> stored.toInstant()
@@ -64,6 +70,14 @@ abstract class BoardPersistenceTest {
         }
     }
 
-    protected fun nativeCount(sql: String, id: UUID): Long =
-        (entityManager.entityManager.createNativeQuery(sql).setParameter(1, id).singleResult as Number).toLong()
+    protected fun nativeCount(
+        sql: String,
+        id: UUID,
+    ): Long =
+        (
+            entityManager.entityManager
+                .createNativeQuery(sql)
+                .setParameter(1, id)
+                .singleResult as Number
+        ).toLong()
 }

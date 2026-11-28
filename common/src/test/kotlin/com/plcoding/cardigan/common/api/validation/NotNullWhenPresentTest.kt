@@ -16,19 +16,19 @@ import tools.jackson.module.kotlin.KotlinModule
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class NotNullWhenPresentTest {
-
     private val factory = Validation.buildDefaultValidatorFactory()
     private val validator = factory.validator
-    private val jsonMapper = JsonMapper.builder()
-        .addModule(KotlinModule.Builder().build())
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-        .build()
+    private val jsonMapper =
+        JsonMapper
+            .builder()
+            .addModule(KotlinModule.Builder().build())
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build()
 
     @AfterAll
     fun close() = factory.close()
 
     class UpdateThingRequest : PatchRequest() {
-
         @ValidText(min = 1, max = 5)
         var name: String? = null
             set(value) {

@@ -8,7 +8,6 @@ import java.time.Instant
 import java.util.UUID
 
 class LabelTest {
-
     private val now = Instant.parse("2026-11-15T09:15:30.123Z")
 
     private fun label(name: String) = Label(UUID.randomUUID(), UUID.randomUUID(), name, LabelColor.RED, now, now)
@@ -16,8 +15,26 @@ class LabelTest {
     @Test
     fun `palette has exactly the 20 decided names`() {
         assertThat(LabelColor.entries.map { it.name }).containsExactly(
-            "AMBER", "BLUE", "BROWN", "CYAN", "EMERALD", "FUCHSIA", "GREEN", "INDIGO", "LIME", "OLIVE",
-            "ORANGE", "PINK", "PURPLE", "RED", "ROSE", "SKY", "SLATE", "TEAL", "VIOLET", "YELLOW",
+            "AMBER",
+            "BLUE",
+            "BROWN",
+            "CYAN",
+            "EMERALD",
+            "FUCHSIA",
+            "GREEN",
+            "INDIGO",
+            "LIME",
+            "OLIVE",
+            "ORANGE",
+            "PINK",
+            "PURPLE",
+            "RED",
+            "ROSE",
+            "SKY",
+            "SLATE",
+            "TEAL",
+            "VIOLET",
+            "YELLOW",
         )
     }
 

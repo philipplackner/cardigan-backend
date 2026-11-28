@@ -58,9 +58,14 @@ data class TestRequest(
     val items: List<TestNestedRequest>? = null,
 )
 
-data class WhoAmIDto(val userId: UUID)
+data class WhoAmIDto(
+    val userId: UUID,
+)
 
-data class ThingDto(val id: UUID, val createdAt: Instant)
+data class ThingDto(
+    val id: UUID,
+    val createdAt: Instant,
+)
 
 /**
  * Endpoints that exist only in E2E tests. `@TestComponent` keeps it out of component scanning, so
@@ -72,7 +77,6 @@ data class ThingDto(val id: UUID, val createdAt: Instant)
 class TestApiController(
     private val requestValidator: RequestValidator,
 ) {
-
     @GetMapping("/whoami")
     fun whoami(): WhoAmIDto = WhoAmIDto(requestUserId)
 
@@ -80,23 +84,31 @@ class TestApiController(
     fun boom(): Nothing = throw IllegalStateException("boom-marker from the endpoint")
 
     @PostMapping("/echo")
-    fun echo(@Valid @RequestBody request: TestRequest): TestRequest = request
+    fun echo(
+        @Valid @RequestBody request: TestRequest,
+    ): TestRequest = request
 
     @PutMapping("/things/{id}")
-    fun updateThing(@RequestBody request: TestRequest, @PathVariable id: UUID): ThingDto {
+    fun updateThing(
+        @RequestBody request: TestRequest,
+        @PathVariable id: UUID,
+    ): ThingDto {
         if (id != EXISTING_THING_ID) throw ResourceNotFoundException("No thing $id")
         requestValidator.validate(request)
         return ThingDto(id, Instant.parse("2026-11-15T09:15:30Z"))
     }
 
     @GetMapping("/things/{id}")
-    fun getThing(@PathVariable id: UUID): ThingDto = ThingDto(id, Instant.parse("2026-11-15T09:15:30Z"))
+    fun getThing(
+        @PathVariable id: UUID,
+    ): ThingDto = ThingDto(id, Instant.parse("2026-11-15T09:15:30Z"))
 
     @PostMapping("/conflict")
     fun conflict(): Nothing = throw UniquenessConflictException("key", "Key ab is used")
 
     @PostMapping("/out-of-range")
     fun outOfRange(): Nothing = throw FieldOutOfRangeException("position", min = 0, max = 2, message = "range-marker")
+
     @PostMapping("/invalid-credentials")
     fun invalidCredentials(): Nothing = throw InvalidCredentialsException("credentials-marker")
 
@@ -104,7 +116,9 @@ class TestApiController(
     fun invalidRefreshToken(): Nothing = throw InvalidRefreshTokenException("refresh-marker")
 
     @PostMapping("/rate-limited/{seconds}")
-    fun rateLimited(@PathVariable seconds: Long): Nothing = throw RateLimitedException(seconds, "limit-marker")
+    fun rateLimited(
+        @PathVariable seconds: Long,
+    ): Nothing = throw RateLimitedException(seconds, "limit-marker")
 
     @GetMapping("/public")
     fun publicEndpoint(): ThingDto = ThingDto(EXISTING_THING_ID, Instant.parse("2026-11-15T09:15:30Z"))
@@ -119,8 +133,11 @@ class TestApiController(
 
 /** Throws on one path, to test failures in filters that run before any endpoint. */
 class FailingTestFilter : OncePerRequestFilter() {
-
-    override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
+    override fun doFilterInternal(
+        request: HttpServletRequest,
+        response: HttpServletResponse,
+        chain: FilterChain,
+    ) {
         if (request.requestURI == "/api/v1/test/boom-filter") {
             throw IllegalStateException("boom-marker from the filter")
         }

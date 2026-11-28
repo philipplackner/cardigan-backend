@@ -29,8 +29,10 @@ annotation class ValidBoardKey(
 )
 
 class ValidBoardKeyValidator : ConstraintValidator<ValidBoardKey, String> {
-
-    override fun isValid(value: String?, context: ConstraintValidatorContext): Boolean {
+    override fun isValid(
+        value: String?,
+        context: ConstraintValidatorContext,
+    ): Boolean {
         if (value == null) return true
         val code = checkBoardKey(normalizeBoardKey(value)) ?: return true
         context.reject(

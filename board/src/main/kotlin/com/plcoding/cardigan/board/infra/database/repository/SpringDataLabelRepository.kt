@@ -10,18 +10,29 @@ import org.springframework.data.repository.query.Param
 import java.util.UUID
 
 interface SpringDataLabelRepository : JpaRepository<LabelEntity, UUID> {
-
-    fun findByIdAndOwnerId(id: UUID, ownerId: UUID): LabelEntity?
+    fun findByIdAndOwnerId(
+        id: UUID,
+        ownerId: UUID,
+    ): LabelEntity?
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    fun findWithLockByIdAndOwnerId(id: UUID, ownerId: UUID): LabelEntity?
+    fun findWithLockByIdAndOwnerId(
+        id: UUID,
+        ownerId: UUID,
+    ): LabelEntity?
 
     fun findAllByOwnerId(ownerId: UUID): List<LabelEntity>
 
-    fun existsByOwnerIdAndNameKey(ownerId: UUID, nameKey: String): Boolean
+    fun existsByOwnerIdAndNameKey(
+        ownerId: UUID,
+        nameKey: String,
+    ): Boolean
 
     // A derived delete would load the label first. The row count is the only "found" signal.
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from LabelEntity l where l.id = :id and l.ownerId = :ownerId")
-    fun deleteByIdAndOwnerId(@Param("id") id: UUID, @Param("ownerId") ownerId: UUID): Int
+    fun deleteByIdAndOwnerId(
+        @Param("id") id: UUID,
+        @Param("ownerId") ownerId: UUID,
+    ): Int
 }

@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test
 import java.util.Locale
 
 class CaseFoldingTest {
-
     @Test
     fun `ASCII letters fold to lowercase`() {
         assertThat(foldCase("Bug")).isEqualTo(foldCase("bug"))

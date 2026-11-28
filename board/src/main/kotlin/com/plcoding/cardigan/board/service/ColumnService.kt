@@ -25,35 +25,48 @@ class ColumnService(
     private val columnRepository: ColumnRepository,
     private val clock: Clock,
 ) {
-
     @Transactional(readOnly = true)
-    fun get(ownerId: UUID, boardId: UUID, columnId: UUID): Column {
+    fun get(
+        ownerId: UUID,
+        boardId: UUID,
+        columnId: UUID,
+    ): Column {
         boardRepository.findByIdAndOwnerId(boardId, ownerId) ?: throw BoardNotFoundException(boardId)
         return columnIn(boardId, columnId)
     }
 
     /** Adds a column after the board's last one. */
     @Transactional
-    fun create(ownerId: UUID, boardId: UUID, name: String): Column {
+    fun create(
+        ownerId: UUID,
+        boardId: UUID,
+        name: String,
+    ): Column {
         val board = lockBoard(ownerId, boardId)
         val now = clock.instant()
-        val column = columnRepository.save(
-            Column(
-                id = UUID.randomUUID(),
-                boardId = boardId,
-                name = name,
-                position = columnRepository.countByBoardId(boardId),
-                createdAt = now,
-                updatedAt = now,
-            ),
-        )
+        val column =
+            columnRepository.save(
+                Column(
+                    id = UUID.randomUUID(),
+                    boardId = boardId,
+                    name = name,
+                    position = columnRepository.countByBoardId(boardId),
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
         touch(board, now)
         return column
     }
 
     /** Renames the column. A null [name] or the stored name changes nothing, `updatedAt` included. */
     @Transactional
-    fun rename(ownerId: UUID, boardId: UUID, columnId: UUID, name: String?): Column {
+    fun rename(
+        ownerId: UUID,
+        boardId: UUID,
+        columnId: UUID,
+        name: String?,
+    ): Column {
         val board = lockBoard(ownerId, boardId)
         val now = clock.instant()
         val column = columnIn(boardId, columnId)
@@ -69,7 +82,12 @@ class ColumnService(
      * nothing.
      */
     @Transactional
-    fun move(ownerId: UUID, boardId: UUID, columnId: UUID, position: BigInteger): List<Column> {
+    fun move(
+        ownerId: UUID,
+        boardId: UUID,
+        columnId: UUID,
+        position: BigInteger,
+    ): List<Column> {
         val board = lockBoard(ownerId, boardId)
         val now = clock.instant()
         val column = columnIn(boardId, columnId)
@@ -84,7 +102,11 @@ class ColumnService(
     }
 
     @Transactional
-    fun delete(ownerId: UUID, boardId: UUID, columnId: UUID) {
+    fun delete(
+        ownerId: UUID,
+        boardId: UUID,
+        columnId: UUID,
+    ) {
         val board = lockBoard(ownerId, boardId)
         val now = clock.instant()
         val column = columnIn(boardId, columnId)
@@ -93,13 +115,20 @@ class ColumnService(
         touch(board, now)
     }
 
-    private fun lockBoard(ownerId: UUID, boardId: UUID): Board =
-        boardRepository.lockByIdAndOwner(boardId, ownerId) ?: throw BoardNotFoundException(boardId)
+    private fun lockBoard(
+        ownerId: UUID,
+        boardId: UUID,
+    ): Board = boardRepository.lockByIdAndOwner(boardId, ownerId) ?: throw BoardNotFoundException(boardId)
 
-    private fun columnIn(boardId: UUID, columnId: UUID): Column =
-        columnRepository.findByIdAndBoardId(columnId, boardId) ?: throw ColumnNotFoundException(columnId)
+    private fun columnIn(
+        boardId: UUID,
+        columnId: UUID,
+    ): Column = columnRepository.findByIdAndBoardId(columnId, boardId) ?: throw ColumnNotFoundException(columnId)
 
-    private fun touch(board: Board, now: Instant) {
+    private fun touch(
+        board: Board,
+        now: Instant,
+    ) {
         boardRepository.save(board.copy(updatedAt = now))
     }
 

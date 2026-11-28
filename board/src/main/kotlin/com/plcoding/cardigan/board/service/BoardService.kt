@@ -23,27 +23,39 @@ class BoardService(
     private val columnRepository: ColumnRepository,
     private val clock: Clock,
 ) {
-
     /** Creates the board together with its default columns, or nothing at all. */
     @Transactional
-    fun create(ownerId: UUID, name: String, key: String): BoardWithColumns {
+    fun create(
+        ownerId: UUID,
+        name: String,
+        key: String,
+    ): BoardWithColumns {
         val now = clock.instant()
         if (boardRepository.existsByOwnerIdAndKey(ownerId, key)) throw BoardKeyAlreadyUsedException(key)
-        val board = boardRepository.save(
-            Board(id = UUID.randomUUID(), ownerId = ownerId, name = name, key = key, createdAt = now, updatedAt = now),
-        )
-        val columns = DEFAULT_COLUMN_NAMES.mapIndexed { position, columnName ->
-            columnRepository.save(
-                Column(
+        val board =
+            boardRepository.save(
+                Board(
                     id = UUID.randomUUID(),
-                    boardId = board.id,
-                    name = columnName,
-                    position = position,
+                    ownerId = ownerId,
+                    name = name,
+                    key = key,
                     createdAt = now,
                     updatedAt = now,
                 ),
             )
-        }
+        val columns =
+            DEFAULT_COLUMN_NAMES.mapIndexed { position, columnName ->
+                columnRepository.save(
+                    Column(
+                        id = UUID.randomUUID(),
+                        boardId = board.id,
+                        name = columnName,
+                        position = position,
+                        createdAt = now,
+                        updatedAt = now,
+                    ),
+                )
+            }
         return BoardWithColumns(board, columns)
     }
 
@@ -52,26 +64,37 @@ class BoardService(
 
     // One snapshot for both reads, so a board deleted in between never comes back without columns.
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-    fun get(ownerId: UUID, boardId: UUID): BoardWithColumns {
+    fun get(
+        ownerId: UUID,
+        boardId: UUID,
+    ): BoardWithColumns {
         val board = boardRepository.findByIdAndOwnerId(boardId, ownerId) ?: throw BoardNotFoundException(boardId)
         return BoardWithColumns(board, columnRepository.findAllByBoardId(boardId))
     }
 
     /** Renames the board. A null [name] or the stored name changes nothing, `updatedAt` included. */
     @Transactional
-    fun rename(ownerId: UUID, boardId: UUID, name: String?): BoardWithColumns {
+    fun rename(
+        ownerId: UUID,
+        boardId: UUID,
+        name: String?,
+    ): BoardWithColumns {
         val board = boardRepository.lockByIdAndOwner(boardId, ownerId) ?: throw BoardNotFoundException(boardId)
         val now = clock.instant()
-        val renamed = if (name == null || name == board.name) {
-            board
-        } else {
-            boardRepository.save(board.copy(name = name, updatedAt = now))
-        }
+        val renamed =
+            if (name == null || name == board.name) {
+                board
+            } else {
+                boardRepository.save(board.copy(name = name, updatedAt = now))
+            }
         return BoardWithColumns(renamed, columnRepository.findAllByBoardId(boardId))
     }
 
     @Transactional
-    fun delete(ownerId: UUID, boardId: UUID) {
+    fun delete(
+        ownerId: UUID,
+        boardId: UUID,
+    ) {
         val board = boardRepository.lockByIdAndOwner(boardId, ownerId) ?: throw BoardNotFoundException(boardId)
         boardRepository.delete(board.id)
     }

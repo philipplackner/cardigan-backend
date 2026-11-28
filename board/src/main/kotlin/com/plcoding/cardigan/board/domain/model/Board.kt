@@ -12,7 +12,6 @@ data class Board(
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
-
     init {
         require(checkBoardKey(key) == null) { "Board key must be 2 to 5 letters A to Z" }
     }

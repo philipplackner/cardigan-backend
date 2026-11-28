@@ -18,7 +18,6 @@ import java.time.Instant
 @ActiveProfiles("test")
 @Import(UserTestConfig::class)
 abstract class UserIntegrationTest {
-
     @Autowired
     protected lateinit var clock: MutableClock
 

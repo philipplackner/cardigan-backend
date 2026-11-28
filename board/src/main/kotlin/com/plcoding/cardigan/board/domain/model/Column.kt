@@ -12,7 +12,6 @@ data class Column(
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
-
     init {
         require(position >= 0) { "Position must not be negative" }
     }

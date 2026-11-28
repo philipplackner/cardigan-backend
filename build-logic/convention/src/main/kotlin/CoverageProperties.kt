@@ -11,7 +11,11 @@ internal const val COMPARE_BRANCH_PROPERTY = "coverage.compareBranch"
  * module names. Returns all [optedIn] modules when [raw] is null. Fails on an empty list, an empty
  * entry or a module that hasn't opted in.
  */
-internal fun parseModuleSelection(property: String, raw: String?, optedIn: Set<String>): List<String> {
+internal fun parseModuleSelection(
+    property: String,
+    raw: String?,
+    optedIn: Set<String>,
+): List<String> {
     if (raw == null) return optedIn.sorted()
     val valid = optedIn.sorted().joinToString(", ")
     if (raw.isBlank()) {
@@ -26,7 +30,10 @@ internal fun parseModuleSelection(property: String, raw: String?, optedIn: Set<S
     return names.distinct().sorted()
 }
 
-internal fun parsePercent(property: String, raw: String?): BigDecimal? {
+internal fun parsePercent(
+    property: String,
+    raw: String?,
+): BigDecimal? {
     if (raw == null) return null
     val value = raw.trim().toBigDecimalOrNull()
     if (value == null || value < BigDecimal.ZERO || value > BigDecimal(100)) {

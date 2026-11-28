@@ -7,7 +7,6 @@ import com.plcoding.cardigan.user.domain.repository.PasswordHasher
 import com.plcoding.cardigan.user.domain.repository.RefreshTokenGenerator
 
 class FakePasswordHasher : PasswordHasher {
-
     val hashed = mutableListOf<String>()
     val verified = mutableListOf<Pair<String, String?>>()
 
@@ -16,7 +15,10 @@ class FakePasswordHasher : PasswordHasher {
         return hashOf(password)
     }
 
-    override fun matches(password: String, hash: String?): Boolean {
+    override fun matches(
+        password: String,
+        hash: String?,
+    ): Boolean {
         verified += password to hash
         return hash != null && hash == hashOf(password)
     }
@@ -27,18 +29,19 @@ class FakePasswordHasher : PasswordHasher {
 }
 
 class FakeRefreshTokenGenerator : RefreshTokenGenerator {
-
     val generated = mutableListOf<String>()
 
     override fun generate(): String = "refresh-token-${generated.size + 1}".also { generated += it }
 }
 
 class FakeAuthRateLimiter : AuthRateLimiter {
-
     val checks = mutableListOf<Pair<AuthAction, String>>()
     var rejectWithRetryAfter: Long? = null
 
-    override fun check(action: AuthAction, email: String) {
+    override fun check(
+        action: AuthAction,
+        email: String,
+    ) {
         checks += action to email
         rejectWithRetryAfter?.let { throw AuthRateLimitedException(action, it) }
     }

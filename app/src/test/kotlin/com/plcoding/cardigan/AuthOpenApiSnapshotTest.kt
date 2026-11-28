@@ -15,9 +15,10 @@ import java.nio.file.Path
  * `OpenApiSnapshotTest` makes sure the snapshot equals the generated document.
  */
 class AuthOpenApiSnapshotTest {
-
     private val document: Map<String, Any?> =
-        JsonMapper.builder().build()
+        JsonMapper
+            .builder()
+            .build()
             .readValue(Files.readString(Path.of("src/test/resources/openapi/openapi.json")), Map::class.java)
             .asStringMap()
 
@@ -35,12 +36,13 @@ class AuthOpenApiSnapshotTest {
     private fun Map<String, Any?>.schemaOf(status: String): Any? =
         map("responses").map(status).map("content").map("application/json")["schema"]
 
-    private val bodyErrors = mapOf(
-        "400" to "Error codes: VALIDATION_FAILED, MALFORMED_REQUEST",
-        "413" to "Error codes: PAYLOAD_TOO_LARGE",
-        "415" to "Error codes: UNSUPPORTED_MEDIA_TYPE",
-        "500" to "Error codes: INTERNAL_ERROR",
-    )
+    private val bodyErrors =
+        mapOf(
+            "400" to "Error codes: VALIDATION_FAILED, MALFORMED_REQUEST",
+            "413" to "Error codes: PAYLOAD_TOO_LARGE",
+            "415" to "Error codes: UNSUPPORTED_MEDIA_TYPE",
+            "500" to "Error codes: INTERNAL_ERROR",
+        )
 
     @Test
     fun `the four auth operations have the tag Auth and their operation IDs`() {
@@ -50,7 +52,13 @@ class AuthOpenApiSnapshotTest {
             assertThat(operation["operationId"]).isEqualTo(name)
             assertThat(operation["tags"]).isEqualTo(listOf("Auth"))
         }
-        assertThat(document.map("paths").keys.filter { it.startsWith("/api/v1/auth") }.toSet()).isEqualTo(
+        assertThat(
+            document
+                .map("paths")
+                .keys
+                .filter { it.startsWith("/api/v1/auth") }
+                .toSet(),
+        ).isEqualTo(
             setOf("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/logout"),
         )
     }
@@ -72,10 +80,13 @@ class AuthOpenApiSnapshotTest {
         val operation = operation("register")
 
         assertThat(operation.responseDescriptions()).isEqualTo(
-            mapOf("201" to "Created", "409" to "Error codes: CONFLICT", "429" to "Error codes: RATE_LIMITED") + bodyErrors,
+            mapOf("201" to "Created", "409" to "Error codes: CONFLICT", "429" to "Error codes: RATE_LIMITED") +
+                bodyErrors,
         )
         assertThat(operation.schemaOf("201")).isEqualTo(ref("AuthSessionDto"))
-        assertThat(operation.map("requestBody").map("content").map("application/json")["schema"]).isEqualTo(ref("RegisterRequest"))
+        assertThat(
+            operation.map("requestBody").map("content").map("application/json")["schema"],
+        ).isEqualTo(ref("RegisterRequest"))
     }
 
     @Test
@@ -83,10 +94,13 @@ class AuthOpenApiSnapshotTest {
         val operation = operation("login")
 
         assertThat(operation.responseDescriptions()).isEqualTo(
-            mapOf("200" to "OK", "401" to "Error codes: INVALID_CREDENTIALS", "429" to "Error codes: RATE_LIMITED") + bodyErrors,
+            mapOf("200" to "OK", "401" to "Error codes: INVALID_CREDENTIALS", "429" to "Error codes: RATE_LIMITED") +
+                bodyErrors,
         )
         assertThat(operation.schemaOf("200")).isEqualTo(ref("AuthSessionDto"))
-        assertThat(operation.map("requestBody").map("content").map("application/json")["schema"]).isEqualTo(ref("LoginRequest"))
+        assertThat(
+            operation.map("requestBody").map("content").map("application/json")["schema"],
+        ).isEqualTo(ref("LoginRequest"))
     }
 
     @Test
@@ -96,7 +110,9 @@ class AuthOpenApiSnapshotTest {
         assertThat(operation.responseDescriptions())
             .isEqualTo(mapOf("200" to "OK", "401" to "Error codes: INVALID_REFRESH_TOKEN") + bodyErrors)
         assertThat(operation.schemaOf("200")).isEqualTo(ref("AuthTokensDto"))
-        assertThat(operation.map("requestBody").map("content").map("application/json")["schema"]).isEqualTo(ref("RefreshRequest"))
+        assertThat(
+            operation.map("requestBody").map("content").map("application/json")["schema"],
+        ).isEqualTo(ref("RefreshRequest"))
     }
 
     @Test
@@ -105,7 +121,9 @@ class AuthOpenApiSnapshotTest {
 
         assertThat(operation.responseDescriptions()).isEqualTo(mapOf("204" to "No Content") + bodyErrors)
         assertThat(operation.map("responses").map("204")["content"]).isNull()
-        assertThat(operation.map("requestBody").map("content").map("application/json")["schema"]).isEqualTo(ref("LogoutRequest"))
+        assertThat(
+            operation.map("requestBody").map("content").map("application/json")["schema"],
+        ).isEqualTo(ref("LogoutRequest"))
     }
 
     @Test
@@ -129,8 +147,12 @@ class AuthOpenApiSnapshotTest {
 
         assertThat(session["required"]).isEqualTo(listOf("accessToken", "accessTokenExpiresAt", "user"))
         assertThat(tokens["required"]).isEqualTo(listOf("accessToken", "accessTokenExpiresAt"))
-        assertThat(session.map("properties").keys).isEqualTo(setOf("accessToken", "accessTokenExpiresAt", "refreshToken", "user"))
-        assertThat(tokens.map("properties").keys).isEqualTo(setOf("accessToken", "accessTokenExpiresAt", "refreshToken"))
+        assertThat(
+            session.map("properties").keys,
+        ).isEqualTo(setOf("accessToken", "accessTokenExpiresAt", "refreshToken", "user"))
+        assertThat(
+            tokens.map("properties").keys,
+        ).isEqualTo(setOf("accessToken", "accessTokenExpiresAt", "refreshToken"))
         listOf(session, tokens).forEach { schema ->
             assertThat(schema.map("properties").map("refreshToken")).isEqualTo(mapOf("type" to "string"))
             assertThat(schema.map("properties").map("accessTokenExpiresAt"))
@@ -147,8 +169,12 @@ class AuthOpenApiSnapshotTest {
         assertThat(schemas.map("LoginRequest")["required"]).isEqualTo(credentials)
         assertThat(schemas.map("RefreshRequest")["required"]).isEqualTo(listOf("refreshTokenTransport"))
         assertThat(schemas.map("LogoutRequest")["required"]).isEqualTo(listOf("refreshTokenTransport"))
-        assertThat(schemas.map("RefreshRequest").map("properties").keys).isEqualTo(setOf("refreshToken", "refreshTokenTransport"))
-        assertThat(schemas.map("LogoutRequest").map("properties").keys).isEqualTo(setOf("refreshToken", "refreshTokenTransport"))
+        assertThat(
+            schemas.map("RefreshRequest").map("properties").keys,
+        ).isEqualTo(setOf("refreshToken", "refreshTokenTransport"))
+        assertThat(
+            schemas.map("LogoutRequest").map("properties").keys,
+        ).isEqualTo(setOf("refreshToken", "refreshTokenTransport"))
         listOf("RegisterRequest", "LoginRequest", "RefreshRequest", "LogoutRequest").forEach { name ->
             val properties = schemas.map(name).map("properties")
             assertThat(properties["refreshTokenTransport"], name).isEqualTo(ref("RefreshTokenTransportDto"))
@@ -158,7 +184,12 @@ class AuthOpenApiSnapshotTest {
 
     @Test
     fun `transport enum has its two stable values`() {
-        assertThat(schemas.map("RefreshTokenTransportDto")).isEqualTo(mapOf("type" to "string", "enum" to listOf("COOKIE", "BODY")))
+        assertThat(schemas.map("RefreshTokenTransportDto")).isEqualTo(
+            mapOf(
+                "type" to "string",
+                "enum" to listOf("COOKIE", "BODY"),
+            ),
+        )
     }
 
     private fun ref(schema: String) = mapOf("\$ref" to "#/components/schemas/$schema")
@@ -169,9 +200,15 @@ class AuthOpenApiSnapshotTest {
     private fun Any?.asStringMap(): Map<String, Any?> = this as Map<String, Any?>
 
     private companion object {
-        val AUTH_SCHEMAS = setOf(
-            "RegisterRequest", "LoginRequest", "RefreshRequest", "LogoutRequest",
-            "AuthSessionDto", "AuthTokensDto", "RefreshTokenTransportDto",
-        )
+        val AUTH_SCHEMAS =
+            setOf(
+                "RegisterRequest",
+                "LoginRequest",
+                "RefreshRequest",
+                "LogoutRequest",
+                "AuthSessionDto",
+                "AuthTokensDto",
+                "RefreshTokenTransportDto",
+            )
     }
 }

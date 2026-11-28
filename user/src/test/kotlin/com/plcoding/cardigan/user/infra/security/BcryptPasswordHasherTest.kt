@@ -26,14 +26,14 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 class BcryptPasswordHasherTest {
-
     private val hasher = BcryptPasswordHasher(PasswordHashingProperties(bcryptCost = 4, maxConcurrentHashes = 2))
     private val longWait = Duration.ofSeconds(30)
 
     @Test
     fun `hash is BCrypt with the configured cost and without the password`() {
-        val hash = BcryptPasswordHasher(PasswordHashingProperties(bcryptCost = 5, maxConcurrentHashes = 1))
-            .hash("Correct horse 7")
+        val hash =
+            BcryptPasswordHasher(PasswordHashingProperties(bcryptCost = 5, maxConcurrentHashes = 1))
+                .hash("Correct horse 7")
 
         assertThat(hash).matches(Regex("""^\$2[aby]\$05\$[./A-Za-z0-9]{53}$"""))
         assertThat(hash).doesNotContain("Correct horse 7")
@@ -137,11 +137,15 @@ class BcryptPasswordHasherTest {
 
     @Test
     fun `an encoder that returns no hash fails instead of storing null`() {
-        val nullEncoder = object : PasswordEncoder {
-            override fun encode(rawPassword: CharSequence?): String? = null
+        val nullEncoder =
+            object : PasswordEncoder {
+                override fun encode(rawPassword: CharSequence?): String? = null
 
-            override fun matches(rawPassword: CharSequence?, encodedPassword: String?): Boolean = false
-        }
+                override fun matches(
+                    rawPassword: CharSequence?,
+                    encodedPassword: String?,
+                ): Boolean = false
+            }
 
         assertFailure { BcryptPasswordHasher(nullEncoder, 1, longWait) }.isInstanceOf(IllegalStateException::class)
     }
@@ -159,9 +163,18 @@ class BcryptPasswordHasherTest {
         encoder.block()
         val executor = Executors.newFixedThreadPool(8)
         try {
-            val futures = (1..8).map { i ->
-                executor.submit<Any> { if (i % 2 == 0) blockingHasher.hash("p$i") else blockingHasher.matches("p$i", "h") }
-            }
+            val futures =
+                (1..8).map { i ->
+                    executor.submit<Any> {
+                        if (i % 2 ==
+                            0
+                        ) {
+                            blockingHasher.hash("p$i")
+                        } else {
+                            blockingHasher.matches("p$i", "h")
+                        }
+                    }
+                }
             encoder.awaitRunning(maxConcurrent)
             Thread.sleep(200)
             assertThat(encoder.running.get()).isEqualTo(maxConcurrent)
@@ -188,8 +201,10 @@ class BcryptPasswordHasherTest {
             encoder.awaitRunning(1)
             val callsBefore = encoder.calls.get()
 
-            assertFailure { busyHasher.hash("second") }.isInstanceOf(PasswordHashingBusyException::class)
-                .prop(PasswordHashingBusyException::retryAfterSeconds).isEqualTo(1)
+            assertFailure { busyHasher.hash("second") }
+                .isInstanceOf(PasswordHashingBusyException::class)
+                .prop(PasswordHashingBusyException::retryAfterSeconds)
+                .isEqualTo(1)
             assertFailure { busyHasher.matches("second", null) }.isInstanceOf(PasswordHashingBusyException::class)
 
             assertThat(encoder.calls.get()).isEqualTo(callsBefore)
@@ -223,17 +238,25 @@ class BcryptPasswordHasherTest {
 
     @ParameterizedTest
     @CsvSource("1, 1", "999, 1", "1000, 1", "1001, 2", "5000, 5")
-    fun `Retry-After is the wait timeout rounded up to whole seconds`(timeoutMillis: Long, expectedSeconds: Long) {
+    fun `Retry-After is the wait timeout rounded up to whole seconds`(
+        timeoutMillis: Long,
+        expectedSeconds: Long,
+    ) {
         assertThat(retryAfterSeconds(Duration.ofMillis(timeoutMillis))).isEqualTo(expectedSeconds)
     }
 
-    private class RecordingEncoder(private val alwaysMatches: Boolean = false) : PasswordEncoder {
+    private class RecordingEncoder(
+        private val alwaysMatches: Boolean = false,
+    ) : PasswordEncoder {
         val encodedHashes = CopyOnWriteArrayList<String>()
         val verifiedHashes = CopyOnWriteArrayList<String>()
 
         override fun encode(rawPassword: CharSequence?): String = "hash-of-$rawPassword".also { encodedHashes += it }
 
-        override fun matches(rawPassword: CharSequence?, encodedPassword: String?): Boolean {
+        override fun matches(
+            rawPassword: CharSequence?,
+            encodedPassword: String?,
+        ): Boolean {
             verifiedHashes += encodedPassword.orEmpty()
             return alwaysMatches
         }
@@ -274,7 +297,10 @@ class BcryptPasswordHasherTest {
             return "hash"
         }
 
-        override fun matches(rawPassword: CharSequence?, encodedPassword: String?): Boolean {
+        override fun matches(
+            rawPassword: CharSequence?,
+            encodedPassword: String?,
+        ): Boolean {
             work()
             return false
         }

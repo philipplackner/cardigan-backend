@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController
 class UserController(
     private val userService: UserService,
 ) {
-
     @GetMapping("/me")
     @Operation(operationId = "getCurrentUser", summary = "Get the signed-in user")
     fun getCurrentUser(): CurrentUserDto = userService.getCurrentUser(requestUserId).toCurrentUserDto()

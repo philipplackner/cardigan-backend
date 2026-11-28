@@ -11,7 +11,6 @@ import org.gradle.kotlin.dsl.register
  * and registers `coverageReport` and `coverageDiff`.
  */
 class KoverReportConventionPlugin : Plugin<Project> {
-
     override fun apply(target: Project) {
         with(target) {
             check(this == rootProject) { "cardigan.kover.report must be applied to the root project" }
@@ -78,11 +77,12 @@ class KoverReportConventionPlugin : Plugin<Project> {
             }
 
             gradle.projectsEvaluated {
-                val selected = parseModuleSelection(
-                    MODULES_PROPERTY,
-                    target.providers.gradleProperty(MODULES_PROPERTY).orNull,
-                    optedInPaths.keys,
-                )
+                val selected =
+                    parseModuleSelection(
+                        MODULES_PROPERTY,
+                        target.providers.gradleProperty(MODULES_PROPERTY).orNull,
+                        optedInPaths.keys,
+                    )
                 if (selected.size < optedInPaths.size) {
                     target.extensions.configure<KoverProjectExtension> {
                         reports {
@@ -102,8 +102,14 @@ class KoverReportConventionPlugin : Plugin<Project> {
                 target.tasks.named<CoverageDiffTask>("coverageDiff") {
                     sourceRoots.set(
                         optedInPaths.values.map { path ->
-                            target.project(path).projectDir.resolve("src/main/kotlin").relativeTo(target.rootDir).invariantSeparatorsPath
-                        }
+                            target
+                                .project(
+                                    path,
+                                ).projectDir
+                                .resolve("src/main/kotlin")
+                                .relativeTo(target.rootDir)
+                                .invariantSeparatorsPath
+                        },
                     )
                 }
             }
@@ -112,7 +118,7 @@ class KoverReportConventionPlugin : Plugin<Project> {
                 val needsInstrumentation = allTasks.any { isCoverageReportTask(it.name) }
                 if (!instrumented && needsInstrumentation) {
                     throw GradleException(
-                        "Coverage needs instrumentation. Run with the full task name, e.g. ./gradlew coverageReport."
+                        "Coverage needs instrumentation. Run with the full task name, e.g. ./gradlew coverageReport.",
                     )
                 }
             }

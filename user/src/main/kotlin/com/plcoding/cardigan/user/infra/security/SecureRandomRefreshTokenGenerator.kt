@@ -8,7 +8,6 @@ import java.util.Base64
 /** 32 random bytes as base64url without padding, 43 characters. */
 @Component
 class SecureRandomRefreshTokenGenerator : RefreshTokenGenerator {
-
     private val random = SecureRandom()
 
     override fun generate(): String {

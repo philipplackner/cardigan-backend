@@ -15,10 +15,10 @@ import java.time.Instant
 import java.util.UUID
 
 class SecretsInToStringTest {
-
     private val now = Instant.parse("2026-11-15T09:15:30.123Z")
     private val user = User(UUID.randomUUID(), "ann@example.com", "SECRET-password-hash", now, now)
-    private val tokens = IssuedTokens("SECRET-access-token", now, "SECRET-refresh-token", now, RefreshTokenTransport.BODY)
+    private val tokens =
+        IssuedTokens("SECRET-access-token", now, "SECRET-refresh-token", now, RefreshTokenTransport.BODY)
 
     private fun assertNoSecret(value: Any) {
         assertThat(value.toString()).doesNotContain("SECRET")

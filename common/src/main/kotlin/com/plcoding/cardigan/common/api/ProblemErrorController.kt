@@ -16,20 +16,29 @@ import org.springframework.web.bind.annotation.RequestMapping
  */
 @Controller
 class ProblemErrorController : ErrorController {
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     @RequestMapping("\${server.error.path:\${error.path:/error}}")
     fun error(request: HttpServletRequest): ResponseEntity<ProblemDetail> {
-        val code = when (request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE) as Int?) {
-            null, 404 -> ErrorCode.ROUTE_NOT_FOUND
-            400 -> ErrorCode.MALFORMED_REQUEST
-            413 -> ErrorCode.PAYLOAD_TOO_LARGE
-            else -> {
-                log.error("Request failed", request.getAttribute(RequestDispatcher.ERROR_EXCEPTION) as Throwable?)
-                ErrorCode.INTERNAL_ERROR
+        val code =
+            when (request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE) as Int?) {
+                null, 404 -> {
+                    ErrorCode.ROUTE_NOT_FOUND
+                }
+
+                400 -> {
+                    ErrorCode.MALFORMED_REQUEST
+                }
+
+                413 -> {
+                    ErrorCode.PAYLOAD_TOO_LARGE
+                }
+
+                else -> {
+                    log.error("Request failed", request.getAttribute(RequestDispatcher.ERROR_EXCEPTION) as Throwable?)
+                    ErrorCode.INTERNAL_ERROR
+                }
             }
-        }
         return problem(code)
     }
 }

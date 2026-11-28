@@ -19,11 +19,9 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 class SessionCleanupScheduleTest {
-
     @Configuration(proxyBeanMethods = false)
     @EnableScheduling
     class SchedulingConfig {
-
         @Bean
         fun sessionRepository() = FakeSessionRepository(FakeRefreshTokenRepository())
 
@@ -31,17 +29,24 @@ class SessionCleanupScheduleTest {
         fun clock() = MutableClock()
 
         @Bean
-        fun sessionCleanupService(sessionRepository: FakeSessionRepository, clock: MutableClock) =
-            SessionCleanupService(sessionRepository, clock)
+        fun sessionCleanupService(
+            sessionRepository: FakeSessionRepository,
+            clock: MutableClock,
+        ) = SessionCleanupService(sessionRepository, clock)
     }
 
     private val runner = ApplicationContextRunner().withUserConfiguration(SchedulingConfig::class.java)
 
     private fun cronTaskOf(processor: ScheduledAnnotationBeanPostProcessor): CronTask =
-        processor.scheduledTasks.map { it.task }.filterIsInstance<CronTask>().single()
+        processor.scheduledTasks
+            .map { it.task }
+            .filterIsInstance<CronTask>()
+            .single()
 
-    private fun nextRunAfter(task: CronTask, instant: String): Instant? =
-        task.trigger.nextExecution(SimpleTriggerContext(Clock.fixed(Instant.parse(instant), ZoneOffset.UTC)))
+    private fun nextRunAfter(
+        task: CronTask,
+        instant: String,
+    ): Instant? = task.trigger.nextExecution(SimpleTriggerContext(Clock.fixed(Instant.parse(instant), ZoneOffset.UTC)))
 
     @Test
     fun `default schedule runs daily at 03_00 UTC`() {

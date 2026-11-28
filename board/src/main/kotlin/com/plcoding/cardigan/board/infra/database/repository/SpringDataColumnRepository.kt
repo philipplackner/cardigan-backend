@@ -7,8 +7,10 @@ import org.springframework.data.jpa.repository.Query
 import java.util.UUID
 
 interface SpringDataColumnRepository : JpaRepository<ColumnEntity, UUID> {
-
-    fun findByIdAndBoardId(id: UUID, boardId: UUID): ColumnEntity?
+    fun findByIdAndBoardId(
+        id: UUID,
+        boardId: UUID,
+    ): ColumnEntity?
 
     fun findAllByBoardIdOrderByPositionAsc(boardId: UUID): List<ColumnEntity>
 
@@ -23,7 +25,12 @@ interface SpringDataColumnRepository : JpaRepository<ColumnEntity, UUID> {
         AND c.position BETWEEN :first AND :last
         """,
     )
-    fun shiftPositions(boardId: UUID, first: Int, last: Int, delta: Int): Int
+    fun shiftPositions(
+        boardId: UUID,
+        first: Int,
+        last: Int,
+        delta: Int,
+    ): Int
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(
@@ -34,5 +41,8 @@ interface SpringDataColumnRepository : JpaRepository<ColumnEntity, UUID> {
         AND c.position > :position
         """,
     )
-    fun closeGapAfter(boardId: UUID, position: Int): Int
+    fun closeGapAfter(
+        boardId: UUID,
+        position: Int,
+    ): Int
 }

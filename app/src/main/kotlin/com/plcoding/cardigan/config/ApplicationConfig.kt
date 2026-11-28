@@ -9,7 +9,6 @@ import java.time.Duration
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
 class ApplicationConfig {
-
     /**
      * The only source of the current time. Ticks in whole milliseconds, so stored timestamps
      * equal the values sent to clients.

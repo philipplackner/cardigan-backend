@@ -18,7 +18,6 @@ import java.time.Duration
 import java.util.UUID
 
 class JpaBoardRepositoryTest : BoardPersistenceTest() {
-
     @Test
     fun `saved board reads back equal, timestamps at millisecond precision`() {
         val board = boards.save(board(updatedAt = now.plusMillis(1)))
@@ -61,7 +60,10 @@ class JpaBoardRepositoryTest : BoardPersistenceTest() {
     fun `list is ordered by updated time, then created time, newest first`() {
         val owner = UUID.randomUUID()
         val oldest = boards.save(board(owner, "AA", createdAt = now, updatedAt = now))
-        val createdLater = boards.save(board(owner, "BB", createdAt = now.plusSeconds(1), updatedAt = now.plusSeconds(60)))
+        val createdLater =
+            boards.save(
+                board(owner, "BB", createdAt = now.plusSeconds(1), updatedAt = now.plusSeconds(60)),
+            )
         val createdEarlier = boards.save(board(owner, "CC", createdAt = now, updatedAt = now.plusSeconds(60)))
         val newest = boards.save(board(owner, "DD", createdAt = now, updatedAt = now.plusSeconds(120)))
         flushAndClear()
@@ -150,12 +152,15 @@ class JpaBoardRepositoryTest : BoardPersistenceTest() {
     fun `database rejects a second row with the same owner and key`() {
         val board = boards.save(board(key = "CRD"))
         flushAndClear()
-        val insert = entityManager.entityManager.createNativeQuery(
-            """
+        val insert =
+            entityManager.entityManager
+                .createNativeQuery(
+                    """
             INSERT INTO board_service.boards (id, owner_id, name, key, created_at, updated_at)
             VALUES (?1, ?2, 'Other', 'CRD', now(), now())
             """,
-        ).setParameter(1, UUID.randomUUID()).setParameter(2, board.ownerId)
+                ).setParameter(1, UUID.randomUUID())
+                .setParameter(2, board.ownerId)
 
         assertFailure { insert.executeUpdate() }.isInstanceOf<ConstraintViolationException>()
     }

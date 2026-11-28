@@ -10,15 +10,19 @@ private val lineBreaks = Regex("\r\n?")
  * LF, then NFC, then leading and trailing Unicode White_Space is removed.
  */
 fun normalizeText(text: String): String =
-    Normalizer.normalize(text.replace(lineBreaks, "\n"), Normalizer.Form.NFC)
+    Normalizer
+        .normalize(text.replace(lineBreaks, "\n"), Normalizer.Form.NFC)
         .trim(::isWhiteSpace)
 
 // A hand-written scan instead of a regex: `\p{IsWhite_Space}+$` takes quadratic time on a long inner run.
-private fun isWhiteSpace(c: Char): Boolean = when (c) {
-    in '\u0009'..'\u000D', ' ', '\u0085', '\u00A0', '\u1680', in '\u2000'..'\u200A',
-    '\u2028', '\u2029', '\u202F', '\u205F', '\u3000' -> true
-    else -> false
-}
+private fun isWhiteSpace(c: Char): Boolean =
+    when (c) {
+        in '\u0009'..'\u000D', ' ', '\u0085', '\u00A0', '\u1680', in '\u2000'..'\u200A',
+        '\u2028', '\u2029', '\u202F', '\u205F', '\u3000',
+        -> true
+
+        else -> false
+    }
 
 /** Normalizes a password to NFC. Whitespace is part of a password and is kept. */
 fun normalizePassword(password: String): String = Normalizer.normalize(password, Normalizer.Form.NFC)
@@ -30,7 +34,10 @@ fun codePointLength(text: String): Int = text.codePointCount(0, text.length)
  * True when [text] holds an unpaired surrogate or a control character in U+0000–U+001F. Tab, LF and
  * CR are allowed only when [allowLineBreaks] is set. Passwords use `allowLineBreaks = false`.
  */
-fun hasInvalidCharacter(text: String, allowLineBreaks: Boolean): Boolean {
+fun hasInvalidCharacter(
+    text: String,
+    allowLineBreaks: Boolean,
+): Boolean {
     var i = 0
     while (i < text.length) {
         val c = text[i]
@@ -39,8 +46,14 @@ fun hasInvalidCharacter(text: String, allowLineBreaks: Boolean): Boolean {
                 if (i + 1 >= text.length || !Character.isLowSurrogate(text[i + 1])) return true
                 i++
             }
-            Character.isLowSurrogate(c) -> return true
-            c < ' ' && !(allowLineBreaks && (c == '\t' || c == '\n' || c == '\r')) -> return true
+
+            Character.isLowSurrogate(c) -> {
+                return true
+            }
+
+            c < ' ' && !(allowLineBreaks && (c == '\t' || c == '\n' || c == '\r')) -> {
+                return true
+            }
         }
         i++
     }
@@ -52,7 +65,12 @@ fun hasInvalidCharacter(text: String, allowLineBreaks: Boolean): Boolean {
  * rule in `api-errors` precedence, or null when the text is valid. Empty text is `REQUIRED` when
  * [min] is at least 1.
  */
-fun checkText(text: String, min: Int, max: Int, multiline: Boolean): FieldErrorCode? {
+fun checkText(
+    text: String,
+    min: Int,
+    max: Int,
+    multiline: Boolean,
+): FieldErrorCode? {
     val length = codePointLength(text)
     return when {
         length == 0 && min >= 1 -> FieldErrorCode.REQUIRED

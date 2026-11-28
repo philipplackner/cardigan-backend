@@ -17,19 +17,23 @@ class LabelService(
     private val labelRepository: LabelRepository,
     private val clock: Clock,
 ) {
-
     /** Creates a label from an already normalized [name]. */
     @Transactional
-    fun create(ownerId: UUID, name: String, color: LabelColor): Label {
+    fun create(
+        ownerId: UUID,
+        name: String,
+        color: LabelColor,
+    ): Label {
         val now = clock.instant()
-        val label = Label(
-            id = UUID.randomUUID(),
-            ownerId = ownerId,
-            name = name,
-            color = color,
-            createdAt = now,
-            updatedAt = now,
-        )
+        val label =
+            Label(
+                id = UUID.randomUUID(),
+                ownerId = ownerId,
+                name = name,
+                color = color,
+                createdAt = now,
+                updatedAt = now,
+            )
         if (labelRepository.existsByOwnerAndNameKey(ownerId, label.nameKey)) {
             throw LabelNameAlreadyUsedException()
         }
@@ -42,21 +46,29 @@ class LabelService(
         labelRepository.findAllByOwnerId(ownerId).sortedWith(compareBy(codePointOrder) { it.nameKey })
 
     @Transactional(readOnly = true)
-    fun get(ownerId: UUID, labelId: UUID): Label =
-        labelRepository.findByIdAndOwnerId(labelId, ownerId) ?: throw LabelNotFoundException(labelId)
+    fun get(
+        ownerId: UUID,
+        labelId: UUID,
+    ): Label = labelRepository.findByIdAndOwnerId(labelId, ownerId) ?: throw LabelNotFoundException(labelId)
 
     /**
      * Applies the sent fields. `updatedAt` moves only when the name or the color really differs; a
      * name that differs only in letter case is a change.
      */
     @Transactional
-    fun update(ownerId: UUID, labelId: UUID, changes: LabelChanges): Label {
-        val stored = labelRepository.findByIdAndOwnerIdForUpdate(labelId, ownerId)
-            ?: throw LabelNotFoundException(labelId)
-        val changed = stored.copy(
-            name = changes.name ?: stored.name,
-            color = changes.color ?: stored.color,
-        )
+    fun update(
+        ownerId: UUID,
+        labelId: UUID,
+        changes: LabelChanges,
+    ): Label {
+        val stored =
+            labelRepository.findByIdAndOwnerIdForUpdate(labelId, ownerId)
+                ?: throw LabelNotFoundException(labelId)
+        val changed =
+            stored.copy(
+                name = changes.name ?: stored.name,
+                color = changes.color ?: stored.color,
+            )
         if (changed == stored) return stored
 
         if (changed.nameKey != stored.nameKey && labelRepository.existsByOwnerAndNameKey(ownerId, changed.nameKey)) {
@@ -66,7 +78,10 @@ class LabelService(
     }
 
     @Transactional
-    fun delete(ownerId: UUID, labelId: UUID) {
+    fun delete(
+        ownerId: UUID,
+        labelId: UUID,
+    ) {
         if (labelRepository.deleteByIdAndOwnerId(labelId, ownerId) == 0) {
             throw LabelNotFoundException(labelId)
         }

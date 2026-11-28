@@ -16,7 +16,6 @@ import java.util.UUID
 class JpaUserRepository(
     private val springDataUserRepository: SpringDataUserRepository,
 ) : UserRepository {
-
     override fun findById(id: UUID): User? = springDataUserRepository.findByIdOrNull(id)?.toUser()
 
     override fun findByEmail(email: String): User? = springDataUserRepository.findByEmail(email)?.toUser()

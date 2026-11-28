@@ -15,9 +15,12 @@ import java.sql.Timestamp
 import java.time.Duration
 
 class AuthRegisterLoginE2eTest : AuthE2eTestBase() {
-
     private fun storedPasswordHash(email: String): String =
-        jdbcTemplate.queryForObject("SELECT password_hash FROM user_service.users WHERE email = ?", String::class.java, email)!!
+        jdbcTemplate.queryForObject(
+            "SELECT password_hash FROM user_service.users WHERE email = ?",
+            String::class.java,
+            email,
+        )!!
 
     @Test
     fun `register with the body transport answers 201 with tokens and the lowercased user`() {
@@ -321,21 +324,25 @@ class AuthRegisterLoginE2eTest : AuthE2eTestBase() {
 
         val token = login().refreshToken
 
-        val everyStoredValue = jdbcTemplate.queryForList(
-            """
+        val everyStoredValue =
+            jdbcTemplate.queryForList(
+                """
             SELECT token_hash FROM user_service.refresh_tokens
             UNION ALL SELECT id::text FROM user_service.refresh_tokens
             UNION ALL SELECT password_hash FROM user_service.users
             """,
-            String::class.java,
-        )
+                String::class.java,
+            )
         assertThat(everyStoredValue).doesNotContain(token)
-        val expiresAt = jdbcTemplate.queryForObject(
-            "SELECT expires_at FROM user_service.refresh_tokens WHERE token_hash = ?",
-            Timestamp::class.java,
-            hashRefreshToken(token),
-        )
-        assertThat(expiresAt).isNotNull().transform { it.toInstant() }.isEqualTo(clock.instant().plus(Duration.ofDays(30)))
+        val expiresAt =
+            jdbcTemplate.queryForObject(
+                "SELECT expires_at FROM user_service.refresh_tokens WHERE token_hash = ?",
+                Timestamp::class.java,
+                hashRefreshToken(token),
+            )
+        assertThat(
+            expiresAt,
+        ).isNotNull().transform { it.toInstant() }.isEqualTo(clock.instant().plus(Duration.ofDays(30)))
     }
 
     @Test
@@ -363,8 +370,11 @@ class AuthRegisterLoginE2eTest : AuthE2eTestBase() {
 
         post("register", body, token = "garbage").assertStatus(201)
         val login = post("login", body, token = "garbage").assertStatus(200)
-        post("refresh", json("refreshTokenTransport" to "BODY", "refreshToken" to login.refreshToken), token = "garbage")
-            .assertStatus(200)
+        post(
+            "refresh",
+            json("refreshTokenTransport" to "BODY", "refreshToken" to login.refreshToken),
+            token = "garbage",
+        ).assertStatus(200)
     }
 
     @Test
@@ -392,6 +402,8 @@ class AuthRegisterLoginE2eTest : AuthE2eTestBase() {
     }
 
     private fun comparableHeaders(result: HttpResult): Map<String, List<String>> =
-        result.headers.headerNames().filterNot { it.equals("Date", ignoreCase = true) }
+        result.headers
+            .headerNames()
+            .filterNot { it.equals("Date", ignoreCase = true) }
             .associate { it.lowercase() to result.headers[it].orEmpty() }
 }

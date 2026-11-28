@@ -22,29 +22,37 @@ import javax.crypto.SecretKey
 
 @ExtendWith(OutputCaptureExtension::class)
 class JwtSecretStartupTest {
-
     @TestConfiguration(proxyBeanMethods = false)
     @Import(JwtConfig::class)
     class JwtOnlyConfig {
-
         @Bean
         fun clock(): Clock = Clock.systemUTC()
     }
 
     private fun start(secret: String?): ConfigurableApplicationContext {
-        val properties = buildMap<String, Any> {
-            put("cardigan.security.jwt.access-token-ttl", "15m")
-            secret?.let { put("cardigan.security.jwt.secret", it) }
-        }
+        val properties =
+            buildMap<String, Any> {
+                put("cardigan.security.jwt.access-token-ttl", "15m")
+                secret?.let { put("cardigan.security.jwt.secret", it) }
+            }
         return SpringApplicationBuilder(JwtOnlyConfig::class.java)
             .web(WebApplicationType.NONE)
             .properties(properties)
             .run()
     }
 
-    private fun secretOf(bytes: Int): String = Base64.getEncoder().encodeToString(ByteArray(bytes) { (it * 31 + 17).toByte() })
+    private fun secretOf(bytes: Int): String =
+        Base64.getEncoder().encodeToString(
+            ByteArray(bytes) {
+                (it * 31 + 17).toByte()
+            },
+        )
 
-    private fun assertStartupFails(secret: String?, problem: String, output: CapturedOutput) {
+    private fun assertStartupFails(
+        secret: String?,
+        problem: String,
+        output: CapturedOutput,
+    ) {
         assertFailure { start(secret).close() }
         assertThat(output.all).contains(problem)
         if (!secret.isNullOrBlank()) {
@@ -87,7 +95,11 @@ class JwtSecretStartupTest {
     fun `inner whitespace is not base64`(output: CapturedOutput) {
         val secret = secretOf(32)
 
-        assertStartupFails(secret.substring(0, 10) + " " + secret.substring(10), "JWT_SECRET is not valid base64", output)
+        assertStartupFails(
+            secret.substring(0, 10) + " " + secret.substring(10),
+            "JWT_SECRET is not valid base64",
+            output,
+        )
     }
 
     @Test

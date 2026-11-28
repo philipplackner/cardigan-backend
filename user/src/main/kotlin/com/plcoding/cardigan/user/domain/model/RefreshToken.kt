@@ -17,7 +17,6 @@ data class RefreshToken(
     val expiresAt: Instant,
     val rotatedAt: Instant? = null,
 ) {
-
     val isRotated: Boolean get() = rotatedAt != null
 
     /** A token is expired from the instant its expiry is reached. */

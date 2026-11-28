@@ -15,7 +15,6 @@ import java.time.Duration
 import java.util.UUID
 
 class AuthenticationE2eTest : E2eTest() {
-
     @Autowired
     @Qualifier("requestMappingHandlerMapping")
     private lateinit var handlerMapping: RequestMappingHandlerMapping
@@ -131,11 +130,12 @@ class AuthenticationE2eTest : E2eTest() {
 
     @Test
     fun `every controller mapping is under the API base path`() {
-        val outside = handlerMapping.handlerMethods
-            .filterValues { it.beanType != ProblemErrorController::class.java }
-            .keys
-            .flatMap { it.patternValues }
-            .filterNot { it.startsWith("/api/v1/") }
+        val outside =
+            handlerMapping.handlerMethods
+                .filterValues { it.beanType != ProblemErrorController::class.java }
+                .keys
+                .flatMap { it.patternValues }
+                .filterNot { it.startsWith("/api/v1/") }
 
         assertThat(outside).isEmpty()
     }

@@ -20,31 +20,33 @@ import java.time.format.DateTimeFormatter
 
 @Configuration(proxyBeanMethods = false)
 class JacksonConfig {
-
     @Bean
-    fun cardiganJsonMapperCustomizer() = JsonMapperBuilderCustomizer { builder ->
-        builder
-            .addMixIn(ProblemDetail::class.java, ProblemDetailMixin::class.java)
-            .addModule(SimpleModule("cardigan-instant").addSerializer(Instant::class.java, InstantSerializer))
-            .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
-            .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-            .withCoercionConfig(LogicalType.Textual) { config ->
-                config.setCoercion(CoercionInputShape.Integer, CoercionAction.Fail)
-                config.setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
-                config.setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail)
-            }
-            .withCoercionConfigDefaults { config ->
-                config.setCoercion(CoercionInputShape.EmptyString, CoercionAction.Fail)
-            }
-    }
+    fun cardiganJsonMapperCustomizer() =
+        JsonMapperBuilderCustomizer { builder ->
+            builder
+                .addMixIn(ProblemDetail::class.java, ProblemDetailMixin::class.java)
+                .addModule(SimpleModule("cardigan-instant").addSerializer(Instant::class.java, InstantSerializer))
+                .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
+                .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+                .withCoercionConfig(LogicalType.Textual) { config ->
+                    config.setCoercion(CoercionInputShape.Integer, CoercionAction.Fail)
+                    config.setCoercion(CoercionInputShape.Float, CoercionAction.Fail)
+                    config.setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail)
+                }.withCoercionConfigDefaults { config ->
+                    config.setCoercion(CoercionInputShape.EmptyString, CoercionAction.Fail)
+                }
+        }
 
     /** Always writes milliseconds, so whole seconds come out as `.000Z`. */
     private object InstantSerializer : ValueSerializer<Instant>() {
-
         private val formatter = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)
 
-        override fun serialize(value: Instant, gen: JsonGenerator, ctxt: SerializationContext) {
+        override fun serialize(
+            value: Instant,
+            gen: JsonGenerator,
+            ctxt: SerializationContext,
+        ) {
             gen.writeString(formatter.format(value))
         }
     }

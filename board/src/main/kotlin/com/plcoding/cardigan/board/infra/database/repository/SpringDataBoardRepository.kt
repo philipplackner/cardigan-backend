@@ -8,14 +8,22 @@ import org.springframework.data.jpa.repository.Query
 import java.util.UUID
 
 interface SpringDataBoardRepository : JpaRepository<BoardEntity, UUID> {
-
-    fun findByIdAndOwnerId(id: UUID, ownerId: UUID): BoardEntity?
+    fun findByIdAndOwnerId(
+        id: UUID,
+        ownerId: UUID,
+    ): BoardEntity?
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM BoardEntity b WHERE b.id = :id AND b.ownerId = :ownerId")
-    fun lockByIdAndOwnerId(id: UUID, ownerId: UUID): BoardEntity?
+    fun lockByIdAndOwnerId(
+        id: UUID,
+        ownerId: UUID,
+    ): BoardEntity?
 
     fun findAllByOwnerIdOrderByUpdatedAtDescCreatedAtDescIdAsc(ownerId: UUID): List<BoardEntity>
 
-    fun existsByOwnerIdAndKey(ownerId: UUID, key: String): Boolean
+    fun existsByOwnerIdAndKey(
+        ownerId: UUID,
+        key: String,
+    ): Boolean
 }

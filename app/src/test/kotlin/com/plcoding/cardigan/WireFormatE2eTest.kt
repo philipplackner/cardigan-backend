@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 
 class WireFormatE2eTest : E2eTest() {
-
     private val thingId = TestApiController.EXISTING_THING_ID
 
     @Test
@@ -37,7 +36,8 @@ class WireFormatE2eTest : E2eTest() {
     fun `unknown request field is ignored`() {
         val token = signIn().token
 
-        val result = call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name":"a","key":"ab","surprise":{"x":1}}""")
+        val result =
+            call(HttpMethod.POST, "/api/v1/test/echo", token, json = """{"name":"a","key":"ab","surprise":{"x":1}}""")
 
         assertThat(result.status).isEqualTo(200)
         assertThat(result.json().containsKey("surprise")).isEqualTo(false)
@@ -47,10 +47,13 @@ class WireFormatE2eTest : E2eTest() {
     fun `cross-origin request gets no CORS headers`() {
         val token = signIn().token
 
-        val result = call(HttpMethod.GET, "/api/v1/users/me", token, headers = mapOf("Origin" to "https://evil.example"))
+        val result =
+            call(HttpMethod.GET, "/api/v1/users/me", token, headers = mapOf("Origin" to "https://evil.example"))
 
         assertThat(result.status).isEqualTo(200)
-        assertThat(result.headers.headerNames().filter { it.startsWith("Access-Control-Allow", ignoreCase = true) }).isEmpty()
+        assertThat(
+            result.headers.headerNames().filter { it.startsWith("Access-Control-Allow", ignoreCase = true) },
+        ).isEmpty()
     }
 
     @Test
@@ -58,18 +61,22 @@ class WireFormatE2eTest : E2eTest() {
         val token = signIn().token
 
         listOf(token, null).forEach { t ->
-            val result = call(
-                HttpMethod.OPTIONS,
-                "/api/v1/users/me",
-                t,
-                headers = mapOf(
-                    "Origin" to "https://evil.example",
-                    "Access-Control-Request-Method" to "GET",
-                    "Access-Control-Request-Headers" to "Authorization",
-                ),
-            )
+            val result =
+                call(
+                    HttpMethod.OPTIONS,
+                    "/api/v1/users/me",
+                    t,
+                    headers =
+                        mapOf(
+                            "Origin" to "https://evil.example",
+                            "Access-Control-Request-Method" to "GET",
+                            "Access-Control-Request-Headers" to "Authorization",
+                        ),
+                )
 
-            assertThat(result.headers.headerNames().filter { it.startsWith("Access-Control-Allow", ignoreCase = true) }).isEmpty()
+            assertThat(
+                result.headers.headerNames().filter { it.startsWith("Access-Control-Allow", ignoreCase = true) },
+            ).isEmpty()
         }
     }
 

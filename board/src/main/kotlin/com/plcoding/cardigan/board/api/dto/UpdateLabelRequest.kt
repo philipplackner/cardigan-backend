@@ -5,7 +5,6 @@ import com.plcoding.cardigan.common.api.validation.ValidEnum
 import com.plcoding.cardigan.common.api.validation.ValidText
 
 class UpdateLabelRequest : PatchRequest() {
-
     @ValidText(min = 1, max = 30)
     var name: String? = null
         set(value) {

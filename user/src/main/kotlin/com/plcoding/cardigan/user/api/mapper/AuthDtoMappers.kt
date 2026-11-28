@@ -21,22 +21,28 @@ fun RefreshRequest.toRefreshTokenTransport(): RefreshTokenTransport = transport(
 
 fun LogoutRequest.toRefreshTokenTransport(): RefreshTokenTransport = transport(refreshTokenTransport)
 
-fun IssuedSession.toAuthSessionDto(): AuthSessionDto = AuthSessionDto(
-    accessToken = tokens.accessToken,
-    accessTokenExpiresAt = tokens.accessTokenExpiresAt,
-    refreshToken = tokens.bodyRefreshToken(),
-    user = user.toCurrentUserDto(),
-)
+fun IssuedSession.toAuthSessionDto(): AuthSessionDto =
+    AuthSessionDto(
+        accessToken = tokens.accessToken,
+        accessTokenExpiresAt = tokens.accessTokenExpiresAt,
+        refreshToken = tokens.bodyRefreshToken(),
+        user = user.toCurrentUserDto(),
+    )
 
-fun IssuedTokens.toAuthTokensDto(): AuthTokensDto = AuthTokensDto(
-    accessToken = accessToken,
-    accessTokenExpiresAt = accessTokenExpiresAt,
-    refreshToken = bodyRefreshToken(),
-)
+fun IssuedTokens.toAuthTokensDto(): AuthTokensDto =
+    AuthTokensDto(
+        accessToken = accessToken,
+        accessTokenExpiresAt = accessTokenExpiresAt,
+        refreshToken = bodyRefreshToken(),
+    )
 
 private fun IssuedTokens.bodyRefreshToken(): String? = refreshToken.takeIf { transport == RefreshTokenTransport.BODY }
 
-private fun credentials(email: String?, password: String?, refreshTokenTransport: String?) = Credentials(
+private fun credentials(
+    email: String?,
+    password: String?,
+    refreshTokenTransport: String?,
+) = Credentials(
     email = normalizeEmail(validated(email)),
     password = normalizePassword(validated(password)),
     transport = transport(refreshTokenTransport),

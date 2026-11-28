@@ -13,9 +13,10 @@ data class AuthProperties(
     val refreshTokenTtl: Duration = Duration.ofDays(30),
     val sessionCleanupCron: String = "0 0 3 * * *",
 ) {
-
     init {
         require(refreshTokenTtl.isPositive) { "refresh-token-ttl must be positive" }
-        require(CronExpression.isValidExpression(sessionCleanupCron)) { "session-cleanup-cron is not a cron expression" }
+        require(
+            CronExpression.isValidExpression(sessionCleanupCron),
+        ) { "session-cleanup-cron is not a cron expression" }
     }
 }

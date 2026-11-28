@@ -22,7 +22,6 @@ data class RegisterRequest(
     @field:Schema(implementation = RefreshTokenTransportDto::class)
     val refreshTokenTransport: String?,
 ) {
-
     override fun toString(): String = "RegisterRequest(email=$email, refreshTokenTransport=$refreshTokenTransport)"
 }
 
@@ -42,7 +41,6 @@ data class LoginRequest(
     @field:Schema(implementation = RefreshTokenTransportDto::class)
     val refreshTokenTransport: String?,
 ) {
-
     override fun toString(): String = "LoginRequest(email=$email, refreshTokenTransport=$refreshTokenTransport)"
 }
 
@@ -53,7 +51,6 @@ data class RefreshRequest(
     val refreshTokenTransport: String?,
     val refreshToken: String?,
 ) {
-
     override fun toString(): String = "RefreshRequest(refreshTokenTransport=$refreshTokenTransport)"
 }
 
@@ -64,6 +61,5 @@ data class LogoutRequest(
     val refreshTokenTransport: String?,
     val refreshToken: String?,
 ) {
-
     override fun toString(): String = "LogoutRequest(refreshTokenTransport=$refreshTokenTransport)"
 }

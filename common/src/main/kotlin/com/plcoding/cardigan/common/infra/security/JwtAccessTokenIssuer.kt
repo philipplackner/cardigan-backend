@@ -22,16 +22,17 @@ class JwtAccessTokenIssuer(
     private val clock: Clock,
     private val properties: JwtProperties,
 ) : AccessTokenIssuer {
-
     override fun issue(userId: UUID): IssuedAccessToken {
         val issuedAt = clock.instant().truncatedTo(ChronoUnit.SECONDS)
         val expiresAt = issuedAt.plus(properties.accessTokenTtl)
-        val claims = JwtClaimsSet.builder()
-            .subject(userId.toString())
-            .claim(JwtClaims.TYPE, JwtClaims.TYPE_ACCESS)
-            .issuedAt(issuedAt)
-            .expiresAt(expiresAt)
-            .build()
+        val claims =
+            JwtClaimsSet
+                .builder()
+                .subject(userId.toString())
+                .claim(JwtClaims.TYPE, JwtClaims.TYPE_ACCESS)
+                .issuedAt(issuedAt)
+                .expiresAt(expiresAt)
+                .build()
         val header = JwsHeader.with(MacAlgorithm.HS256).build()
         val token = jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).tokenValue
         return IssuedAccessToken(token = token, expiresAt = expiresAt)

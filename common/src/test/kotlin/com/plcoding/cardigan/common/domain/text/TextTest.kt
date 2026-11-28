@@ -16,10 +16,8 @@ import java.text.Normalizer
 import java.time.Duration
 
 class TextTest {
-
     @Nested
     inner class NormalizeText {
-
         @Test
         fun `surrounding spaces are removed`() {
             assertThat(normalizeText("  Release ")).isEqualTo("Release")
@@ -73,7 +71,15 @@ class TextTest {
                 val c = code.toChar()
                 if (c.isSurrogate() || c == '\r') continue
                 val text = "${c}a$c"
-                val expected = if (whiteSpace.matches(c.toString())) "a" else Normalizer.normalize(text, Normalizer.Form.NFC)
+                val expected =
+                    if (whiteSpace.matches(
+                            c.toString(),
+                        )
+                    ) {
+                        "a"
+                    } else {
+                        Normalizer.normalize(text, Normalizer.Form.NFC)
+                    }
                 assertThat(normalizeText(text), "U+%04X".format(code)).isEqualTo(expected)
             }
         }
@@ -82,7 +88,8 @@ class TextTest {
         fun `a long inner whitespace run is kept without quadratic work`() {
             val text = "a" + " ".repeat(250_000) + "b"
 
-            val normalized = assertTimeoutPreemptively(Duration.ofSeconds(2), ThrowingSupplier { normalizeText(" $text ") })
+            val normalized =
+                assertTimeoutPreemptively(Duration.ofSeconds(2), ThrowingSupplier { normalizeText(" $text ") })
 
             assertThat(normalized).isEqualTo(text)
         }
@@ -95,7 +102,6 @@ class TextTest {
 
     @Nested
     inner class NormalizePassword {
-
         @Test
         fun `surrounding spaces are kept`() {
             assertThat(normalizePassword(" Secret Pass 1 ")).isEqualTo(" Secret Pass 1 ")
@@ -114,7 +120,6 @@ class TextTest {
 
     @Nested
     inner class CodePointLength {
-
         @Test
         fun `emoji counts as one`() {
             assertThat(codePointLength("👍")).isEqualTo(1)
@@ -138,7 +143,6 @@ class TextTest {
 
     @Nested
     inner class InvalidCharacters {
-
         @ParameterizedTest
         @ValueSource(strings = ["a\tb", "a\nb", "a\rb", "\u0000", "a\u001fb", "a\u0001"])
         fun `control characters are invalid in single-line text`(text: String) {
@@ -172,9 +176,12 @@ class TextTest {
 
     @Nested
     inner class CheckText {
-
-        private fun check(raw: String, min: Int = 0, max: Int = 50, multiline: Boolean = false) =
-            checkText(normalizeText(raw), min, max, multiline)
+        private fun check(
+            raw: String,
+            min: Int = 0,
+            max: Int = 50,
+            multiline: Boolean = false,
+        ) = checkText(normalizeText(raw), min, max, multiline)
 
         @Test
         fun `whitespace-only text is REQUIRED when a minimum applies`() {
@@ -255,7 +262,6 @@ class TextTest {
 
     @Nested
     inner class CanonicalUuid {
-
         @ParameterizedTest
         @ValueSource(strings = ["0b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10", "0B6A1F43-58C2-4D0E-9A35-3F1C9E2B7D10"])
         fun `canonical UUIDs in any case parse`(value: String) {
@@ -263,7 +269,15 @@ class TextTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = ["nope", "1-1-1-1-1", "0b6a1f4358c24d0e9a353f1c9e2b7d10", "0b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d1g", ""])
+        @ValueSource(
+            strings = [
+                "nope",
+                "1-1-1-1-1",
+                "0b6a1f4358c24d0e9a353f1c9e2b7d10",
+                "0b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d1g",
+                "",
+            ],
+        )
         fun `other strings don't parse`(value: String) {
             assertThat(parseCanonicalUuid(value)).isNull()
         }

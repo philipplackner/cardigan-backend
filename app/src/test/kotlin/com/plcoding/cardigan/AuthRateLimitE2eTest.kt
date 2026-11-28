@@ -11,7 +11,6 @@ import org.springframework.http.HttpMethod
 import java.time.Duration
 
 class AuthRateLimitE2eTest : AuthE2eTestBase() {
-
     private fun HttpResult.assertRateLimited(retryAfter: String? = null): HttpResult {
         val body = assertProblem(ErrorCode.RATE_LIMITED)
         assertThat(body.fieldErrors).isEqualTo(emptyList())
@@ -23,7 +22,10 @@ class AuthRateLimitE2eTest : AuthE2eTestBase() {
         return this
     }
 
-    private fun useUpLogin(email: String = "ann@example.com", password: String = "Wrong horse 7") {
+    private fun useUpLogin(
+        email: String = "ann@example.com",
+        password: String = "Wrong horse 7",
+    ) {
         repeat(5) { assertThat(login(email, password).status, "login ${it + 1}").isNotEqualTo(429) }
     }
 
@@ -92,7 +94,12 @@ class AuthRateLimitE2eTest : AuthE2eTestBase() {
         useUpLogin()
         clock.advanceBy(Duration.ofMillis(2_700))
 
-        val retryAfter = login().assertRateLimited().headers["Retry-After"]!!.single().toLong()
+        val retryAfter =
+            login()
+                .assertRateLimited()
+                .headers["Retry-After"]!!
+                .single()
+                .toLong()
         clock.advanceBy(Duration.ofSeconds(retryAfter))
 
         login().assertProblem(ErrorCode.INVALID_CREDENTIALS)
@@ -123,12 +130,13 @@ class AuthRateLimitE2eTest : AuthE2eTestBase() {
         register().assertStatus(201)
         useUpLogin()
 
-        val otherClient = call(
-            HttpMethod.POST,
-            "/api/v1/auth/login",
-            json = json("email" to "ann@example.com", "password" to password, "refreshTokenTransport" to "COOKIE"),
-            headers = mapOf("X-Forwarded-For" to "203.0.113.9", "User-Agent" to "another-client"),
-        )
+        val otherClient =
+            call(
+                HttpMethod.POST,
+                "/api/v1/auth/login",
+                json = json("email" to "ann@example.com", "password" to password, "refreshTokenTransport" to "COOKIE"),
+                headers = mapOf("X-Forwarded-For" to "203.0.113.9", "User-Agent" to "another-client"),
+            )
 
         otherClient.assertRateLimited()
     }
@@ -194,12 +202,13 @@ class AuthRateLimitE2eTest : AuthE2eTestBase() {
 
     @Test
     fun `20 logins without an email are all 400 REQUIRED`() {
-        val bodies = listOf(
-            json("password" to password, "refreshTokenTransport" to "BODY"),
-            json("email" to null, "password" to password, "refreshTokenTransport" to "BODY"),
-            json("email" to "", "password" to password, "refreshTokenTransport" to "BODY"),
-            json("email" to "   ", "password" to password, "refreshTokenTransport" to "BODY"),
-        )
+        val bodies =
+            listOf(
+                json("password" to password, "refreshTokenTransport" to "BODY"),
+                json("email" to null, "password" to password, "refreshTokenTransport" to "BODY"),
+                json("email" to "", "password" to password, "refreshTokenTransport" to "BODY"),
+                json("email" to "   ", "password" to password, "refreshTokenTransport" to "BODY"),
+            )
 
         repeat(20) { i ->
             post("login", bodies[i % bodies.size])

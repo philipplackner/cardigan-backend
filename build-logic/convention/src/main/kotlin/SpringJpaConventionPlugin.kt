@@ -5,7 +5,6 @@ import org.gradle.kotlin.dsl.dependencies
 import org.jetbrains.kotlin.allopen.gradle.AllOpenExtension
 
 class SpringJpaConventionPlugin : Plugin<Project> {
-
     override fun apply(target: Project) {
         with(target) {
             pluginManager.apply("org.jetbrains.kotlin.plugin.jpa")

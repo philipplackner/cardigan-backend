@@ -23,7 +23,6 @@ import java.util.UUID
 
 @Configuration(proxyBeanMethods = false)
 class WebConfig : WebMvcConfigurer {
-
     /** Responses are always JSON, whatever the client accepts, so there is never a 406. */
     override fun configureContentNegotiation(configurer: ContentNegotiationConfigurer) {
         configurer.ignoreAcceptHeader(true).defaultContentType(MediaType.APPLICATION_JSON)
@@ -34,10 +33,11 @@ class WebConfig : WebMvcConfigurer {
     }
 
     @Bean
-    fun explicitMethodsRegistrations(): WebMvcRegistrations = object : WebMvcRegistrations {
-        override fun getRequestMappingHandlerMapping(): RequestMappingHandlerMapping =
-            ExplicitMethodsHandlerMapping()
-    }
+    fun explicitMethodsRegistrations(): WebMvcRegistrations =
+        object : WebMvcRegistrations {
+            override fun getRequestMappingHandlerMapping(): RequestMappingHandlerMapping =
+                ExplicitMethodsHandlerMapping()
+        }
 }
 
 /**
@@ -45,7 +45,6 @@ class WebConfig : WebMvcConfigurer {
  * `UUID.fromString` and so accepts short forms such as `1-2-3-4-5`.
  */
 class CanonicalUuidConverter : Converter<String, UUID> {
-
     override fun convert(source: String): UUID =
         parseCanonicalUuid(source) ?: throw IllegalArgumentException("Not a canonical UUID")
 }
@@ -56,7 +55,6 @@ class CanonicalUuidConverter : Converter<String, UUID> {
  */
 @ControllerAdvice
 class CanonicalUuidBinderAdvice {
-
     @InitBinder
     fun registerCanonicalUuidEditor(binder: WebDataBinder) {
         binder.registerCustomEditor(UUID::class.java, CanonicalUuidEditor())
@@ -64,7 +62,6 @@ class CanonicalUuidBinderAdvice {
 }
 
 private class CanonicalUuidEditor : PropertyEditorSupport() {
-
     private val converter = CanonicalUuidConverter()
 
     override fun setAsText(text: String) {
@@ -77,8 +74,10 @@ private class CanonicalUuidEditor : PropertyEditorSupport() {
  * wrong methods (404 `ROUTE_NOT_FOUND`) unless a mapping declares them.
  */
 private class ExplicitMethodsHandlerMapping : RequestMappingHandlerMapping() {
-
-    override fun getMatchingMapping(info: RequestMappingInfo, request: HttpServletRequest): RequestMappingInfo? {
+    override fun getMatchingMapping(
+        info: RequestMappingInfo,
+        request: HttpServletRequest,
+    ): RequestMappingInfo? {
         val declared = info.methodsCondition.methods
         if (request.method == RequestMethod.HEAD.name && declared.isNotEmpty() && RequestMethod.HEAD !in declared) {
             return null

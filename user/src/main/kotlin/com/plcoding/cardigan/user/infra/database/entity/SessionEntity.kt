@@ -27,19 +27,15 @@ import java.util.UUID
 class SessionEntity(
     @Id
     var id: UUID,
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     var user: UserEntity,
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     var transport: RefreshTokenTransport,
-
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
-
     @Column(name = "revoked_at")
     var revokedAt: Instant?,
 )

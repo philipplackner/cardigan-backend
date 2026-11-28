@@ -12,7 +12,6 @@ import java.time.Duration
 data class BoardProperties(
     val lockTimeout: Duration,
 ) {
-
     init {
         // Postgres reads a lock_timeout of 0 as "wait forever".
         require(lockTimeout.toMillis() > 0) { "cardigan.board.lock-timeout must be at least 1ms" }

@@ -28,7 +28,6 @@ import java.time.Instant
 import java.util.UUID
 
 class LabelControllerTest {
-
     private val start = Instant.parse("2026-11-15T09:15:30.123Z")
     private val clock = MutableClock(start)
     private val labels = FakeLabelRepository()

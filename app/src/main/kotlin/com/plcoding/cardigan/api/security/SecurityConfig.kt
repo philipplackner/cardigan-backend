@@ -19,7 +19,6 @@ import org.springframework.security.web.servlet.util.matcher.PathPatternRequestM
  */
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {
-
     @Bean
     fun securityFilterChain(
         http: HttpSecurity,

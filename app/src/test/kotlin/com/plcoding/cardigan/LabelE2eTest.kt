@@ -24,7 +24,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class LabelE2eTest : E2eTest() {
-
     private val jsonMapper = JsonMapper.builder().build()
 
     private lateinit var token: String
@@ -36,14 +35,27 @@ class LabelE2eTest : E2eTest() {
 
     private fun body(vararg fields: Pair<String, Any?>): String = jsonMapper.writeValueAsString(mapOf(*fields))
 
-    private fun post(json: String, token: String? = this.token) = call(HttpMethod.POST, LABELS, token, json = json)
+    private fun post(
+        json: String,
+        token: String? = this.token,
+    ) = call(HttpMethod.POST, LABELS, token, json = json)
 
-    private fun patch(id: Any?, json: String, token: String? = this.token) =
-        call(HttpMethod.PATCH, "$LABELS/$id", token, json = json)
+    private fun patch(
+        id: Any?,
+        json: String,
+        token: String? = this.token,
+    ) = call(HttpMethod.PATCH, "$LABELS/$id", token, json = json)
 
-    private fun delete(id: Any?, token: String? = this.token) = call(HttpMethod.DELETE, "$LABELS/$id", token)
+    private fun delete(
+        id: Any?,
+        token: String? = this.token,
+    ) = call(HttpMethod.DELETE, "$LABELS/$id", token)
 
-    private fun create(name: String, color: String = "RED", token: String = this.token): Map<String, Any?> {
+    private fun create(
+        name: String,
+        color: String = "RED",
+        token: String = this.token,
+    ): Map<String, Any?> {
         val result = post(body("name" to name, "color" to color), token)
         assertThat(result.status, "create $name").isEqualTo(201)
         return result.json()
@@ -65,7 +77,10 @@ class LabelE2eTest : E2eTest() {
         return "2026-11-15T09:16:30.123Z"
     }
 
-    private fun HttpResult.assertFieldErrors(code: ErrorCode, vararg fieldErrors: Map<String, Any?>) {
+    private fun HttpResult.assertFieldErrors(
+        code: ErrorCode,
+        vararg fieldErrors: Map<String, Any?>,
+    ) {
         assertThat(assertProblem(code).fieldErrors).containsExactly(*fieldErrors)
     }
 
@@ -76,7 +91,9 @@ class LabelE2eTest : E2eTest() {
         val label = create("Bug", "RED")
 
         assertThat(label.keys).isEqualTo(setOf("id", "name", "color", "createdAt", "updatedAt"))
-        assertThat(label["id"] as String).matches(Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"))
+        assertThat(
+            label["id"] as String,
+        ).matches(Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"))
         assertThat(label - "id").isEqualTo(
             mapOf("name" to "Bug", "color" to "RED", "createdAt" to START_TEXT, "updatedAt" to START_TEXT),
         )
@@ -92,10 +109,29 @@ class LabelE2eTest : E2eTest() {
 
     @Test
     fun `every palette name is accepted and returned unchanged`() {
-        val colors = listOf(
-            "AMBER", "BLUE", "BROWN", "CYAN", "EMERALD", "FUCHSIA", "GREEN", "INDIGO", "LIME", "OLIVE",
-            "ORANGE", "PINK", "PURPLE", "RED", "ROSE", "SKY", "SLATE", "TEAL", "VIOLET", "YELLOW",
-        )
+        val colors =
+            listOf(
+                "AMBER",
+                "BLUE",
+                "BROWN",
+                "CYAN",
+                "EMERALD",
+                "FUCHSIA",
+                "GREEN",
+                "INDIGO",
+                "LIME",
+                "OLIVE",
+                "ORANGE",
+                "PINK",
+                "PURPLE",
+                "RED",
+                "ROSE",
+                "SKY",
+                "SLATE",
+                "TEAL",
+                "VIOLET",
+                "YELLOW",
+            )
 
         colors.forEach { assertThat(create("label $it", it)["color"]).isEqualTo(it) }
     }
@@ -461,23 +497,26 @@ class LabelE2eTest : E2eTest() {
             repeat(20) { round ->
                 val user = signIn("racer$round@example.com").token
                 val start = CyclicBarrier(2)
-                val results = executor.invokeAll(
-                    listOf("Bug", "bug").map { name ->
-                        Callable {
-                            start.await(10, TimeUnit.SECONDS)
-                            raw(
-                                "POST",
-                                LABELS,
-                                user,
-                                body("name" to name, "color" to "RED").toByteArray(),
-                                headers = mapOf(HttpHeaders.CONTENT_TYPE to MediaType.APPLICATION_JSON_VALUE),
-                            )
-                        }
-                    },
-                ).map { it.get(30, TimeUnit.SECONDS) }
+                val results =
+                    executor
+                        .invokeAll(
+                            listOf("Bug", "bug").map { name ->
+                                Callable {
+                                    start.await(10, TimeUnit.SECONDS)
+                                    raw(
+                                        "POST",
+                                        LABELS,
+                                        user,
+                                        body("name" to name, "color" to "RED").toByteArray(),
+                                        headers = mapOf(HttpHeaders.CONTENT_TYPE to MediaType.APPLICATION_JSON_VALUE),
+                                    )
+                                }
+                            },
+                        ).map { it.get(30, TimeUnit.SECONDS) }
 
                 assertThat(results.map { it.status }, "round $round").containsExactlyInAnyOrder(201, 409)
-                results.single { it.status == 409 }
+                results
+                    .single { it.status == 409 }
                     .assertFieldErrors(ErrorCode.CONFLICT, mapOf("field" to "name", "code" to "ALREADY_USED"))
                 val created = results.single { it.status == 201 }.json()
                 assertThat(created["name"]).isIn("Bug", "bug")

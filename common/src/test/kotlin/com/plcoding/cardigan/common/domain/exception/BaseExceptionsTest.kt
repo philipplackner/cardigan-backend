@@ -7,7 +7,6 @@ import assertk.assertions.isInstanceOf
 import org.junit.jupiter.api.Test
 
 class BaseExceptionsTest {
-
     @Test
     fun `rate limit keeps its wait time`() {
         assertThat(RateLimitedException(1).retryAfterSeconds).isEqualTo(1)

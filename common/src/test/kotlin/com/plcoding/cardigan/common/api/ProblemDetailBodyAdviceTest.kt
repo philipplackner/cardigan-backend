@@ -17,19 +17,19 @@ import org.springframework.mock.web.MockHttpServletResponse
 import java.net.URI
 
 class ProblemDetailBodyAdviceTest {
-
     private val advice = ProblemDetailBodyAdvice()
     private val returnType = MethodParameter(Any::class.java.getMethod("toString"), -1)
     private val converter = JacksonJsonHttpMessageConverter::class.java
 
-    private fun write(body: Any?): Any? = advice.beforeBodyWrite(
-        body,
-        returnType,
-        MediaType.APPLICATION_PROBLEM_JSON,
-        converter,
-        ServletServerHttpRequest(MockHttpServletRequest()),
-        ServletServerHttpResponse(MockHttpServletResponse()),
-    )
+    private fun write(body: Any?): Any? =
+        advice.beforeBodyWrite(
+            body,
+            returnType,
+            MediaType.APPLICATION_PROBLEM_JSON,
+            converter,
+            ServletServerHttpRequest(MockHttpServletRequest()),
+            ServletServerHttpResponse(MockHttpServletResponse()),
+        )
 
     @Test
     fun `applies to every response`() {

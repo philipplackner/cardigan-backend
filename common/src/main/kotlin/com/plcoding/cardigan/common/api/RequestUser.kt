@@ -11,7 +11,8 @@ import java.util.UUID
  */
 val requestUserId: UUID
     get() {
-        val authentication = SecurityContextHolder.getContext().authentication as? JwtAuthenticationToken
-            ?: throw UnauthenticatedException("No authenticated request")
+        val authentication =
+            SecurityContextHolder.getContext().authentication as? JwtAuthenticationToken
+                ?: throw UnauthenticatedException("No authenticated request")
         return UUID.fromString(authentication.name)
     }

@@ -19,7 +19,6 @@ import java.time.Instant
 import java.util.UUID
 
 class BoardServiceTest {
-
     private val start = Instant.parse("2026-11-15T09:15:30.123Z")
     private val clock = MutableClock(start)
     private val columns = FakeColumnRepository()
@@ -53,7 +52,12 @@ class BoardServiceTest {
             assertThat(column.createdAt).isEqualTo(created.board.createdAt)
             assertThat(column.updatedAt).isEqualTo(created.board.createdAt)
         }
-        assertThat(created.columns.map { it.id }.toSet().size).isEqualTo(3)
+        assertThat(
+            created.columns
+                .map { it.id }
+                .toSet()
+                .size,
+        ).isEqualTo(3)
         assertThat(columns.all).isEqualTo(created.columns)
     }
 

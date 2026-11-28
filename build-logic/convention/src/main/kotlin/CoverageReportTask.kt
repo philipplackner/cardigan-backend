@@ -21,7 +21,6 @@ import javax.xml.parsers.DocumentBuilderFactory
  * minimum isn't met.
  */
 abstract class CoverageReportTask : DefaultTask() {
-
     @get:InputFile
     @get:PathSensitive(PathSensitivity.NONE)
     abstract val xmlReport: RegularFileProperty
@@ -57,23 +56,25 @@ abstract class CoverageReportTask : DefaultTask() {
             |  Branch: ${branch.summary()}
             |XML report:  ${xmlReport.get().asFile.absolutePath}
             |HTML report: ${htmlReport.get().asFile.absolutePath}
-            """.trimMargin()
+            """.trimMargin(),
         )
 
-        val failures = listOfNotNull(
-            line.thresholdFailure("Line", MIN_LINE_PROPERTY, minLine.orNull),
-            branch.thresholdFailure("Branch", MIN_BRANCH_PROPERTY, minBranch.orNull),
-        )
+        val failures =
+            listOfNotNull(
+                line.thresholdFailure("Line", MIN_LINE_PROPERTY, minLine.orNull),
+                branch.thresholdFailure("Branch", MIN_BRANCH_PROPERTY, minBranch.orNull),
+            )
         if (failures.isNotEmpty()) throw GradleException(failures.joinToString("\n"))
     }
 
     private fun readReportCounters(file: java.io.File): Map<String, Counter> {
-        val factory = DocumentBuilderFactory.newInstance().apply {
-            isValidating = false
-            isNamespaceAware = false
-            setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
-            setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-        }
+        val factory =
+            DocumentBuilderFactory.newInstance().apply {
+                isValidating = false
+                isNamespaceAware = false
+                setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+                setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+            }
         val root = factory.newDocumentBuilder().parse(file).documentElement
         val nodes = root.childNodes
         return (0 until nodes.length)
@@ -81,20 +82,28 @@ abstract class CoverageReportTask : DefaultTask() {
             .filterIsInstance<Element>()
             .filter { it.tagName == "counter" }
             .associate {
-                it.getAttribute("type") to Counter(
-                    covered = it.getAttribute("covered").toLong(),
-                    missed = it.getAttribute("missed").toLong(),
-                )
+                it.getAttribute("type") to
+                    Counter(
+                        covered = it.getAttribute("covered").toLong(),
+                        missed = it.getAttribute("missed").toLong(),
+                    )
             }
     }
 
-    private data class Counter(val covered: Long, val missed: Long) {
+    private data class Counter(
+        val covered: Long,
+        val missed: Long,
+    ) {
         val total get() = covered + missed
 
         fun summary(): String =
             if (total == 0L) "n/a (0/0)" else "${percent(1, RoundingMode.HALF_UP)}% ($covered/$total)"
 
-        fun thresholdFailure(metric: String, property: String, min: BigDecimal?): String? {
+        fun thresholdFailure(
+            metric: String,
+            property: String,
+            min: BigDecimal?,
+        ): String? {
             if (min == null || total == 0L) return null
             if (BigDecimal(covered) * BigDecimal(100) >= min * BigDecimal(total)) return null
             return "$metric coverage ${percent(2, RoundingMode.FLOOR)}% is below the required " +
@@ -102,7 +111,9 @@ abstract class CoverageReportTask : DefaultTask() {
         }
 
         // FLOOR in failure messages, so a value just below the minimum never prints as equal to it.
-        private fun percent(scale: Int, rounding: RoundingMode): BigDecimal =
-            (BigDecimal(covered) * BigDecimal(100)).divide(BigDecimal(total), scale, rounding)
+        private fun percent(
+            scale: Int,
+            rounding: RoundingMode,
+        ): BigDecimal = (BigDecimal(covered) * BigDecimal(100)).divide(BigDecimal(total), scale, rounding)
     }
 }

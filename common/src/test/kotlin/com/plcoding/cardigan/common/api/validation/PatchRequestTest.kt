@@ -17,7 +17,6 @@ import tools.jackson.module.kotlin.jacksonObjectMapper
 enum class PatchColorDto { RED, GREEN }
 
 class PatchThingRequest : PatchRequest() {
-
     @ValidText(min = 1, max = 5)
     var name: String? = null
         set(value) {
@@ -38,7 +37,6 @@ data class PatchParentRequest(
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PatchRequestTest {
-
     private val factory = Validation.buildDefaultValidatorFactory()
     private val validator = factory.validator
     private val jsonMapper = jacksonObjectMapper()
@@ -64,10 +62,11 @@ class PatchRequestTest {
 
     @Test
     fun `every property sent as null is reported, ordered by field`() {
-        val request = PatchThingRequest().apply {
-            name = null
-            color = null
-        }
+        val request =
+            PatchThingRequest().apply {
+                name = null
+                color = null
+            }
 
         assertThat(errorsOf(request)).containsExactly(
             ProblemFieldError("color", FieldErrorCode.REQUIRED),
@@ -77,10 +76,11 @@ class PatchRequestTest {
 
     @Test
     fun `sent value is checked by its own constraints`() {
-        val request = PatchThingRequest().apply {
-            name = "toolong"
-            color = "BLUE"
-        }
+        val request =
+            PatchThingRequest().apply {
+                name = "toolong"
+                color = "BLUE"
+            }
 
         assertThat(errorsOf(request)).containsExactly(
             ProblemFieldError("color", FieldErrorCode.INVALID_VALUE),
@@ -90,20 +90,22 @@ class PatchRequestTest {
 
     @Test
     fun `valid sent values pass`() {
-        val request = PatchThingRequest().apply {
-            name = "Bug"
-            color = "RED"
-        }
+        val request =
+            PatchThingRequest().apply {
+                name = "Bug"
+                color = "RED"
+            }
 
         assertThat(errorsOf(request)).isEmpty()
     }
 
     @Test
     fun `null property and broken property are reported together`() {
-        val request = PatchThingRequest().apply {
-            name = null
-            color = "BLUE"
-        }
+        val request =
+            PatchThingRequest().apply {
+                name = null
+                color = "BLUE"
+            }
 
         assertThat(errorsOf(request)).containsExactly(
             ProblemFieldError("color", FieldErrorCode.INVALID_VALUE),
@@ -113,10 +115,11 @@ class PatchRequestTest {
 
     @Test
     fun `value sent after a null clears the null`() {
-        val request = PatchThingRequest().apply {
-            name = null
-            name = "Bug"
-        }
+        val request =
+            PatchThingRequest().apply {
+                name = null
+                name = "Bug"
+            }
 
         assertThat(request.nullProperties()).isEmpty()
         assertThat(errorsOf(request)).isEmpty()

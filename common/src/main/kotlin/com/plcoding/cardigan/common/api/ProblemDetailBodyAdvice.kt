@@ -15,8 +15,10 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice
  */
 @ControllerAdvice
 class ProblemDetailBodyAdvice : ResponseBodyAdvice<Any> {
-
-    override fun supports(returnType: MethodParameter, converterType: Class<out HttpMessageConverter<*>>): Boolean = true
+    override fun supports(
+        returnType: MethodParameter,
+        converterType: Class<out HttpMessageConverter<*>>,
+    ): Boolean = true
 
     override fun beforeBodyWrite(
         body: Any?,

@@ -16,7 +16,6 @@ data class Label(
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
-
     val nameKey: String = foldCase(name)
 }
 

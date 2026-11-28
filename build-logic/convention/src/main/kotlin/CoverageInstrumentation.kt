@@ -12,7 +12,6 @@ internal fun Gradle.isCoverageInstrumented(): Boolean =
         lastSegment in COVERAGE_TASK_NAMES || lastSegment.startsWith("kover")
     }
 
-
 private val KOVER_REPORT_TASK = Regex("kover(\\w*Report|Verify|CachedVerify|Log)\\w*")
 
 /** Whether [taskName] writes or checks coverage, so it is useless without instrumentation. */

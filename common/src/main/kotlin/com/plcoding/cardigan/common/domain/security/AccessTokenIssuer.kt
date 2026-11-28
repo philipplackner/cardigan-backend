@@ -5,7 +5,6 @@ import java.util.UUID
 
 /** Issues access tokens for users. */
 interface AccessTokenIssuer {
-
     fun issue(userId: UUID): IssuedAccessToken
 }
 

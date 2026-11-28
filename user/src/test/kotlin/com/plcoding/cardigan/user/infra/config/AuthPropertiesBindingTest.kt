@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Configuration
 import java.time.Duration
 
 class AuthPropertiesBindingTest {
-
     @Configuration(proxyBeanMethods = false)
     @EnableConfigurationProperties(
         AuthProperties::class,
@@ -52,31 +51,32 @@ class AuthPropertiesBindingTest {
 
     @Test
     fun `configured values are bound from the documented keys`() {
-        runner.withPropertyValues(
-            "cardigan.user.auth.refresh-token-ttl=7d",
-            "cardigan.user.auth.session-cleanup-cron=0 30 4 * * *",
-            "cardigan.user.auth.bcrypt-cost=5",
-            "cardigan.user.auth.max-concurrent-hashes=3",
-            "cardigan.user.auth.hash-wait-timeout=250ms",
-            "cardigan.user.auth.rate-limit.max-tracked-emails=2",
-            "cardigan.user.auth.rate-limit.login.capacity=7",
-            "cardigan.user.auth.rate-limit.login.period=30s",
-            "cardigan.user.auth.rate-limit.register.capacity=9",
-            "cardigan.user.auth.rate-limit.register.period=2m",
-        ).run { context ->
-            assertThat(context.startupFailure).isNull()
-            assertThat(context.getBean(AuthProperties::class.java))
-                .isEqualTo(AuthProperties(Duration.ofDays(7), "0 30 4 * * *"))
-            assertThat(context.getBean(PasswordHashingProperties::class.java))
-                .isEqualTo(PasswordHashingProperties(5, 3, Duration.ofMillis(250)))
-            assertThat(context.getBean(AuthRateLimitProperties::class.java)).isEqualTo(
-                AuthRateLimitProperties(
-                    maxTrackedEmails = 2,
-                    login = AuthRateLimitProperties.Limit(7, Duration.ofSeconds(30)),
-                    register = AuthRateLimitProperties.Limit(9, Duration.ofMinutes(2)),
-                ),
-            )
-        }
+        runner
+            .withPropertyValues(
+                "cardigan.user.auth.refresh-token-ttl=7d",
+                "cardigan.user.auth.session-cleanup-cron=0 30 4 * * *",
+                "cardigan.user.auth.bcrypt-cost=5",
+                "cardigan.user.auth.max-concurrent-hashes=3",
+                "cardigan.user.auth.hash-wait-timeout=250ms",
+                "cardigan.user.auth.rate-limit.max-tracked-emails=2",
+                "cardigan.user.auth.rate-limit.login.capacity=7",
+                "cardigan.user.auth.rate-limit.login.period=30s",
+                "cardigan.user.auth.rate-limit.register.capacity=9",
+                "cardigan.user.auth.rate-limit.register.period=2m",
+            ).run { context ->
+                assertThat(context.startupFailure).isNull()
+                assertThat(context.getBean(AuthProperties::class.java))
+                    .isEqualTo(AuthProperties(Duration.ofDays(7), "0 30 4 * * *"))
+                assertThat(context.getBean(PasswordHashingProperties::class.java))
+                    .isEqualTo(PasswordHashingProperties(5, 3, Duration.ofMillis(250)))
+                assertThat(context.getBean(AuthRateLimitProperties::class.java)).isEqualTo(
+                    AuthRateLimitProperties(
+                        maxTrackedEmails = 2,
+                        login = AuthRateLimitProperties.Limit(7, Duration.ofSeconds(30)),
+                        register = AuthRateLimitProperties.Limit(9, Duration.ofMinutes(2)),
+                    ),
+                )
+            }
     }
 
     @Test

@@ -20,7 +20,6 @@ import java.math.BigInteger
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ValidatorsTest {
-
     private val factory = Validation.buildDefaultValidatorFactory()
     private val validator = factory.validator
     private val requestValidator = RequestValidator(validator)
@@ -86,7 +85,9 @@ class ValidatorsTest {
 
     @Test
     fun `constraint without a field error code is INVALID_VALUE`() {
-        assertThat(errorsOf(LegacyRequest(" "))).containsExactly(ProblemFieldError("name", FieldErrorCode.INVALID_VALUE))
+        assertThat(
+            errorsOf(LegacyRequest(" ")),
+        ).containsExactly(ProblemFieldError("name", FieldErrorCode.INVALID_VALUE))
     }
 
     @Test
@@ -113,10 +114,11 @@ class ValidatorsTest {
 
     @Test
     fun `null patch request is valid`() {
-        val unusedContext = Proxy.newProxyInstance(
-            javaClass.classLoader,
-            arrayOf(ConstraintValidatorContext::class.java),
-        ) { _, method, _ -> error("unexpected call to ${method.name}") } as ConstraintValidatorContext
+        val unusedContext =
+            Proxy.newProxyInstance(
+                javaClass.classLoader,
+                arrayOf(ConstraintValidatorContext::class.java),
+            ) { _, method, _ -> error("unexpected call to ${method.name}") } as ConstraintValidatorContext
 
         assertThat(NotNullWhenPresentValidator().isValid(null, unusedContext)).isTrue()
     }

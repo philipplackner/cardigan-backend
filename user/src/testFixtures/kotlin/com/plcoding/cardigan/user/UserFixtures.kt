@@ -10,7 +10,6 @@ class UserFixtures(
     private val userRepository: UserRepository,
     private val clock: Clock,
 ) {
-
     fun createUser(email: String = "ann@example.com"): User {
         val now = clock.instant()
         return userRepository.save(

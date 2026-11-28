@@ -22,7 +22,6 @@ import java.time.Instant
 import java.util.UUID
 
 class ColumnServiceTest {
-
     private val start = Instant.parse("2026-11-15T09:15:30.123Z")
     private val clock = MutableClock(start)
     private val columns = FakeColumnRepository()
@@ -34,7 +33,10 @@ class ColumnServiceTest {
     private val bob = UUID.randomUUID()
 
     /** A board of [owner] with the columns A, B, C at 0, 1, 2, each created one second apart. */
-    private fun boardAbc(owner: UUID = ann, key: String = "CRD"): BoardWithColumns {
+    private fun boardAbc(
+        owner: UUID = ann,
+        key: String = "CRD",
+    ): BoardWithColumns {
         val board = emptyBoard(owner, key)
         listOf("A", "B", "C").forEach {
             clock.advanceBy(Duration.ofSeconds(1))
@@ -43,7 +45,10 @@ class ColumnServiceTest {
         return boardService.get(owner, board)
     }
 
-    private fun emptyBoard(owner: UUID = ann, key: String = "CRD"): UUID {
+    private fun emptyBoard(
+        owner: UUID = ann,
+        key: String = "CRD",
+    ): UUID {
         val created = boardService.create(owner, "Roadmap", key)
         created.columns.forEach { service.delete(owner, created.board.id, it.id) }
         return created.board.id
@@ -54,14 +59,20 @@ class ColumnServiceTest {
         return clock.instant()
     }
 
-    private fun state(owner: UUID, boardId: UUID) = boardService.get(owner, boardId)
+    private fun state(
+        owner: UUID,
+        boardId: UUID,
+    ) = boardService.get(owner, boardId)
 
     private fun BoardWithColumns.names() = columns.map { it.name to it.position }
 
     private fun BoardWithColumns.column(name: String): Column = columns.single { it.name == name }
 
-    private fun move(board: BoardWithColumns, name: String, position: Long) =
-        service.move(ann, board.board.id, board.column(name).id, BigInteger.valueOf(position))
+    private fun move(
+        board: BoardWithColumns,
+        name: String,
+        position: Long,
+    ) = service.move(ann, board.board.id, board.column(name).id, BigInteger.valueOf(position))
 
     @Test
     fun `first column of an empty board gets position 0`() {
@@ -230,7 +241,8 @@ class ColumnServiceTest {
         val board = boardAbc()
 
         assertFailure { service.move(ann, board.board.id, board.column("A").id, BigInteger("99999999999999999999")) }
-            .isInstanceOf<FieldOutOfRangeException>().limits("position", 0, 2)
+            .isInstanceOf<FieldOutOfRangeException>()
+            .limits("position", 0, 2)
     }
 
     @Test
@@ -240,7 +252,8 @@ class ColumnServiceTest {
 
         assertThat(service.move(ann, boardId, only.id, BigInteger.ZERO)).containsExactly(only)
         assertFailure { service.move(ann, boardId, only.id, BigInteger.ONE) }
-            .isInstanceOf<FieldOutOfRangeException>().limits("position", 0, 0)
+            .isInstanceOf<FieldOutOfRangeException>()
+            .limits("position", 0, 0)
     }
 
     @Test
@@ -321,7 +334,13 @@ class ColumnServiceTest {
         val board = boardAbc()
         service.delete(ann, board.board.id, board.column("B").id)
 
-        assertFailure { service.delete(ann, board.board.id, board.column("B").id) }.isInstanceOf<ColumnNotFoundException>()
+        assertFailure {
+            service.delete(
+                ann,
+                board.board.id,
+                board.column("B").id,
+            )
+        }.isInstanceOf<ColumnNotFoundException>()
         assertThat(state(ann, board.board.id).names()).containsExactly("A" to 0, "C" to 1)
     }
 
@@ -334,7 +353,14 @@ class ColumnServiceTest {
 
         assertFailure { service.get(ann, y.board.id, columnOfX) }.isInstanceOf<ColumnNotFoundException>()
         assertFailure { service.rename(ann, y.board.id, columnOfX, "X") }.isInstanceOf<ColumnNotFoundException>()
-        assertFailure { service.move(ann, y.board.id, columnOfX, BigInteger.ZERO) }.isInstanceOf<ColumnNotFoundException>()
+        assertFailure {
+            service.move(
+                ann,
+                y.board.id,
+                columnOfX,
+                BigInteger.ZERO,
+            )
+        }.isInstanceOf<ColumnNotFoundException>()
         assertFailure { service.delete(ann, y.board.id, columnOfX) }.isInstanceOf<ColumnNotFoundException>()
         assertThat(state(ann, x.board.id)).isEqualTo(x)
         assertThat(state(ann, y.board.id)).isEqualTo(y)
@@ -349,7 +375,9 @@ class ColumnServiceTest {
 
         assertFailure { service.get(bob, bobBoard.board.id, annColumn) }.isInstanceOf<ColumnNotFoundException>()
         assertFailure { service.rename(bob, bobBoard.board.id, annColumn, "X") }.isInstanceOf<ColumnNotFoundException>()
-        assertFailure { service.move(bob, bobBoard.board.id, annColumn, BigInteger.ZERO) }.isInstanceOf<ColumnNotFoundException>()
+        assertFailure {
+            service.move(bob, bobBoard.board.id, annColumn, BigInteger.ZERO)
+        }.isInstanceOf<ColumnNotFoundException>()
         assertFailure { service.delete(bob, bobBoard.board.id, annColumn) }.isInstanceOf<ColumnNotFoundException>()
         assertThat(state(ann, annBoard.board.id)).isEqualTo(annBoard)
         assertThat(state(bob, bobBoard.board.id)).isEqualTo(bobBoard)
@@ -364,7 +392,9 @@ class ColumnServiceTest {
         assertFailure { service.create(bob, annBoard.board.id, "X") }.isInstanceOf<BoardNotFoundException>()
         assertFailure { service.get(bob, annBoard.board.id, annColumn) }.isInstanceOf<BoardNotFoundException>()
         assertFailure { service.rename(bob, annBoard.board.id, annColumn, "X") }.isInstanceOf<BoardNotFoundException>()
-        assertFailure { service.move(bob, annBoard.board.id, annColumn, BigInteger.ZERO) }.isInstanceOf<BoardNotFoundException>()
+        assertFailure {
+            service.move(bob, annBoard.board.id, annColumn, BigInteger.ZERO)
+        }.isInstanceOf<BoardNotFoundException>()
         assertFailure { service.delete(bob, annBoard.board.id, annColumn) }.isInstanceOf<BoardNotFoundException>()
         assertThat(state(ann, annBoard.board.id)).isEqualTo(annBoard)
     }
@@ -375,11 +405,20 @@ class ColumnServiceTest {
         val unknown = UUID.randomUUID()
 
         assertFailure { service.rename(ann, board.board.id, unknown, "X") }.isInstanceOf<ColumnNotFoundException>()
-        assertFailure { service.move(ann, board.board.id, unknown, BigInteger.ZERO) }.isInstanceOf<ColumnNotFoundException>()
+        assertFailure {
+            service.move(
+                ann,
+                board.board.id,
+                unknown,
+                BigInteger.ZERO,
+            )
+        }.isInstanceOf<ColumnNotFoundException>()
         assertFailure { service.delete(ann, board.board.id, unknown) }.isInstanceOf<ColumnNotFoundException>()
         assertFailure { service.create(ann, unknown, "X") }.isInstanceOf<BoardNotFoundException>()
         assertFailure { service.rename(ann, unknown, board.column("A").id, "X") }.isInstanceOf<BoardNotFoundException>()
-        assertFailure { service.move(ann, unknown, board.column("A").id, BigInteger.ZERO) }.isInstanceOf<BoardNotFoundException>()
+        assertFailure {
+            service.move(ann, unknown, board.column("A").id, BigInteger.ZERO)
+        }.isInstanceOf<BoardNotFoundException>()
         assertFailure { service.delete(ann, unknown, board.column("A").id) }.isInstanceOf<BoardNotFoundException>()
         assertThat(state(ann, board.board.id)).isEqualTo(board)
     }
@@ -397,10 +436,21 @@ class ColumnServiceTest {
         val board = boardAbc()
         boardService.delete(ann, board.board.id)
 
-        assertFailure { service.rename(ann, board.board.id, board.column("A").id, "X") }.isInstanceOf<BoardNotFoundException>()
+        assertFailure {
+            service.rename(
+                ann,
+                board.board.id,
+                board.column("A").id,
+                "X",
+            )
+        }.isInstanceOf<BoardNotFoundException>()
     }
 
-    private fun assertk.Assert<FieldOutOfRangeException>.limits(field: String, min: Long, max: Long) {
+    private fun assertk.Assert<FieldOutOfRangeException>.limits(
+        field: String,
+        min: Long,
+        max: Long,
+    ) {
         prop(FieldOutOfRangeException::field).isEqualTo(field)
         prop(FieldOutOfRangeException::min).isEqualTo(min)
         prop(FieldOutOfRangeException::max).isEqualTo(max)

@@ -38,19 +38,24 @@ import org.springframework.mock.web.MockHttpServletResponse
 import java.time.Duration
 
 class AuthControllerTest : AuthServiceTestBase() {
-
-    private val controller = AuthController(service, RequestValidator(validatorFactory.validator), RefreshTokenCookie(clock))
+    private val controller =
+        AuthController(service, RequestValidator(validatorFactory.validator), RefreshTokenCookie(clock))
 
     private val response = MockHttpServletResponse()
 
     private val thirtyDays = Duration.ofDays(30)
 
-    private fun registerRequest(email: String? = "Ann@Example.com", transport: String? = "BODY") =
-        RegisterRequest(email, password, transport)
+    private fun registerRequest(
+        email: String? = "Ann@Example.com",
+        transport: String? = "BODY",
+    ) = RegisterRequest(email, password, transport)
 
     private fun refreshCookie(): Cookie? = response.getCookie(RefreshTokenCookie.NAME)
 
-    private fun assertCookieCarries(value: String, maxAge: Duration) {
+    private fun assertCookieCarries(
+        value: String,
+        maxAge: Duration,
+    ) {
         val cookie = refreshCookie() as MockCookie
         assertThat(cookie.value).isEqualTo(value)
         assertThat(cookie.maxAge).isEqualTo(maxAge.toSeconds().toInt())
@@ -89,7 +94,11 @@ class AuthControllerTest : AuthServiceTestBase() {
         val session = controller.register(registerRequest(transport = "COOKIE"), response)
 
         assertThat(session.refreshToken).isNull()
-        assertThat(session.accessToken).isEqualTo(accessTokens.issued.single().second.token)
+        assertThat(session.accessToken).isEqualTo(
+            accessTokens.issued
+                .single()
+                .second.token,
+        )
         assertCookieCarries(generator.generated.single(), thirtyDays)
     }
 
@@ -99,7 +108,8 @@ class AuthControllerTest : AuthServiceTestBase() {
 
         assertFailure { controller.register(RegisterRequest(" Ann@Example.com", null, null), response) }
             .isInstanceOf(AuthRateLimitedException::class)
-            .prop(AuthRateLimitedException::retryAfterSeconds).isEqualTo(7)
+            .prop(AuthRateLimitedException::retryAfterSeconds)
+            .isEqualTo(7)
         assertThat(rateLimiter.checks).containsExactly(AuthAction.REGISTER to "ann@example.com")
     }
 
@@ -186,7 +196,11 @@ class AuthControllerTest : AuthServiceTestBase() {
         val tokens = controller.refresh(RefreshRequest("COOKIE", "not-the-token"), cookie = first, response)
 
         assertThat(tokens.refreshToken).isNull()
-        assertThat(tokens.accessToken).isEqualTo(accessTokens.issued.last().second.token)
+        assertThat(tokens.accessToken).isEqualTo(
+            accessTokens.issued
+                .last()
+                .second.token,
+        )
         assertCookieCarries(generator.generated.last(), thirtyDays)
     }
 

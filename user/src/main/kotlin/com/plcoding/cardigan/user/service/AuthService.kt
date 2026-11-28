@@ -32,12 +32,14 @@ class AuthService(
     private val accessTokenIssuer: AccessTokenIssuer,
     private val clock: Clock,
 ) {
-
     /**
      * Counts one request for the submitted [email] as it came in. A request without an email isn't
      * counted; field validation answers it. Throws `AuthRateLimitedException` over the limit.
      */
-    fun checkRateLimit(action: AuthAction, email: String?) {
+    fun checkRateLimit(
+        action: AuthAction,
+        email: String?,
+    ) {
         val key = email?.let(::normalizeEmail).orEmpty()
         if (key.isNotEmpty()) {
             authRateLimiter.check(action, key)
@@ -66,9 +68,13 @@ class AuthService(
      * most one succeeds and the others count as reuse.
      */
     @Transactional
-    fun refresh(transport: RefreshTokenTransport, token: String?): RefreshResult {
-        val refreshToken = token?.let { refreshTokenRepository.findByTokenHash(hashRefreshToken(it)) }
-            ?: return RefreshResult.Rejected
+    fun refresh(
+        transport: RefreshTokenTransport,
+        token: String?,
+    ): RefreshResult {
+        val refreshToken =
+            token?.let { refreshTokenRepository.findByTokenHash(hashRefreshToken(it)) }
+                ?: return RefreshResult.Rejected
         val session = sessionRepository.findById(refreshToken.sessionId) ?: return RefreshResult.Rejected
         if (session.transport != transport || session.isRevoked) return RefreshResult.Rejected
         val now = clock.instant()
@@ -91,7 +97,10 @@ class AuthService(
      * token still ends its session, also after its own expiry.
      */
     @Transactional
-    fun logout(transport: RefreshTokenTransport, token: String?) {
+    fun logout(
+        transport: RefreshTokenTransport,
+        token: String?,
+    ) {
         val refreshToken = token?.let { refreshTokenRepository.findByTokenHash(hashRefreshToken(it)) } ?: return
         val session = sessionRepository.findById(refreshToken.sessionId) ?: return
         if (session.transport != transport || session.isRevoked) return
@@ -101,7 +110,11 @@ class AuthService(
         }
     }
 
-    private fun tokensFor(userId: UUID, refreshToken: IssuedRefreshToken, transport: RefreshTokenTransport): IssuedTokens {
+    private fun tokensFor(
+        userId: UUID,
+        refreshToken: IssuedRefreshToken,
+        transport: RefreshTokenTransport,
+    ): IssuedTokens {
         val accessToken = accessTokenIssuer.issue(userId)
         return IssuedTokens(
             accessToken = accessToken.token,

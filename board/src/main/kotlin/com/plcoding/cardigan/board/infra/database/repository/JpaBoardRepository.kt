@@ -19,11 +19,15 @@ class JpaBoardRepository(
     private val entityManager: EntityManager,
     private val boardProperties: BoardProperties,
 ) : BoardRepository {
+    override fun findByIdAndOwnerId(
+        id: UUID,
+        ownerId: UUID,
+    ): Board? = springDataBoardRepository.findByIdAndOwnerId(id, ownerId)?.toBoard()
 
-    override fun findByIdAndOwnerId(id: UUID, ownerId: UUID): Board? =
-        springDataBoardRepository.findByIdAndOwnerId(id, ownerId)?.toBoard()
-
-    override fun lockByIdAndOwner(id: UUID, ownerId: UUID): Board? {
+    override fun lockByIdAndOwner(
+        id: UUID,
+        ownerId: UUID,
+    ): Board? {
         // Postgres has no FOR UPDATE WAIT n, so the JPA lock timeout hint can't bound the wait.
         // SET LOCAL takes no bind parameter; the value is a number from config.
         entityManager
@@ -35,8 +39,10 @@ class JpaBoardRepository(
     override fun findAllByOwnerId(ownerId: UUID): List<Board> =
         springDataBoardRepository.findAllByOwnerIdOrderByUpdatedAtDescCreatedAtDescIdAsc(ownerId).map { it.toBoard() }
 
-    override fun existsByOwnerIdAndKey(ownerId: UUID, key: String): Boolean =
-        springDataBoardRepository.existsByOwnerIdAndKey(ownerId, key)
+    override fun existsByOwnerIdAndKey(
+        ownerId: UUID,
+        key: String,
+    ): Boolean = springDataBoardRepository.existsByOwnerIdAndKey(ownerId, key)
 
     override fun save(board: Board): Board =
         try {

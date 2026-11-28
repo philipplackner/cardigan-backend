@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class JpaColumnRepositoryTest : BoardPersistenceTest() {
-
     private fun savedBoard(key: String = "CRD") = boards.save(board(key = key))
 
     private fun namesAndPositions(boardId: UUID) = columns.findAllByBoardId(boardId).map { it.name to it.position }
@@ -24,7 +23,9 @@ class JpaColumnRepositoryTest : BoardPersistenceTest() {
         flushAndClear()
 
         assertThat(columns.findByIdAndBoardId(column.id, board.id)).isEqualTo(column)
-        assertThat(nativeInstant("SELECT created_at FROM board_service.columns WHERE id = ?1", column.id)).isEqualTo(now)
+        assertThat(
+            nativeInstant("SELECT created_at FROM board_service.columns WHERE id = ?1", column.id),
+        ).isEqualTo(now)
     }
 
     @Test
@@ -58,24 +59,30 @@ class JpaColumnRepositoryTest : BoardPersistenceTest() {
     fun `database rejects a negative position`() {
         val board = savedBoard()
         flushAndClear()
-        val insert = entityManager.entityManager.createNativeQuery(
-            """
+        val insert =
+            entityManager.entityManager
+                .createNativeQuery(
+                    """
             INSERT INTO board_service.columns (id, board_id, name, position, created_at, updated_at)
             VALUES (?1, ?2, 'Broken', -1, now(), now())
             """,
-        ).setParameter(1, UUID.randomUUID()).setParameter(2, board.id)
+                ).setParameter(1, UUID.randomUUID())
+                .setParameter(2, board.id)
 
         assertFailure { insert.executeUpdate() }.isInstanceOf<ConstraintViolationException>()
     }
 
     @Test
     fun `database rejects a column without an existing board`() {
-        val insert = entityManager.entityManager.createNativeQuery(
-            """
+        val insert =
+            entityManager.entityManager
+                .createNativeQuery(
+                    """
             INSERT INTO board_service.columns (id, board_id, name, position, created_at, updated_at)
             VALUES (?1, ?2, 'Orphan', 0, now(), now())
             """,
-        ).setParameter(1, UUID.randomUUID()).setParameter(2, UUID.randomUUID())
+                ).setParameter(1, UUID.randomUUID())
+                .setParameter(2, UUID.randomUUID())
 
         assertFailure { insert.executeUpdate() }.isInstanceOf<ConstraintViolationException>()
     }
@@ -89,8 +96,10 @@ class JpaColumnRepositoryTest : BoardPersistenceTest() {
         columns.save(column(other.id, 0))
         flushAndClear()
 
-        entityManager.entityManager.createNativeQuery("DELETE FROM board_service.boards WHERE id = ?1")
-            .setParameter(1, board.id).executeUpdate()
+        entityManager.entityManager
+            .createNativeQuery("DELETE FROM board_service.boards WHERE id = ?1")
+            .setParameter(1, board.id)
+            .executeUpdate()
 
         val count = "SELECT count(*) FROM board_service.columns WHERE board_id = ?1"
         assertThat(nativeCount(count, board.id)).isEqualTo(0)
@@ -193,7 +202,9 @@ class JpaColumnRepositoryTest : BoardPersistenceTest() {
         val column = columns.save(column(board.id, 0, name = "A"))
         flushAndClear()
 
-        columns.save(column.copy(name = "B", position = 4, createdAt = now.plusSeconds(9), updatedAt = now.plusSeconds(60)))
+        columns.save(
+            column.copy(name = "B", position = 4, createdAt = now.plusSeconds(9), updatedAt = now.plusSeconds(60)),
+        )
         flushAndClear()
 
         assertThat(columns.findByIdAndBoardId(column.id, board.id))

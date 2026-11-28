@@ -11,7 +11,6 @@ import org.springframework.http.HttpMethod
 import java.util.UUID
 
 class ValidationE2eTest : E2eTest() {
-
     private lateinit var token: String
 
     @BeforeEach
@@ -87,7 +86,9 @@ class ValidationE2eTest : E2eTest() {
 
     @Test
     fun `nested and array item paths`() {
-        assertThat(fieldErrorsOf("""{"name":"a","key":"ab","nested":{},"items":[{"name":"ok"},{"name":null}]}""")).containsExactly(
+        assertThat(
+            fieldErrorsOf("""{"name":"a","key":"ab","nested":{},"items":[{"name":"ok"},{"name":null}]}"""),
+        ).containsExactly(
             mapOf("field" to "items[1].name", "code" to "REQUIRED"),
             mapOf("field" to "nested.name", "code" to "REQUIRED"),
         )
@@ -143,8 +144,13 @@ class ValidationE2eTest : E2eTest() {
 
     @Test
     fun `existing reference with an invalid field is VALIDATION_FAILED`() {
-        val body = call(HttpMethod.PUT, "/api/v1/test/things/${TestApiController.EXISTING_THING_ID}", token, json = """{"key":"ab"}""")
-            .assertProblem(ErrorCode.VALIDATION_FAILED)
+        val body =
+            call(
+                HttpMethod.PUT,
+                "/api/v1/test/things/${TestApiController.EXISTING_THING_ID}",
+                token,
+                json = """{"key":"ab"}""",
+            ).assertProblem(ErrorCode.VALIDATION_FAILED)
 
         assertThat(body.fieldErrors).containsExactly(mapOf("field" to "name", "code" to "REQUIRED"))
     }

@@ -8,7 +8,6 @@ import com.plcoding.cardigan.common.domain.exception.FieldErrorCode
 import org.junit.jupiter.api.Test
 
 class BoardKeyTest {
-
     private fun check(raw: String): FieldErrorCode? = checkBoardKey(normalizeBoardKey(raw))
 
     @Test
@@ -121,7 +120,18 @@ class BoardKeyTest {
 
     @Test
     fun `INVALID_CHARACTER is never returned`() {
-        val inputs = listOf("\u0000", "A\u0000", "A\u0001B", "A\nB", "A\r\nB", "\ud800", "A\udc00B", "ABCDE\u0007", "\u001f\u001f")
+        val inputs =
+            listOf(
+                "\u0000",
+                "A\u0000",
+                "A\u0001B",
+                "A\nB",
+                "A\r\nB",
+                "\ud800",
+                "A\udc00B",
+                "ABCDE\u0007",
+                "\u001f\u001f",
+            )
 
         inputs.forEach { assertThat(check(it), it).isNotEqualTo(FieldErrorCode.INVALID_CHARACTER) }
     }

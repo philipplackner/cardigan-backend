@@ -14,13 +14,14 @@ fun LabelColor.toLabelColorDto(): LabelColorDto = LabelColorDto.valueOf(name)
 
 fun LabelColorDto.toLabelColor(): LabelColor = LabelColor.valueOf(name)
 
-fun Label.toLabelDto(): LabelDto = LabelDto(
-    id = id,
-    name = name,
-    color = color.toLabelColorDto(),
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-)
+fun Label.toLabelDto(): LabelDto =
+    LabelDto(
+        id = id,
+        name = name,
+        color = color.toLabelColorDto(),
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
 
 fun List<Label>.toLabelListDto(): LabelListDto = LabelListDto(labels = map { it.toLabelDto() })
 
@@ -31,7 +32,8 @@ fun CreateLabelRequest.toLabelName(): String = normalizeText(name!!)
 fun CreateLabelRequest.toLabelColor(): LabelColor = LabelColorDto.valueOf(color!!).toLabelColor()
 
 /** The sent fields of a validated request, with the name normalized. */
-fun UpdateLabelRequest.toLabelChanges(): LabelChanges = LabelChanges(
-    name = name?.let { normalizeText(it) },
-    color = color?.let { LabelColorDto.valueOf(it).toLabelColor() },
-)
+fun UpdateLabelRequest.toLabelChanges(): LabelChanges =
+    LabelChanges(
+        name = name?.let { normalizeText(it) },
+        color = color?.let { LabelColorDto.valueOf(it).toLabelColor() },
+    )

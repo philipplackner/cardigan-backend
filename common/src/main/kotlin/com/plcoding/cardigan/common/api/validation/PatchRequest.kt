@@ -23,11 +23,13 @@ import kotlin.reflect.KClass
  */
 @NotNullWhenPresent
 abstract class PatchRequest {
-
     private val nullPropertyNames = linkedSetOf<String>()
 
     /** Called by every property setter. Remembers [name] when it was sent as `null`. */
-    protected fun <T> sent(name: String, value: T?): T? {
+    protected fun <T> sent(
+        name: String,
+        value: T?,
+    ): T? {
         if (value == null) nullPropertyNames += name else nullPropertyNames -= name
         return value
     }
@@ -51,16 +53,20 @@ annotation class NotNullWhenPresent(
 )
 
 class NotNullWhenPresentValidator : ConstraintValidator<NotNullWhenPresent, PatchRequest> {
-
-    override fun isValid(value: PatchRequest?, context: ConstraintValidatorContext): Boolean {
+    override fun isValid(
+        value: PatchRequest?,
+        context: ConstraintValidatorContext,
+    ): Boolean {
         val names = value?.nullProperties().orEmpty()
         if (names.isEmpty()) return true
 
         context.disableDefaultConstraintViolation()
-        context.unwrap(HibernateConstraintValidatorContext::class.java)
+        context
+            .unwrap(HibernateConstraintValidatorContext::class.java)
             .withDynamicPayload(FieldViolation(FieldErrorCode.REQUIRED))
         names.forEach { name ->
-            context.buildConstraintViolationWithTemplate(context.defaultConstraintMessageTemplate)
+            context
+                .buildConstraintViolationWithTemplate(context.defaultConstraintMessageTemplate)
                 .addPropertyNode(name)
                 .addConstraintViolation()
         }

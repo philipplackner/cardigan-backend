@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 
 class AuthServiceRegisterLoginTest : AuthServiceTestBase() {
-
     @Test
     fun `register stores a lowercased email and the password hash`() {
         val issued = service.register(credentials("  Ann@Example.com "))
@@ -187,8 +186,16 @@ class AuthServiceRegisterLoginTest : AuthServiceTestBase() {
     fun `password with a leading space fails`() {
         register()
 
-        assertFailure { service.login(credentials(password = " $password")) }.isInstanceOf<InvalidCredentialsException>()
-        assertFailure { service.login(credentials(password = "$password ")) }.isInstanceOf<InvalidCredentialsException>()
+        assertFailure {
+            service.login(
+                credentials(password = " $password"),
+            )
+        }.isInstanceOf<InvalidCredentialsException>()
+        assertFailure {
+            service.login(
+                credentials(password = "$password "),
+            )
+        }.isInstanceOf<InvalidCredentialsException>()
     }
 
     @Test
@@ -205,16 +212,19 @@ class AuthServiceRegisterLoginTest : AuthServiceTestBase() {
         sessions.sessions.clear()
         refreshTokens.tokens.clear()
 
-        val logins = (1..20).map {
-            clock.advanceBy(Duration.ofMinutes(1))
-            login()
-        }
+        val logins =
+            (1..20).map {
+                clock.advanceBy(Duration.ofMinutes(1))
+                login()
+            }
 
         assertThat(sessions.active).hasSize(20)
         assertThat(sessions.active.map { it.userId }.toSet()).isEqualTo(setOf(registered.user.id))
         assertThat(logins.map { it.tokens.refreshToken }.toSet()).hasSize(20)
         assertThat(logins.map { sessionOf(it.tokens.refreshToken).id }.toSet()).hasSize(20)
-        assertThat(refreshed(logins.first().tokens.refreshToken).refreshToken).isNotEqualTo(logins.first().tokens.refreshToken)
+        assertThat(
+            refreshed(logins.first().tokens.refreshToken).refreshToken,
+        ).isNotEqualTo(logins.first().tokens.refreshToken)
     }
 
     @Test

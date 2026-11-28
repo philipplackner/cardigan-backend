@@ -14,7 +14,6 @@ import org.springframework.web.filter.FormContentFilter
 import org.springframework.web.multipart.MultipartResolver
 
 class RequestSizeLimitE2eTest : E2eTest() {
-
     @Autowired
     private lateinit var context: ApplicationContext
 
@@ -66,8 +65,9 @@ class RequestSizeLimitE2eTest : E2eTest() {
         val token = signIn().token
 
         listOf("/api/v1/test/echo", "/api/v1/users/me", "/api/v1/does-not-exist").forEach { path ->
-            val body = raw("POST", path, token, ByteArray(307_200), headers = json)
-                .assertProblem(ErrorCode.PAYLOAD_TOO_LARGE)
+            val body =
+                raw("POST", path, token, ByteArray(307_200), headers = json)
+                    .assertProblem(ErrorCode.PAYLOAD_TOO_LARGE)
             assertThat(body.fieldErrors).isEmpty()
         }
     }
@@ -92,8 +92,15 @@ class RequestSizeLimitE2eTest : E2eTest() {
     fun `pinned - chunked oversized body with a wrong media type is 415, not 413`() {
         val token = signIn().token
 
-        raw("POST", "/api/v1/test/echo", token, ByteArray(307_200), chunked = true, headers = mapOf("Content-Type" to "text/plain"))
-            .assertProblem(ErrorCode.UNSUPPORTED_MEDIA_TYPE)
+        raw(
+            "POST",
+            "/api/v1/test/echo",
+            token,
+            ByteArray(307_200),
+            chunked = true,
+            headers =
+                mapOf("Content-Type" to "text/plain"),
+        ).assertProblem(ErrorCode.UNSUPPORTED_MEDIA_TYPE)
     }
 
     @Test
@@ -137,20 +144,22 @@ class RequestSizeLimitE2eTest : E2eTest() {
     fun `chunked 300 KB multipart POST is not parsed and never succeeds`() {
         val token = signIn().token
         val boundary = "zzboundary"
-        val multipart = (
-            "--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.json\"\r\n" +
-                "Content-Type: application/json\r\n\r\n" + "x".repeat(307_200) + "\r\n--$boundary--\r\n"
+        val multipart =
+            (
+                "--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.json\"\r\n" +
+                    "Content-Type: application/json\r\n\r\n" + "x".repeat(307_200) + "\r\n--$boundary--\r\n"
             ).toByteArray()
 
         listOf("/api/v1/test/echo", "/api/v1/users/me", "/anything").forEach { path ->
-            val result = raw(
-                "POST",
-                path,
-                token,
-                multipart,
-                chunked = true,
-                headers = mapOf("Content-Type" to "multipart/form-data; boundary=$boundary"),
-            )
+            val result =
+                raw(
+                    "POST",
+                    path,
+                    token,
+                    multipart,
+                    chunked = true,
+                    headers = mapOf("Content-Type" to "multipart/form-data; boundary=$boundary"),
+                )
             assertThat(result.status / 100, path).isNotEqualTo(2)
             assertThat(result.status, path).isNotIn(500)
         }

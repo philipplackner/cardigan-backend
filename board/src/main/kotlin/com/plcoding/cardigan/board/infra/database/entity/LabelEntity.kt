@@ -22,28 +22,21 @@ import java.util.UUID
 class LabelEntity(
     @Id
     var id: UUID,
-
     @Column(name = "owner_id", nullable = false)
     var ownerId: UUID,
-
     @Column(nullable = false, length = 30)
     var name: String,
-
     // Case folding can turn one code point into up to three.
     @Column(name = "name_key", nullable = false, length = 90)
     var nameKey: String,
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 7)
     var color: LabelColor,
-
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
-
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant,
 ) {
-
     companion object {
         const val OWNER_NAME_KEY_UNIQUE = "labels_owner_name_key_unique"
     }

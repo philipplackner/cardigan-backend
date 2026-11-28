@@ -5,7 +5,6 @@ import assertk.assertions.containsExactly
 import org.junit.jupiter.api.Test
 
 class FieldErrorCodeTest {
-
     @Test
     fun `declaration order is the shared precedence order`() {
         assertThat(FieldErrorCode.entries.map { it.name }).containsExactly(

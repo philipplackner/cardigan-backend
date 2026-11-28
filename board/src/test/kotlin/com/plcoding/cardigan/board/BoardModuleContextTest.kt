@@ -22,17 +22,18 @@ import java.time.Clock
 )
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, BoardTestConfig::class)
-class BoardModuleContextTest @Autowired constructor(
-    private val clock: Clock,
-    private val databaseCleaner: DatabaseCleaner,
-    private val requestValidator: RequestValidator,
-) {
+class BoardModuleContextTest
+    @Autowired
+    constructor(
+        private val clock: Clock,
+        private val databaseCleaner: DatabaseCleaner,
+        private val requestValidator: RequestValidator,
+    ) {
+        @Test
+        fun `module context starts with the test clock, cleaner and validator`() {
+            databaseCleaner.clean("board_service")
 
-    @Test
-    fun `module context starts with the test clock, cleaner and validator`() {
-        databaseCleaner.clean("board_service")
-
-        assertThat(clock).isInstanceOf<MutableClock>()
-        assertThat(requestValidator).isNotNull()
+            assertThat(clock).isInstanceOf<MutableClock>()
+            assertThat(requestValidator).isNotNull()
+        }
     }
-}

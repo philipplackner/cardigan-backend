@@ -15,11 +15,11 @@ import com.plcoding.cardigan.user.infra.ratelimit.Bucket4jAuthRateLimiter
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterProperties
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.boot.web.servlet.FilterRegistrationBean
-import org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.context.annotation.Primary
@@ -41,7 +41,6 @@ import java.util.UUID
 @TestConfiguration(proxyBeanMethods = false)
 @Import(TestApiController::class)
 class E2eTestConfig {
-
     @Bean
     @Primary
     fun testClock(): MutableClock = MutableClock()
@@ -50,7 +49,10 @@ class E2eTestConfig {
     fun databaseCleaner(jdbcTemplate: JdbcTemplate) = DatabaseCleaner(jdbcTemplate)
 
     @Bean
-    fun userFixtures(userRepository: UserRepository, clock: MutableClock) = UserFixtures(userRepository, clock)
+    fun userFixtures(
+        userRepository: UserRepository,
+        clock: MutableClock,
+    ) = UserFixtures(userRepository, clock)
 
     @Bean
     fun testPublicRoutes() = PublicRoutes(PublicRoute(HttpMethod.GET, "/api/v1/test/public"))
@@ -68,7 +70,6 @@ data class HttpResult(
     val headers: HttpHeaders,
     val body: String,
 ) {
-
     val contentType: String? get() = headers.getFirst(HttpHeaders.CONTENT_TYPE)
 
     fun json(): Map<String, Any?> = jsonMapper.readValue(body, Map::class.java).mapKeys { it.key as String }
@@ -83,7 +84,6 @@ data class HttpResult(
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, E2eTestConfig::class)
 abstract class E2eTest {
-
     @LocalServerPort
     private var port: Int = 0
 
@@ -122,9 +122,10 @@ abstract class E2eTest {
 
     /** Registers a user and logs in over HTTP. Returns the user and the access token of the login. */
     protected fun signIn(email: String = "ann@example.com"): SignedInUser {
-        val credentials = jsonMapper.writeValueAsString(
-            mapOf("email" to email, "password" to SIGN_IN_PASSWORD, "refreshTokenTransport" to "BODY"),
-        )
+        val credentials =
+            jsonMapper.writeValueAsString(
+                mapOf("email" to email, "password" to SIGN_IN_PASSWORD, "refreshTokenTransport" to "BODY"),
+            )
         val registered = call(HttpMethod.POST, "/api/v1/auth/register", json = credentials)
         check(registered.status == 201) { "Register answered ${registered.status}: ${registered.body}" }
         val loggedIn = call(HttpMethod.POST, "/api/v1/auth/login", json = credentials)
@@ -147,10 +148,11 @@ abstract class E2eTest {
         json: String? = null,
         headers: Map<String, String> = emptyMap(),
     ): HttpResult {
-        val spec = client.method(method).uri(path).headers { h ->
-            token?.let { h.setBearerAuth(it) }
-            headers.forEach { (name, value) -> h.set(name, value) }
-        }
+        val spec =
+            client.method(method).uri(path).headers { h ->
+                token?.let { h.setBearerAuth(it) }
+                headers.forEach { (name, value) -> h.set(name, value) }
+            }
         if (json != null) {
             if (HttpHeaders.CONTENT_TYPE !in headers) spec.contentType(MediaType.APPLICATION_JSON)
             spec.body(json)
@@ -175,11 +177,12 @@ abstract class E2eTest {
         chunked: Boolean = false,
         headers: Map<String, String> = emptyMap(),
     ): HttpResult {
-        val publisher = when {
-            body == null -> HttpRequest.BodyPublishers.noBody()
-            chunked -> HttpRequest.BodyPublishers.ofInputStream { ByteArrayInputStream(body) }
-            else -> HttpRequest.BodyPublishers.ofByteArray(body)
-        }
+        val publisher =
+            when {
+                body == null -> HttpRequest.BodyPublishers.noBody()
+                chunked -> HttpRequest.BodyPublishers.ofInputStream { ByteArrayInputStream(body) }
+                else -> HttpRequest.BodyPublishers.ofByteArray(body)
+            }
         val builder = HttpRequest.newBuilder(URI.create(baseUrl + path)).method(method, publisher)
         token?.let { builder.header(HttpHeaders.AUTHORIZATION, "Bearer $it") }
         headers.forEach { (name, value) -> builder.header(name, value) }
@@ -189,7 +192,10 @@ abstract class E2eTest {
         return HttpResult(response.statusCode(), responseHeaders, response.body())
     }
 
-    data class SignedInUser(val user: User, val token: String)
+    data class SignedInUser(
+        val user: User,
+        val token: String,
+    )
 
     companion object {
         val START: Instant = Instant.parse("2026-11-15T09:15:30.123Z")

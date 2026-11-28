@@ -15,16 +15,18 @@ import org.springframework.test.context.ActiveProfiles
 @DataJpaTest
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class)
-class BoardPersistenceContextTest @Autowired constructor(
-    private val entityManager: TestEntityManager,
-) {
+class BoardPersistenceContextTest
+    @Autowired
+    constructor(
+        private val entityManager: TestEntityManager,
+    ) {
+        @Test
+        fun `persistence context starts against Postgres`() {
+            val version =
+                entityManager.entityManager
+                    .createNativeQuery("SELECT current_setting('server_version_num')::int / 10000")
+                    .singleResult as Number
 
-    @Test
-    fun `persistence context starts against Postgres`() {
-        val version = entityManager.entityManager
-            .createNativeQuery("SELECT current_setting('server_version_num')::int / 10000")
-            .singleResult as Number
-
-        assertThat(version.toInt()).isEqualTo(17)
+            assertThat(version.toInt()).isEqualTo(17)
+        }
     }
-}

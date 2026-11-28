@@ -17,7 +17,6 @@ import org.springframework.web.util.ServletRequestPathUtils
 import java.util.UUID
 
 class WebConfigTest {
-
     @Suppress("unused")
     class Endpoints {
         fun handle() = Unit
@@ -27,10 +26,23 @@ class WebConfigTest {
     private val config = RequestMappingInfo.BuilderConfiguration().apply { patternParser = mapping.patternParser }
     private val handle = Endpoints::class.java.getMethod("handle")
 
-    private fun register(path: String, vararg methods: RequestMethod) =
-        mapping.registerMapping(RequestMappingInfo.paths(path).methods(*methods).options(config).build(), Endpoints(), handle)
+    private fun register(
+        path: String,
+        vararg methods: RequestMethod,
+    ) = mapping.registerMapping(
+        RequestMappingInfo
+            .paths(path)
+            .methods(*methods)
+            .options(config)
+            .build(),
+        Endpoints(),
+        handle,
+    )
 
-    private fun handlerFor(method: String, path: String): HandlerMethod? {
+    private fun handlerFor(
+        method: String,
+        path: String,
+    ): HandlerMethod? {
         val request = MockHttpServletRequest(method, path)
         ServletRequestPathUtils.parseAndCache(request)
         return mapping.getHandler(request)?.handler as HandlerMethod?

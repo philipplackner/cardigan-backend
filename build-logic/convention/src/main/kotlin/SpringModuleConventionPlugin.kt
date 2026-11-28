@@ -4,7 +4,6 @@ import org.gradle.kotlin.dsl.dependencies
 import org.gradle.kotlin.dsl.project
 
 class SpringModuleConventionPlugin : Plugin<Project> {
-
     override fun apply(target: Project) {
         with(target) {
             pluginManager.apply("cardigan.kotlin.jvm")

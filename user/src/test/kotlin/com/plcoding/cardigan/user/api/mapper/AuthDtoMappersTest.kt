@@ -13,7 +13,6 @@ import com.plcoding.cardigan.user.domain.model.RefreshTokenTransport
 import org.junit.jupiter.api.Test
 
 class AuthDtoMappersTest {
-
     @Test
     fun `register email is trimmed and lowercased`() {
         val credentials = RegisterRequest("  Ann@Example.com ", "Correct horse 7", "BODY").toCredentials()
@@ -49,7 +48,9 @@ class AuthDtoMappersTest {
         val default = java.util.Locale.getDefault()
         java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"))
         try {
-            assertThat(LoginRequest("INFO@EXAMPLE.COM", "pw", "BODY").toCredentials().email).isEqualTo("info@example.com")
+            assertThat(
+                LoginRequest("INFO@EXAMPLE.COM", "pw", "BODY").toCredentials().email,
+            ).isEqualTo("info@example.com")
         } finally {
             java.util.Locale.setDefault(default)
         }

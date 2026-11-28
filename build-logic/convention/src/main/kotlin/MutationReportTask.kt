@@ -21,7 +21,6 @@ import javax.xml.parsers.DocumentBuilderFactory
  * mutation score isn't met by the selected modules together.
  */
 abstract class MutationReportTask : DefaultTask() {
-
     /** Gradle paths of the selected modules, in the order the summary lists them. */
     @get:Input
     abstract val modulePaths: ListProperty<String>
@@ -47,10 +46,11 @@ abstract class MutationReportTask : DefaultTask() {
     @TaskAction
     fun report() {
         val files = mutationFiles.get()
-        val perModule = modulePaths.get().map { path ->
-            val file = files.getValue(path).asFile
-            path to MutationCounts.of(if (file.isFile) readStatuses(file) else emptyList())
-        }
+        val perModule =
+            modulePaths.get().map { path ->
+                val file = files.getValue(path).asFile
+                path to MutationCounts.of(if (file.isFile) readStatuses(file) else emptyList())
+            }
         val total = perModule.map { it.second }.fold(MutationCounts(0, 0, 0), MutationCounts::plus)
         if (total.total == 0L) {
             // The aggregate task is skipped then, so a report left from an earlier run would be stale.
@@ -63,13 +63,19 @@ abstract class MutationReportTask : DefaultTask() {
     }
 
     private fun readStatuses(file: File): List<String> {
-        val factory = DocumentBuilderFactory.newInstance().apply {
-            isValidating = false
-            isNamespaceAware = false
-            setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
-            setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-        }
-        val mutations = factory.newDocumentBuilder().parse(file).documentElement.getElementsByTagName("mutation")
+        val factory =
+            DocumentBuilderFactory.newInstance().apply {
+                isValidating = false
+                isNamespaceAware = false
+                setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+                setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+            }
+        val mutations =
+            factory
+                .newDocumentBuilder()
+                .parse(file)
+                .documentElement
+                .getElementsByTagName("mutation")
         return (0 until mutations.length).map { (mutations.item(it) as Element).getAttribute("status") }
     }
 }
@@ -83,7 +89,10 @@ internal const val NO_MUTANTS_MESSAGE = "No mutants in the selected modules. No 
  * The terminal summary for [perModule] (Gradle path to counts, in display order). Modules without
  * mutants are left out; when no module has any, only [NO_MUTANTS_MESSAGE] is printed.
  */
-internal fun mutationSummary(perModule: List<Pair<String, MutationCounts>>, htmlReportPath: String): List<String> {
+internal fun mutationSummary(
+    perModule: List<Pair<String, MutationCounts>>,
+    htmlReportPath: String,
+): List<String> {
     val withMutants = perModule.filter { it.second.total > 0 }
     if (withMutants.isEmpty()) return listOf(NO_MUTANTS_MESSAGE)
     val count = withMutants.size
@@ -96,20 +105,25 @@ internal fun mutationSummary(perModule: List<Pair<String, MutationCounts>>, html
     }
 }
 
-internal fun minScoreFailure(total: MutationCounts, min: BigDecimal): String =
+internal fun minScoreFailure(
+    total: MutationCounts,
+    min: BigDecimal,
+): String =
     "Mutation score ${total.scorePercent()} is below $MUTATION_MIN_SCORE_PROPERTY=${min.stripTrailingZeros().toPlainString()}"
 
 /** Mutant counts from PIT's per-mutant `status` values. */
-internal data class MutationCounts(val total: Long, val killed: Long, val noCoverage: Long) {
-
+internal data class MutationCounts(
+    val total: Long,
+    val killed: Long,
+    val noCoverage: Long,
+) {
     val survived: Long get() = total - killed - noCoverage
 
     operator fun plus(other: MutationCounts) =
         MutationCounts(total + other.total, killed + other.killed, noCoverage + other.noCoverage)
 
     /** Whether the unrounded mutation score reaches [min] percent. No mutants count as met. */
-    fun meets(min: BigDecimal): Boolean =
-        total == 0L || BigDecimal(killed) * BigDecimal(100) >= min * BigDecimal(total)
+    fun meets(min: BigDecimal): Boolean = total == 0L || BigDecimal(killed) * BigDecimal(100) >= min * BigDecimal(total)
 
     fun scorePercent(): String = percent(killed, total)
 
@@ -120,13 +134,16 @@ internal data class MutationCounts(val total: Long, val killed: Long, val noCove
             "($killed killed, $survived survived, $noCoverage no coverage, $total total)"
 
     companion object {
-        fun of(statuses: List<String>) = MutationCounts(
-            total = statuses.size.toLong(),
-            killed = statuses.count { it in KILLED_STATUSES }.toLong(),
-            noCoverage = statuses.count { it == "NO_COVERAGE" }.toLong(),
-        )
+        fun of(statuses: List<String>) =
+            MutationCounts(
+                total = statuses.size.toLong(),
+                killed = statuses.count { it in KILLED_STATUSES }.toLong(),
+                noCoverage = statuses.count { it == "NO_COVERAGE" }.toLong(),
+            )
 
-        private fun percent(part: Long, whole: Long): String =
-            if (whole == 0L) "n/a" else String.format(Locale.ROOT, "%.1f%%", part * 100.0 / whole)
+        private fun percent(
+            part: Long,
+            whole: Long,
+        ): String = if (whole == 0L) "n/a" else String.format(Locale.ROOT, "%.1f%%", part * 100.0 / whole)
     }
 }

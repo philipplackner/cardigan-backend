@@ -11,12 +11,18 @@ import java.time.Instant
 import java.util.UUID
 
 class RefreshTokenTest {
-
     private val issuedAt = Instant.parse("2026-11-15T09:15:30.123Z")
     private val expiresAt = Instant.parse("2026-12-15T09:15:30.123Z")
 
     private fun token(rotatedAt: Instant? = null) =
-        RefreshToken(UUID.randomUUID(), UUID.randomUUID(), hashRefreshToken("secret-token"), issuedAt, expiresAt, rotatedAt)
+        RefreshToken(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            hashRefreshToken("secret-token"),
+            issuedAt,
+            expiresAt,
+            rotatedAt,
+        )
 
     @Test
     fun `hash is the lowercase hex SHA-256`() {

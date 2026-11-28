@@ -28,7 +28,6 @@ import java.util.concurrent.TimeoutException
     properties = ["cardigan.board.lock-timeout=30s"],
 )
 class BoardConcurrencyIntegrationTest : BoardIntegrationTest() {
-
     private fun BoardWithColumns.names() = columns.map { it.name to it.position }
 
     private fun BoardWithColumns.column(name: String) = columns.single { it.name == name }
@@ -43,17 +42,20 @@ class BoardConcurrencyIntegrationTest : BoardIntegrationTest() {
 
     @RepeatedTest(10)
     fun `two simultaneous creates with one key end with one board and three columns`() {
-        val results = race(
-            listOf("CRD", "crd").map { key ->
-                {
-                    tick()
-                    boardService.create(owner, "Roadmap", normalizeBoardKey(key))
-                }
-            },
-        )
+        val results =
+            race(
+                listOf("CRD", "crd").map { key ->
+                    {
+                        tick()
+                        boardService.create(owner, "Roadmap", normalizeBoardKey(key))
+                    }
+                },
+            )
 
         assertThat(results.count { it.isSuccess }).isEqualTo(1)
-        assertThat(results.single { it.isFailure }.exceptionOrNull()).isNotNull().isInstanceOf<BoardKeyAlreadyUsedException>()
+        assertThat(
+            results.single { it.isFailure }.exceptionOrNull(),
+        ).isNotNull().isInstanceOf<BoardKeyAlreadyUsedException>()
         val board = boardService.get(owner, boardService.list(owner).single().id)
         assertThat(board.names()).containsExactly("To do" to 0, "In progress" to 1, "Done" to 2)
         assertThat(board.board.updatedAt).isEqualTo(board.columns.maxOf { it.updatedAt })
@@ -65,14 +67,15 @@ class BoardConcurrencyIntegrationTest : BoardIntegrationTest() {
     fun `ten simultaneous column creates fill the positions 0 to 12, each once`() {
         val boardId = boardService.create(owner, "Roadmap", "CRD").board.id
 
-        val results = race(
-            (1..10).map { number ->
-                {
-                    tick()
-                    columnService.create(owner, boardId, "Column $number")
-                }
-            },
-        )
+        val results =
+            race(
+                (1..10).map { number ->
+                    {
+                        tick()
+                        columnService.create(owner, boardId, "Column $number")
+                    }
+                },
+            )
 
         assertThat(results.count { it.isSuccess }).isEqualTo(10)
         val board = boardService.get(owner, boardId)
@@ -87,19 +90,20 @@ class BoardConcurrencyIntegrationTest : BoardIntegrationTest() {
         val board = boardAbc()
         val boardId = board.board.id
 
-        val (move, delete) = race(
-            listOf(
-                {
-                    tick()
-                    columnService.move(owner, boardId, board.column("A").id, BigInteger.TWO)
-                    Unit
-                },
-                {
-                    tick()
-                    columnService.delete(owner, boardId, board.column("B").id)
-                },
-            ),
-        )
+        val (move, delete) =
+            race(
+                listOf(
+                    {
+                        tick()
+                        columnService.move(owner, boardId, board.column("A").id, BigInteger.TWO)
+                        Unit
+                    },
+                    {
+                        tick()
+                        columnService.delete(owner, boardId, board.column("B").id)
+                    },
+                ),
+            )
 
         assertThat(delete.isSuccess).isTrue()
         val after = boardService.get(owner, boardId)
@@ -120,12 +124,13 @@ class BoardConcurrencyIntegrationTest : BoardIntegrationTest() {
     fun `column create racing a board delete leaves no orphan column`() {
         val boardId = boardService.create(owner, "Roadmap", "CRD").board.id
 
-        val (create, delete) = race(
-            listOf(
-                { columnService.create(owner, boardId, "Review").let { } },
-                { boardService.delete(owner, boardId) },
-            ),
-        )
+        val (create, delete) =
+            race(
+                listOf(
+                    { columnService.create(owner, boardId, "Review").let { } },
+                    { boardService.delete(owner, boardId) },
+                ),
+            )
 
         assertThat(delete.isSuccess).isTrue()
         if (create.isFailure) {

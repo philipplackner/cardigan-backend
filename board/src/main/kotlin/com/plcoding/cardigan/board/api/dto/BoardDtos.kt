@@ -40,7 +40,6 @@ data class CreateBoardRequest(
 )
 
 class UpdateBoardRequest : PatchRequest() {
-
     @ValidText(min = 1, max = 100)
     var name: String? = null
         set(value) {

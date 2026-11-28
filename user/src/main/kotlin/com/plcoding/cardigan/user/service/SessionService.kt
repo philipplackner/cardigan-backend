@@ -29,24 +29,38 @@ class SessionService(
     private val properties: AuthProperties,
     private val clock: Clock,
 ) {
-
     /** Stores a new user and starts their first session. [email] must be normalized and lowercased. */
     @Transactional
-    fun registerUser(email: String, passwordHash: String, transport: RefreshTokenTransport): Pair<User, IssuedRefreshToken> {
+    fun registerUser(
+        email: String,
+        passwordHash: String,
+        transport: RefreshTokenTransport,
+    ): Pair<User, IssuedRefreshToken> {
         if (userRepository.existsByEmail(email)) throw EmailAlreadyUsedException()
         val now = clock.instant()
-        val user = userRepository.save(
-            User(id = UUID.randomUUID(), email = email, passwordHash = passwordHash, createdAt = now, updatedAt = now),
-        )
+        val user =
+            userRepository.save(
+                User(
+                    id = UUID.randomUUID(),
+                    email = email,
+                    passwordHash = passwordHash,
+                    createdAt = now,
+                    updatedAt = now,
+                ),
+            )
         return user to start(user.id, transport)
     }
 
     /** Starts a session with its first refresh token. */
     @Transactional
-    fun start(userId: UUID, transport: RefreshTokenTransport): IssuedRefreshToken {
-        val session = sessionRepository.save(
-            Session(id = UUID.randomUUID(), userId = userId, transport = transport, createdAt = clock.instant()),
-        )
+    fun start(
+        userId: UUID,
+        transport: RefreshTokenTransport,
+    ): IssuedRefreshToken {
+        val session =
+            sessionRepository.save(
+                Session(id = UUID.randomUUID(), userId = userId, transport = transport, createdAt = clock.instant()),
+            )
         return issueToken(session.id)
     }
 
@@ -55,15 +69,16 @@ class SessionService(
     fun issueToken(sessionId: UUID): IssuedRefreshToken {
         val value = refreshTokenGenerator.generate()
         val now = clock.instant()
-        val refreshToken = refreshTokenRepository.save(
-            RefreshToken(
-                id = UUID.randomUUID(),
-                sessionId = sessionId,
-                tokenHash = hashRefreshToken(value),
-                createdAt = now,
-                expiresAt = now.plus(properties.refreshTokenTtl),
-            ),
-        )
+        val refreshToken =
+            refreshTokenRepository.save(
+                RefreshToken(
+                    id = UUID.randomUUID(),
+                    sessionId = sessionId,
+                    tokenHash = hashRefreshToken(value),
+                    createdAt = now,
+                    expiresAt = now.plus(properties.refreshTokenTtl),
+                ),
+            )
         return IssuedRefreshToken(value, refreshToken.expiresAt)
     }
 }

@@ -14,7 +14,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 class SessionCleanupE2eTest : AuthE2eTestBase() {
-
     @Autowired
     private lateinit var cleanupService: SessionCleanupService
 
@@ -26,14 +25,20 @@ class SessionCleanupE2eTest : AuthE2eTestBase() {
 
     @Test
     fun `cleanup is scheduled with the configured cron, next at 03_00 UTC`() {
-        val task = scheduledTasks.scheduledTasks.map { it.task }.filterIsInstance<CronTask>()
-            .single { it.toString().contains("SessionCleanupService.deleteEndedSessions") }
+        val task =
+            scheduledTasks.scheduledTasks
+                .map { it.task }
+                .filterIsInstance<CronTask>()
+                .single { it.toString().contains("SessionCleanupService.deleteEndedSessions") }
 
-        val nextRun = task.trigger.nextExecution(
-            SimpleTriggerContext(Clock.fixed(Instant.parse("2026-11-15T09:15:30Z"), ZoneOffset.UTC)),
-        )
+        val nextRun =
+            task.trigger.nextExecution(
+                SimpleTriggerContext(Clock.fixed(Instant.parse("2026-11-15T09:15:30Z"), ZoneOffset.UTC)),
+            )
 
-        assertThat(task.expression).isEqualTo(environment.getRequiredProperty("cardigan.user.auth.session-cleanup-cron"))
+        assertThat(
+            task.expression,
+        ).isEqualTo(environment.getRequiredProperty("cardigan.user.auth.session-cleanup-cron"))
         assertThat(task.expression).isEqualTo("0 0 3 * * *")
         assertThat(nextRun).isEqualTo(Instant.parse("2026-11-16T03:00:00Z"))
     }

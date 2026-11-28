@@ -6,7 +6,6 @@ import assertk.assertions.isEqualTo
 import org.junit.jupiter.api.Test
 
 class ErrorCodeTest {
-
     @Test
     fun `catalog matches the shared spec with its statuses`() {
         assertThat(ErrorCode.entries.map { it.name to it.status }).containsExactly(
@@ -47,7 +46,17 @@ class ErrorCodeTest {
 
     @Test
     fun `titles and details are distinct per code`() {
-        assertThat(ErrorCode.entries.map { it.title }.toSet().size).isEqualTo(ErrorCode.entries.size)
-        assertThat(ErrorCode.entries.map { it.detail }.toSet().size).isEqualTo(ErrorCode.entries.size)
+        assertThat(
+            ErrorCode.entries
+                .map { it.title }
+                .toSet()
+                .size,
+        ).isEqualTo(ErrorCode.entries.size)
+        assertThat(
+            ErrorCode.entries
+                .map { it.detail }
+                .toSet()
+                .size,
+        ).isEqualTo(ErrorCode.entries.size)
     }
 }

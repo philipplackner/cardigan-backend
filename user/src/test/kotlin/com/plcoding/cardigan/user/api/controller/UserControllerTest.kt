@@ -20,23 +20,28 @@ import java.time.Instant
 import java.util.UUID
 
 class UserControllerTest {
-
     private val users = FakeUserRepository()
     private val controller = UserController(UserService(users))
 
-    private val user = User(
-        id = UUID.fromString("0f8c2b4e-5d6a-4c3b-9e1f-2a7b8c9d0e1f"),
-        email = "ann@example.com",
-        passwordHash = "hash",
-        createdAt = Instant.parse("2026-11-15T09:15:30.123Z"),
-        updatedAt = Instant.parse("2026-11-20T10:00:00Z"),
-    )
+    private val user =
+        User(
+            id = UUID.fromString("0f8c2b4e-5d6a-4c3b-9e1f-2a7b8c9d0e1f"),
+            email = "ann@example.com",
+            passwordHash = "hash",
+            createdAt = Instant.parse("2026-11-15T09:15:30.123Z"),
+            updatedAt = Instant.parse("2026-11-20T10:00:00Z"),
+        )
 
     @AfterEach
     fun clearSecurityContext() = SecurityContextHolder.clearContext()
 
     private fun signIn(userId: UUID) {
-        val jwt = Jwt.withTokenValue("token").header("alg", "HS256").subject(userId.toString()).build()
+        val jwt =
+            Jwt
+                .withTokenValue("token")
+                .header("alg", "HS256")
+                .subject(userId.toString())
+                .build()
         SecurityContextHolder.getContext().authentication = JwtAuthenticationToken(jwt)
     }
 

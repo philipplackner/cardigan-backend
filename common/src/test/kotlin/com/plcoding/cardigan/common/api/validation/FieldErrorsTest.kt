@@ -13,7 +13,6 @@ import org.junit.jupiter.api.TestInstance
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FieldErrorsTest {
-
     private val factory = Validation.buildDefaultValidatorFactory()
     private val validator = factory.validator
 
@@ -67,13 +66,14 @@ class FieldErrorsTest {
 
     @Test
     fun `list items and nested objects get JSON paths`() {
-        val errors = errorsOf(
-            Request(
-                id = "abc",
-                tags = listOf("0b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10", "nope"),
-                items = listOf(Item("ok"), Item("toolong"), Item(null)),
-            ),
-        )
+        val errors =
+            errorsOf(
+                Request(
+                    id = "abc",
+                    tags = listOf("0b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10", "nope"),
+                    items = listOf(Item("ok"), Item("toolong"), Item(null)),
+                ),
+            )
 
         assertThat(errors).containsExactly(
             ProblemFieldError("id", FieldErrorCode.INVALID_FORMAT),

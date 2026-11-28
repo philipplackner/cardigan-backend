@@ -9,10 +9,12 @@ import java.time.Instant
 import java.util.UUID
 
 interface SpringDataSessionRepository : JpaRepository<SessionEntity, UUID> {
-
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update SessionEntity s set s.revokedAt = :at where s.id = :id and s.revokedAt is null")
-    fun revoke(@Param("id") id: UUID, @Param("at") at: Instant): Int
+    fun revoke(
+        @Param("id") id: UUID,
+        @Param("at") at: Instant,
+    ): Int
 
     // The tokens of a deleted session go with it through the foreign key's ON DELETE CASCADE.
     @Modifying(flushAutomatically = true, clearAutomatically = true)
@@ -26,5 +28,7 @@ interface SpringDataSessionRepository : JpaRepository<SessionEntity, UUID> {
         )
         """,
     )
-    fun deleteEnded(@Param("now") now: Instant): Int
+    fun deleteEnded(
+        @Param("now") now: Instant,
+    ): Int
 }

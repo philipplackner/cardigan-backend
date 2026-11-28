@@ -21,7 +21,6 @@ import com.plcoding.cardigan.user.fake.FakeUserRepository
 import java.time.Instant
 
 abstract class AuthServiceTestBase {
-
     protected val start: Instant = Instant.parse("2026-11-15T09:15:30.123Z")
     protected val clock = MutableClock(start)
     protected val users = FakeUserRepository()
@@ -34,16 +33,17 @@ abstract class AuthServiceTestBase {
 
     private val sessionService = SessionService(users, sessions, refreshTokens, generator, AuthProperties(), clock)
 
-    protected val service = AuthService(
-        userRepository = users,
-        sessionRepository = sessions,
-        refreshTokenRepository = refreshTokens,
-        sessionService = sessionService,
-        passwordHasher = hasher,
-        authRateLimiter = rateLimiter,
-        accessTokenIssuer = accessTokens,
-        clock = clock,
-    )
+    protected val service =
+        AuthService(
+            userRepository = users,
+            sessionRepository = sessions,
+            refreshTokenRepository = refreshTokens,
+            sessionService = sessionService,
+            passwordHasher = hasher,
+            authRateLimiter = rateLimiter,
+            accessTokenIssuer = accessTokens,
+            clock = clock,
+        )
 
     protected val password = "Correct horse 7"
 
@@ -53,14 +53,20 @@ abstract class AuthServiceTestBase {
         transport: RefreshTokenTransport = BODY,
     ) = Credentials(normalizeEmail(email), password, transport)
 
-    protected fun register(email: String = "ann@example.com", transport: RefreshTokenTransport = BODY): IssuedSession =
-        service.register(credentials(email, transport = transport))
+    protected fun register(
+        email: String = "ann@example.com",
+        transport: RefreshTokenTransport = BODY,
+    ): IssuedSession = service.register(credentials(email, transport = transport))
 
-    protected fun login(email: String = "ann@example.com", transport: RefreshTokenTransport = BODY): IssuedSession =
-        service.login(credentials(email, transport = transport))
+    protected fun login(
+        email: String = "ann@example.com",
+        transport: RefreshTokenTransport = BODY,
+    ): IssuedSession = service.login(credentials(email, transport = transport))
 
-    protected fun refreshed(token: String, transport: RefreshTokenTransport = BODY): IssuedTokens =
-        (service.refresh(transport, token) as RefreshResult.Refreshed).tokens
+    protected fun refreshed(
+        token: String,
+        transport: RefreshTokenTransport = BODY,
+    ): IssuedTokens = (service.refresh(transport, token) as RefreshResult.Refreshed).tokens
 
     protected fun stored(token: String): RefreshToken = refreshTokens.findByTokenHash(hashRefreshToken(token))!!
 

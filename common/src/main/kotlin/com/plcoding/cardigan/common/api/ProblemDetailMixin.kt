@@ -14,7 +14,6 @@ import java.net.URI
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder("type", "title", "status", "detail")
 internal abstract class ProblemDetailMixin {
-
     @JsonIgnore
     abstract fun getInstance(): URI?
 
@@ -22,5 +21,8 @@ internal abstract class ProblemDetailMixin {
     abstract fun getProperties(): Map<String, Any?>?
 
     @JsonAnySetter
-    abstract fun setProperty(name: String, value: Any?)
+    abstract fun setProperty(
+        name: String,
+        value: Any?,
+    )
 }

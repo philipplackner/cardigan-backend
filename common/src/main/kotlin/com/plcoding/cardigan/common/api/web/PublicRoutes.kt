@@ -15,8 +15,9 @@ data class PublicRoute(
  * The public routes a module contributes. Each module registers its own bean. The security chain,
  * the bearer token resolver and the OpenAPI document all read the merged list.
  */
-class PublicRoutes(val routes: List<PublicRoute>) {
-
+class PublicRoutes(
+    val routes: List<PublicRoute>,
+) {
     constructor(vararg routes: PublicRoute) : this(routes.toList())
 }
 
@@ -25,7 +26,6 @@ class PublicRoutes(val routes: List<PublicRoute>) {
 class PublicRouteRegistry(
     publicRoutes: ObjectProvider<PublicRoutes>,
 ) {
-
     val routes: List<PublicRoute> by lazy {
         publicRoutes.orderedStream().toList().flatMap { it.routes }
     }

@@ -15,7 +15,6 @@ import org.gradle.kotlin.dsl.register
  * `mutationReport` or a `pitest*` task, so a normal build has no PIT task at all.
  */
 class PitestConventionPlugin : Plugin<Project> {
-
     override fun apply(target: Project) {
         with(target) {
             if (!gradle.isMutationRequested()) return
@@ -28,11 +27,12 @@ class PitestConventionPlugin : Plugin<Project> {
             val sourceSets = extensions.getByType<SourceSetContainer>()
             val mainSourceSet = sourceSets.getByName("main")
 
-            val scan = tasks.register<NonLogicClassScanTask>("pitestNonLogicClassScan") {
-                description = "Lists the classes PIT must not mutate because they are wiring or configuration."
-                classDirs.from(mainSourceSet.output.classesDirs)
-                patterns.set(layout.buildDirectory.file("pitest/excluded-classes.txt"))
-            }
+            val scan =
+                tasks.register<NonLogicClassScanTask>("pitestNonLogicClassScan") {
+                    description = "Lists the classes PIT must not mutate because they are wiring or configuration."
+                    classDirs.from(mainSourceSet.output.classesDirs)
+                    patterns.set(layout.buildDirectory.file("pitest/excluded-classes.txt"))
+                }
 
             extensions.configure<PitestPluginExtension> {
                 pitestVersion.set(libs.version("pitest"))
@@ -42,7 +42,10 @@ class PitestConventionPlugin : Plugin<Project> {
                 testSourceSets.set(listOf(sourceSets.getByName("test")))
                 excludedGroups.set(listOf(INTEGRATION_TEST_TAG))
                 excludedClasses.set(
-                    scan.flatMap { it.patterns }.map { file -> file.asFile.readLines().filter(String::isNotBlank) + "*ApplicationKt" }
+                    scan.flatMap { it.patterns }.map { file ->
+                        file.asFile.readLines().filter(String::isNotBlank) +
+                            "*ApplicationKt"
+                    },
                 )
                 avoidCallsTo.set(listOf("kotlin.jvm.internal"))
                 excludedMethods.set(KOTLIN_GENERATED_METHODS)
@@ -55,9 +58,10 @@ class PitestConventionPlugin : Plugin<Project> {
             }
 
             // Running modules one at a time keeps the thread count a total for the machine.
-            val runLimit = gradle.sharedServices.registerIfAbsent("pitestRunLimit", PitestRunLimit::class.java) {
-                maxParallelUsages.set(1)
-            }
+            val runLimit =
+                gradle.sharedServices.registerIfAbsent("pitestRunLimit", PitestRunLimit::class.java) {
+                    maxParallelUsages.set(1)
+                }
 
             tasks.named<PitestTask>("pitest") {
                 dependsOn(scan)

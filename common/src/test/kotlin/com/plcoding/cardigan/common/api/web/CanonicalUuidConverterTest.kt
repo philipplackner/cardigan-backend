@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class CanonicalUuidConverterTest {
-
     private val converter = CanonicalUuidConverter()
     private val id = "0b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10"
 
@@ -36,7 +35,11 @@ class CanonicalUuidConverterTest {
 
     @Test
     fun `ID with dropped leading zeros fails`() {
-        assertFailure { converter.convert("b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10") }.isInstanceOf<IllegalArgumentException>()
+        assertFailure {
+            converter.convert(
+                "b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10",
+            )
+        }.isInstanceOf<IllegalArgumentException>()
     }
 
     @Test

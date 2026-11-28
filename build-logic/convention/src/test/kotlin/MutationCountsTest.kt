@@ -7,14 +7,14 @@ import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 
 class MutationCountsTest {
-
     private fun statuses(vararg counts: Pair<String, Int>) = counts.flatMap { (status, n) -> List(n) { status } }
 
     @Test
     fun `timed-out and memory-error mutants count as killed`() {
-        val counts = MutationCounts.of(
-            statuses("KILLED" to 50, "TIMED_OUT" to 5, "MEMORY_ERROR" to 1, "SURVIVED" to 24, "NO_COVERAGE" to 20)
-        )
+        val counts =
+            MutationCounts.of(
+                statuses("KILLED" to 50, "TIMED_OUT" to 5, "MEMORY_ERROR" to 1, "SURVIVED" to 24, "NO_COVERAGE" to 20),
+            )
 
         assertThat(counts).isEqualTo(MutationCounts(total = 100, killed = 56, noCoverage = 20))
         assertThat(counts.survived).isEqualTo(24L)
@@ -32,7 +32,7 @@ class MutationCountsTest {
     @Test
     fun `describe lists percentages with one decimal and plain counts`() {
         assertThat(MutationCounts(total = 1477, killed = 1010, noCoverage = 272).describe()).isEqualTo(
-            "mutation score 68.4%, test strength 83.8% (1010 killed, 195 survived, 272 no coverage, 1477 total)"
+            "mutation score 68.4%, test strength 83.8% (1010 killed, 195 survived, 272 no coverage, 1477 total)",
         )
     }
 
@@ -47,20 +47,21 @@ class MutationCountsTest {
         val counts = MutationCounts.of(statuses("NO_COVERAGE" to 3))
 
         assertThat(counts.describe()).isEqualTo(
-            "mutation score 0.0%, test strength n/a (0 killed, 0 survived, 3 no coverage, 3 total)"
+            "mutation score 0.0%, test strength n/a (0 killed, 0 survived, 3 no coverage, 3 total)",
         )
     }
 
     @Test
     fun `summary sums counts for the total and leaves out modules without mutants`() {
-        val lines = mutationSummary(
-            listOf(
-                ":user" to MutationCounts(total = 10, killed = 6, noCoverage = 2),
-                ":common" to MutationCounts(total = 0, killed = 0, noCoverage = 0),
-                ":board" to MutationCounts(total = 30, killed = 9, noCoverage = 18),
-            ),
-            "build/reports/pitest/index.html",
-        )
+        val lines =
+            mutationSummary(
+                listOf(
+                    ":user" to MutationCounts(total = 10, killed = 6, noCoverage = 2),
+                    ":common" to MutationCounts(total = 0, killed = 0, noCoverage = 0),
+                    ":board" to MutationCounts(total = 30, killed = 9, noCoverage = 18),
+                ),
+                "build/reports/pitest/index.html",
+            )
 
         assertThat(lines).containsExactly(
             "Mutation testing (2 modules with mutants):",
@@ -89,16 +90,24 @@ class MutationCountsTest {
     fun `min score failure prints a whole threshold as an integer`() {
         val counts = MutationCounts(total = 1477, killed = 1010, noCoverage = 272)
 
-        assertThat(minScoreFailure(counts, BigDecimal("70"))).isEqualTo("Mutation score 68.4% is below mutation.minScore=70")
-        assertThat(minScoreFailure(counts, BigDecimal("70.0"))).isEqualTo("Mutation score 68.4% is below mutation.minScore=70")
-        assertThat(minScoreFailure(counts, BigDecimal("100"))).isEqualTo("Mutation score 68.4% is below mutation.minScore=100")
+        assertThat(
+            minScoreFailure(counts, BigDecimal("70")),
+        ).isEqualTo("Mutation score 68.4% is below mutation.minScore=70")
+        assertThat(
+            minScoreFailure(counts, BigDecimal("70.0")),
+        ).isEqualTo("Mutation score 68.4% is below mutation.minScore=70")
+        assertThat(
+            minScoreFailure(counts, BigDecimal("100")),
+        ).isEqualTo("Mutation score 68.4% is below mutation.minScore=100")
     }
 
     @Test
     fun `min score failure prints a decimal threshold as a plain decimal`() {
         val counts = MutationCounts(total = 1477, killed = 1010, noCoverage = 272)
 
-        assertThat(minScoreFailure(counts, BigDecimal("68.50"))).isEqualTo("Mutation score 68.4% is below mutation.minScore=68.5")
+        assertThat(
+            minScoreFailure(counts, BigDecimal("68.50")),
+        ).isEqualTo("Mutation score 68.4% is below mutation.minScore=68.5")
     }
 
     @Test
@@ -107,7 +116,9 @@ class MutationCountsTest {
 
         assertThat(counts.meets(BigDecimal(70))).isFalse()
         assertThat(counts.meets(BigDecimal("69.96"))).isTrue()
-        assertThat(minScoreFailure(counts, BigDecimal(70))).isEqualTo("Mutation score 70.0% is below mutation.minScore=70")
+        assertThat(
+            minScoreFailure(counts, BigDecimal(70)),
+        ).isEqualTo("Mutation score 70.0% is below mutation.minScore=70")
     }
 
     @Test

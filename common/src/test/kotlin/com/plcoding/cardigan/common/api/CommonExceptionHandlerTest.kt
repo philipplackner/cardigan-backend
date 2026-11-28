@@ -58,7 +58,6 @@ import java.util.UUID
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CommonExceptionHandlerTest {
-
     private val handler = CommonExceptionHandler()
     private val request = ServletWebRequest(MockHttpServletRequest())
     private val validatorFactory = Validation.buildDefaultValidatorFactory()
@@ -75,7 +74,11 @@ class CommonExceptionHandlerTest {
 
     @Suppress("unused", "UNUSED_PARAMETER")
     class Endpoints {
-        fun handle(@PathVariable id: UUID, @RequestParam limit: Int, @RequestBody body: Body) = Unit
+        fun handle(
+            @PathVariable id: UUID,
+            @RequestParam limit: Int,
+            @RequestBody body: Body,
+        ) = Unit
     }
 
     private val handle = Endpoints::class.java.declaredMethods.single { it.name == "handle" }
@@ -84,20 +87,26 @@ class CommonExceptionHandlerTest {
     private val bodyParameter = MethodParameter(handle, 2)
 
     private val brokenBody = Body(name = null, title = "toolong")
-    private val brokenBodyFieldErrors = listOf(
-        ProblemFieldError("name", FieldErrorCode.REQUIRED),
-        ProblemFieldError("title", FieldErrorCode.TOO_LONG, max = 3),
-    )
+    private val brokenBodyFieldErrors =
+        listOf(
+            ProblemFieldError("name", FieldErrorCode.REQUIRED),
+            ProblemFieldError("title", FieldErrorCode.TOO_LONG, max = 3),
+        )
 
     private fun violationsOf(body: Body): Set<ConstraintViolation<Body>> = validatorFactory.validator.validate(body)
 
-    private fun bindingErrorsOf(body: Body): List<ObjectError> = violationsOf(body).map { violation ->
-        FieldError("body", violation.propertyPath.toString(), "invalid").apply { wrap(violation) }
-    }
+    private fun bindingErrorsOf(body: Body): List<ObjectError> =
+        violationsOf(body).map { violation ->
+            FieldError("body", violation.propertyPath.toString(), "invalid").apply { wrap(violation) }
+        }
 
     private fun handle(ex: Exception): ResponseEntity<Any> = handler.handleException(ex, request)!!
 
-    private fun assertProblem(response: ResponseEntity<*>, code: ErrorCode, fieldErrors: List<ProblemFieldError> = emptyList()) {
+    private fun assertProblem(
+        response: ResponseEntity<*>,
+        code: ErrorCode,
+        fieldErrors: List<ProblemFieldError> = emptyList(),
+    ) {
         assertThat(response.statusCode.value()).isEqualTo(code.status)
         assertThat(response.headers.contentType).isEqualTo(MediaType.APPLICATION_PROBLEM_JSON)
         val body = response.body as ProblemDetail
@@ -188,12 +197,17 @@ class CommonExceptionHandlerTest {
     fun `unexpected exception is INTERNAL_ERROR and logged with its stack trace`() {
         val ex = IllegalStateException("boom")
 
-        val response = LogCapture(CommonExceptionHandler::class.java).use { logs ->
-            handler.handleUnexpected(ex).also {
-                assertThat(logs.errors).hasSize(1)
-                assertThat(logs.errors.single().throwableProxy.message).isEqualTo("boom")
+        val response =
+            LogCapture(CommonExceptionHandler::class.java).use { logs ->
+                handler.handleUnexpected(ex).also {
+                    assertThat(logs.errors).hasSize(1)
+                    assertThat(
+                        logs.errors
+                            .single()
+                            .throwableProxy.message,
+                    ).isEqualTo("boom")
+                }
             }
-        }
 
         assertProblem(response, ErrorCode.INTERNAL_ERROR)
     }
@@ -202,18 +216,20 @@ class CommonExceptionHandlerTest {
     fun `unexpected exception caused by a body over the limit is PAYLOAD_TOO_LARGE and not logged`() {
         val ex = RuntimeException(IllegalStateException(PayloadTooLargeException()))
 
-        val response = LogCapture(CommonExceptionHandler::class.java).use { logs ->
-            handler.handleUnexpected(ex).also { assertThat(logs.errors).isEmpty() }
-        }
+        val response =
+            LogCapture(CommonExceptionHandler::class.java).use { logs ->
+                handler.handleUnexpected(ex).also { assertThat(logs.errors).isEmpty() }
+            }
 
         assertProblem(response, ErrorCode.PAYLOAD_TOO_LARGE)
     }
 
     @Test
     fun `exception that reports itself as its own cause ends the cause search`() {
-        val selfCaused = object : RuntimeException() {
-            override val cause: Throwable get() = this
-        }
+        val selfCaused =
+            object : RuntimeException() {
+                override val cause: Throwable get() = this
+            }
 
         assertProblem(handler.handleUnexpected(selfCaused), ErrorCode.INTERNAL_ERROR)
     }
@@ -236,7 +252,8 @@ class CommonExceptionHandlerTest {
 
     @Test
     fun `unreadable body is MALFORMED_REQUEST`() {
-        val ex = HttpMessageNotReadableException("bad json", IllegalArgumentException(), MockHttpInputMessage(ByteArray(0)))
+        val ex =
+            HttpMessageNotReadableException("bad json", IllegalArgumentException(), MockHttpInputMessage(ByteArray(0)))
 
         assertProblem(handle(ex), ErrorCode.MALFORMED_REQUEST)
     }
@@ -270,11 +287,12 @@ class CommonExceptionHandlerTest {
 
     @Test
     fun `path variable missing from the mapping is INTERNAL_ERROR and logged`() {
-        val response = LogCapture(CommonExceptionHandler::class.java).use { logs ->
-            handle(MissingPathVariableException("id", pathParameter, false)).also {
-                assertThat(logs.errors).hasSize(1)
+        val response =
+            LogCapture(CommonExceptionHandler::class.java).use { logs ->
+                handle(MissingPathVariableException("id", pathParameter, false)).also {
+                    assertThat(logs.errors).hasSize(1)
+                }
             }
-        }
 
         assertProblem(response, ErrorCode.INTERNAL_ERROR)
     }
@@ -294,33 +312,44 @@ class CommonExceptionHandlerTest {
         val bindingResult = BeanPropertyBindingResult(brokenBody, "body")
         bindingResult.addError(ObjectError("body", "invalid"))
 
-        val response = LogCapture(CommonExceptionHandler::class.java).use { logs ->
-            handle(MethodArgumentNotValidException(bodyParameter, bindingResult)).also {
-                assertThat(logs.errors).hasSize(1)
+        val response =
+            LogCapture(CommonExceptionHandler::class.java).use { logs ->
+                handle(MethodArgumentNotValidException(bodyParameter, bindingResult)).also {
+                    assertThat(logs.errors).hasSize(1)
+                }
             }
-        }
 
         assertProblem(response, ErrorCode.INTERNAL_ERROR)
     }
 
     @Test
     fun `invalid method parameter is VALIDATION_FAILED with every field error`() {
-        val result = ParameterValidationResult(bodyParameter, brokenBody, bindingErrorsOf(brokenBody), null, null, null) { error, _ -> error }
+        val result =
+            ParameterValidationResult(
+                bodyParameter,
+                brokenBody,
+                bindingErrorsOf(brokenBody),
+                null,
+                null,
+                null,
+            ) { error, _ -> error }
 
-        val response = handle(HandlerMethodValidationException(MethodValidationResult.create(Endpoints(), handle, listOf(result))))
+        val response =
+            handle(HandlerMethodValidationException(MethodValidationResult.create(Endpoints(), handle, listOf(result))))
 
         assertProblem(response, ErrorCode.VALIDATION_FAILED, brokenBodyFieldErrors)
     }
 
     @Test
     fun `framework error statuses map to their codes`() {
-        val expected = mapOf(
-            HttpStatus.BAD_REQUEST to ErrorCode.MALFORMED_REQUEST,
-            HttpStatus.NOT_FOUND to ErrorCode.NOT_FOUND,
-            HttpStatus.METHOD_NOT_ALLOWED to ErrorCode.ROUTE_NOT_FOUND,
-            HttpStatus.CONTENT_TOO_LARGE to ErrorCode.PAYLOAD_TOO_LARGE,
-            HttpStatus.UNSUPPORTED_MEDIA_TYPE to ErrorCode.UNSUPPORTED_MEDIA_TYPE,
-        )
+        val expected =
+            mapOf(
+                HttpStatus.BAD_REQUEST to ErrorCode.MALFORMED_REQUEST,
+                HttpStatus.NOT_FOUND to ErrorCode.NOT_FOUND,
+                HttpStatus.METHOD_NOT_ALLOWED to ErrorCode.ROUTE_NOT_FOUND,
+                HttpStatus.CONTENT_TOO_LARGE to ErrorCode.PAYLOAD_TOO_LARGE,
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE to ErrorCode.UNSUPPORTED_MEDIA_TYPE,
+            )
 
         expected.forEach { (status, code) -> assertProblem(handle(ErrorResponseException(status)), code) }
     }
@@ -329,9 +358,10 @@ class CommonExceptionHandlerTest {
     fun `any other framework error status is INTERNAL_ERROR and logged`() {
         val ex = ErrorResponseException(HttpStatus.SERVICE_UNAVAILABLE)
 
-        val response = LogCapture(CommonExceptionHandler::class.java).use { logs ->
-            handle(ex).also { assertThat(logs.errors.single().throwableProxy).isNotNull() }
-        }
+        val response =
+            LogCapture(CommonExceptionHandler::class.java).use { logs ->
+                handle(ex).also { assertThat(logs.errors.single().throwableProxy).isNotNull() }
+            }
 
         assertProblem(response, ErrorCode.INTERNAL_ERROR)
     }

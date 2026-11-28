@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit
 
 @Import(AuthServiceIntegrationTest.EventRecorderConfig::class)
 class AuthServiceIntegrationTest : UserIntegrationTest() {
-
     class EventRecorder {
         val events = CopyOnWriteArrayList<Any>()
 
@@ -48,7 +47,6 @@ class AuthServiceIntegrationTest : UserIntegrationTest() {
 
     @TestConfiguration(proxyBeanMethods = false)
     class EventRecorderConfig {
-
         @Bean
         fun eventRecorder() = EventRecorder()
     }
@@ -68,20 +66,23 @@ class AuthServiceIntegrationTest : UserIntegrationTest() {
 
     private val password = "Correct horse 7"
 
-    private fun credentials(email: String = "ann@example.com", password: String = this.password) =
-        Credentials(email, password, BODY)
+    private fun credentials(
+        email: String = "ann@example.com",
+        password: String = this.password,
+    ) = Credentials(email, password, BODY)
 
     private fun register(email: String = "ann@example.com"): IssuedSession = authService.register(credentials(email))
 
-    private fun revokedAtOf(refreshToken: String): Timestamp? = jdbcTemplate.queryForObject(
-        """
+    private fun revokedAtOf(refreshToken: String): Timestamp? =
+        jdbcTemplate.queryForObject(
+            """
         SELECT s.revoked_at FROM user_service.sessions s
         JOIN user_service.refresh_tokens t ON t.session_id = s.id
         WHERE t.token_hash = ?
         """,
-        Timestamp::class.java,
-        hashRefreshToken(refreshToken),
-    )
+            Timestamp::class.java,
+            hashRefreshToken(refreshToken),
+        )
 
     private fun count(table: String): Int =
         jdbcTemplate.queryForObject("SELECT count(*) FROM user_service.$table", Int::class.java)!!
@@ -90,14 +91,15 @@ class AuthServiceIntegrationTest : UserIntegrationTest() {
         val barrier = CyclicBarrier(calls.size)
         val executor = Executors.newFixedThreadPool(calls.size)
         try {
-            val futures = calls.map { call ->
-                executor.submit(
-                    Callable {
-                        barrier.await(10, TimeUnit.SECONDS)
-                        runCatching(call)
-                    },
-                )
-            }
+            val futures =
+                calls.map { call ->
+                    executor.submit(
+                        Callable {
+                            barrier.await(10, TimeUnit.SECONDS)
+                            runCatching(call)
+                        },
+                    )
+                }
             return futures.map { it.get(30, TimeUnit.SECONDS) }
         } finally {
             executor.shutdownNow()
@@ -108,21 +110,24 @@ class AuthServiceIntegrationTest : UserIntegrationTest() {
     fun `register stores a BCrypt hash with the configured cost and only the token hash`() {
         val issued = register()
 
-        val passwordHash = jdbcTemplate.queryForObject(
-            "SELECT password_hash FROM user_service.users WHERE id = ?",
-            String::class.java,
-            issued.user.id,
-        )
+        val passwordHash =
+            jdbcTemplate.queryForObject(
+                "SELECT password_hash FROM user_service.users WHERE id = ?",
+                String::class.java,
+                issued.user.id,
+            )
         assertThat(passwordHash).isNotNull().matches(Regex("""^\$2[aby]\$04\$[./A-Za-z0-9]{53}$"""))
-        val storedTokens = jdbcTemplate.queryForList(
-            "SELECT token_hash FROM user_service.refresh_tokens",
-            String::class.java,
-        )
+        val storedTokens =
+            jdbcTemplate.queryForList(
+                "SELECT token_hash FROM user_service.refresh_tokens",
+                String::class.java,
+            )
         assertThat(storedTokens).isEqualTo(listOf(hashRefreshToken(issued.tokens.refreshToken)))
-        val expiresAt = jdbcTemplate.queryForObject(
-            "SELECT expires_at FROM user_service.refresh_tokens",
-            Timestamp::class.java,
-        )
+        val expiresAt =
+            jdbcTemplate.queryForObject(
+                "SELECT expires_at FROM user_service.refresh_tokens",
+                Timestamp::class.java,
+            )
         assertThat(expiresAt!!.toInstant()).isEqualTo(START.plus(Duration.ofDays(30)))
     }
 
@@ -150,10 +155,11 @@ class AuthServiceIntegrationTest : UserIntegrationTest() {
             val issued = register("user$round@example.com")
             val token = issued.tokens.refreshToken
 
-            val results = inParallel(
-                { authService.refresh(BODY, token) },
-                { authService.refresh(BODY, token) },
-            ).map { it.getOrThrow() }
+            val results =
+                inParallel(
+                    { authService.refresh(BODY, token) },
+                    { authService.refresh(BODY, token) },
+                ).map { it.getOrThrow() }
 
             val successes = results.filterIsInstance<RefreshResult.Refreshed>()
             assertThat(successes.size, "successes in round $round").isLessThanOrEqualTo(1)
@@ -170,19 +176,21 @@ class AuthServiceIntegrationTest : UserIntegrationTest() {
         repeat(15) { round ->
             val email = "user$round@example.com"
 
-            val results = inParallel(
-                { authService.register(credentials(email)) },
-                { authService.register(credentials(email)) },
-            )
+            val results =
+                inParallel(
+                    { authService.register(credentials(email)) },
+                    { authService.register(credentials(email)) },
+                )
 
             assertThat(results.count { it.isSuccess }, "successes in round $round").isEqualTo(1)
             val failure = results.single { it.isFailure }.exceptionOrNull()
             assertThat(failure, "failure in round $round").isNotNull().isInstanceOf<EmailAlreadyUsedException>()
-            val users = jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM user_service.users WHERE email = ?",
-                Int::class.java,
-                email,
-            )
+            val users =
+                jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM user_service.users WHERE email = ?",
+                    Int::class.java,
+                    email,
+                )
             assertThat(users, "users in round $round").isEqualTo(1)
         }
         assertThat(count("sessions")).isEqualTo(15)

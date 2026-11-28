@@ -39,7 +39,6 @@ import org.springframework.web.servlet.resource.NoResourceFoundException
  */
 @RestControllerAdvice
 class CommonExceptionHandler : ResponseEntityExceptionHandler() {
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     override fun handleExceptionInternal(
@@ -49,35 +48,51 @@ class CommonExceptionHandler : ResponseEntityExceptionHandler() {
         statusCode: HttpStatusCode,
         request: WebRequest,
     ): ResponseEntity<Any> {
-        val response = when (ex) {
-            is NoResourceFoundException,
-            is NoHandlerFoundException,
-            -> problem(ErrorCode.ROUTE_NOT_FOUND)
-            is HttpMessageNotReadableException ->
-                if (ex.hasCause<PayloadTooLargeException>()) {
-                    problem(ErrorCode.PAYLOAD_TOO_LARGE)
-                } else {
-                    problem(ErrorCode.MALFORMED_REQUEST)
+        val response =
+            when (ex) {
+                is NoResourceFoundException,
+                is NoHandlerFoundException,
+                -> {
+                    problem(ErrorCode.ROUTE_NOT_FOUND)
                 }
-            is MethodArgumentTypeMismatchException ->
-                if (ex.parameter.hasParameterAnnotation(PathVariable::class.java)) {
-                    problem(ErrorCode.NOT_FOUND)
-                } else {
-                    problem(ErrorCode.MALFORMED_REQUEST)
+
+                is HttpMessageNotReadableException -> {
+                    if (ex.hasCause<PayloadTooLargeException>()) {
+                        problem(ErrorCode.PAYLOAD_TOO_LARGE)
+                    } else {
+                        problem(ErrorCode.MALFORMED_REQUEST)
+                    }
                 }
-            // A blank path value converts to null, so it arrives here and not as a type mismatch.
-            is MissingPathVariableException ->
-                if (ex.isMissingAfterConversion) problem(ErrorCode.NOT_FOUND) else problemForStatus(ex, statusCode)
-            is MethodArgumentNotValidException ->
-                validationFailed(ex.bindingResult.allErrors.mapNotNull { it.constraintViolation() })
-            is HandlerMethodValidationException ->
-                validationFailed(
-                    ex.parameterValidationResults
-                        .flatMap { it.resolvableErrors }
-                        .mapNotNull { (it as? ObjectError)?.constraintViolation() },
-                )
-            else -> problemForStatus(ex, statusCode)
-        }
+
+                is MethodArgumentTypeMismatchException -> {
+                    if (ex.parameter.hasParameterAnnotation(PathVariable::class.java)) {
+                        problem(ErrorCode.NOT_FOUND)
+                    } else {
+                        problem(ErrorCode.MALFORMED_REQUEST)
+                    }
+                }
+
+                // A blank path value converts to null, so it arrives here and not as a type mismatch.
+                is MissingPathVariableException -> {
+                    if (ex.isMissingAfterConversion) problem(ErrorCode.NOT_FOUND) else problemForStatus(ex, statusCode)
+                }
+
+                is MethodArgumentNotValidException -> {
+                    validationFailed(ex.bindingResult.allErrors.mapNotNull { it.constraintViolation() })
+                }
+
+                is HandlerMethodValidationException -> {
+                    validationFailed(
+                        ex.parameterValidationResults
+                            .flatMap { it.resolvableErrors }
+                            .mapNotNull { (it as? ObjectError)?.constraintViolation() },
+                    )
+                }
+
+                else -> {
+                    problemForStatus(ex, statusCode)
+                }
+            }
         @Suppress("UNCHECKED_CAST")
         return response as ResponseEntity<Any>
     }
@@ -94,8 +109,7 @@ class CommonExceptionHandler : ResponseEntityExceptionHandler() {
         )
 
     @ExceptionHandler(ResourceNotFoundException::class)
-    fun handleNotFound(ex: ResourceNotFoundException): ResponseEntity<ProblemDetail> =
-        problem(ErrorCode.NOT_FOUND)
+    fun handleNotFound(ex: ResourceNotFoundException): ResponseEntity<ProblemDetail> = problem(ErrorCode.NOT_FOUND)
 
     @ExceptionHandler(UniquenessConflictException::class)
     fun handleConflict(ex: UniquenessConflictException): ResponseEntity<ProblemDetail> =
@@ -116,7 +130,8 @@ class CommonExceptionHandler : ResponseEntityExceptionHandler() {
     @ExceptionHandler(RateLimitedException::class)
     fun handleRateLimited(ex: RateLimitedException): ResponseEntity<ProblemDetail> {
         val response = problem(ErrorCode.RATE_LIMITED)
-        return ResponseEntity.status(response.statusCode)
+        return ResponseEntity
+            .status(response.statusCode)
             .headers(response.headers)
             .header(HttpHeaders.RETRY_AFTER, ex.retryAfterSeconds.toString())
             .body(response.body)
@@ -135,18 +150,37 @@ class CommonExceptionHandler : ResponseEntityExceptionHandler() {
         return problem(ErrorCode.INTERNAL_ERROR)
     }
 
-    private fun problemForStatus(ex: Exception, status: HttpStatusCode): ResponseEntity<ProblemDetail> {
-        val code = when (status.value()) {
-            400 -> ErrorCode.MALFORMED_REQUEST
-            404 -> ErrorCode.NOT_FOUND
-            405 -> ErrorCode.ROUTE_NOT_FOUND
-            413 -> ErrorCode.PAYLOAD_TOO_LARGE
-            415 -> ErrorCode.UNSUPPORTED_MEDIA_TYPE
-            else -> {
-                log.error("Unhandled exception", ex)
-                ErrorCode.INTERNAL_ERROR
+    private fun problemForStatus(
+        ex: Exception,
+        status: HttpStatusCode,
+    ): ResponseEntity<ProblemDetail> {
+        val code =
+            when (status.value()) {
+                400 -> {
+                    ErrorCode.MALFORMED_REQUEST
+                }
+
+                404 -> {
+                    ErrorCode.NOT_FOUND
+                }
+
+                405 -> {
+                    ErrorCode.ROUTE_NOT_FOUND
+                }
+
+                413 -> {
+                    ErrorCode.PAYLOAD_TOO_LARGE
+                }
+
+                415 -> {
+                    ErrorCode.UNSUPPORTED_MEDIA_TYPE
+                }
+
+                else -> {
+                    log.error("Unhandled exception", ex)
+                    ErrorCode.INTERNAL_ERROR
+                }
             }
-        }
         return problem(code)
     }
 

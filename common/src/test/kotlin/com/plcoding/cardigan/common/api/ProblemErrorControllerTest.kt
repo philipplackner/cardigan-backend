@@ -10,10 +10,12 @@ import org.junit.jupiter.api.Test
 import org.springframework.mock.web.MockHttpServletRequest
 
 class ProblemErrorControllerTest {
-
     private val controller = ProblemErrorController()
 
-    private fun errorRequest(status: Int?, exception: Throwable? = null) = MockHttpServletRequest().apply {
+    private fun errorRequest(
+        status: Int?,
+        exception: Throwable? = null,
+    ) = MockHttpServletRequest().apply {
         status?.let { setAttribute(RequestDispatcher.ERROR_STATUS_CODE, it) }
         exception?.let { setAttribute(RequestDispatcher.ERROR_EXCEPTION, it) }
     }
@@ -43,7 +45,11 @@ class ProblemErrorControllerTest {
 
             assertThat(response.statusCode.value()).isEqualTo(500)
             assertThat(response.body!!.properties!!["code"]).isEqualTo(ErrorCode.INTERNAL_ERROR.name)
-            assertThat(logs.errors.single().throwableProxy.message).isEqualTo("filter failed")
+            assertThat(
+                logs.errors
+                    .single()
+                    .throwableProxy.message,
+            ).isEqualTo("filter failed")
         }
     }
 }

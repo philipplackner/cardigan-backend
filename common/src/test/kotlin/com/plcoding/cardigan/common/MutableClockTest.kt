@@ -8,7 +8,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 class MutableClockTest {
-
     @Test
     fun `start time is truncated to milliseconds`() {
         val clock = MutableClock(Instant.parse("2026-11-15T09:15:30.123456Z"))

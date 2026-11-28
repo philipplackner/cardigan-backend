@@ -27,7 +27,6 @@ data class CreateColumnRequest(
 )
 
 class UpdateColumnRequest : PatchRequest() {
-
     @ValidText(min = 1, max = 30)
     var name: String? = null
         set(value) {

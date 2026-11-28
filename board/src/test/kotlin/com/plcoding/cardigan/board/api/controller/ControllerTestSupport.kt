@@ -14,7 +14,12 @@ internal val plainRequestValidator: RequestValidator by lazy {
 
 /** Makes [userId] the request user, the way the bearer token filter does. */
 internal fun signIn(userId: UUID) {
-    val jwt = Jwt.withTokenValue("token").header("alg", "HS256").subject(userId.toString()).build()
+    val jwt =
+        Jwt
+            .withTokenValue("token")
+            .header("alg", "HS256")
+            .subject(userId.toString())
+            .build()
     SecurityContextHolder.getContext().authentication = JwtAuthenticationToken(jwt)
 }
 

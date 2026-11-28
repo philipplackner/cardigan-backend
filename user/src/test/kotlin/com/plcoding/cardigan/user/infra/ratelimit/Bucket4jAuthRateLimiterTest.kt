@@ -19,7 +19,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class Bucket4jAuthRateLimiterTest {
-
     private val clock = MutableClock()
     private val properties = AuthRateLimitProperties()
     private val limiter = Bucket4jAuthRateLimiter(properties, clock)
@@ -27,19 +26,29 @@ class Bucket4jAuthRateLimiterTest {
     private val ann = "ann@example.com"
     private val bob = "bob@example.com"
 
-    private fun isAllowed(action: AuthAction = LOGIN, email: String = ann, limiter: Bucket4jAuthRateLimiter = this.limiter) =
-        try {
-            limiter.check(action, email)
-            true
-        } catch (_: AuthRateLimitedException) {
-            false
-        }
+    private fun isAllowed(
+        action: AuthAction = LOGIN,
+        email: String = ann,
+        limiter: Bucket4jAuthRateLimiter = this.limiter,
+    ) = try {
+        limiter.check(action, email)
+        true
+    } catch (_: AuthRateLimitedException) {
+        false
+    }
 
-    private fun useUp(action: AuthAction = LOGIN, email: String = ann, limiter: Bucket4jAuthRateLimiter = this.limiter) {
+    private fun useUp(
+        action: AuthAction = LOGIN,
+        email: String = ann,
+        limiter: Bucket4jAuthRateLimiter = this.limiter,
+    ) {
         repeat(5) { limiter.check(action, email) }
     }
 
-    private fun retryAfter(action: AuthAction = LOGIN, email: String = ann): Long =
+    private fun retryAfter(
+        action: AuthAction = LOGIN,
+        email: String = ann,
+    ): Long =
         try {
             limiter.check(action, email)
             error("The request was not limited")
@@ -203,13 +212,14 @@ class Bucket4jAuthRateLimiterTest {
 
     @Test
     fun `limits come from the configuration of each action`() {
-        val configured = Bucket4jAuthRateLimiter(
-            AuthRateLimitProperties(
-                login = AuthRateLimitProperties.Limit(2, Duration.ofSeconds(10)),
-                register = AuthRateLimitProperties.Limit(1, Duration.ofHours(1)),
-            ),
-            clock,
-        )
+        val configured =
+            Bucket4jAuthRateLimiter(
+                AuthRateLimitProperties(
+                    login = AuthRateLimitProperties.Limit(2, Duration.ofSeconds(10)),
+                    register = AuthRateLimitProperties.Limit(1, Duration.ofHours(1)),
+                ),
+                clock,
+            )
 
         assertThat((1..3).map { isAllowed(LOGIN, limiter = configured) }).isEqualTo(listOf(true, true, false))
         assertThat((1..2).map { isAllowed(REGISTER, limiter = configured) }).isEqualTo(listOf(true, false))
@@ -258,12 +268,13 @@ class Bucket4jAuthRateLimiterTest {
         val start = CountDownLatch(1)
         val executor = Executors.newFixedThreadPool(threads)
         try {
-            val futures = (1..threads).map {
-                executor.submit<Boolean> {
-                    start.await()
-                    isAllowed()
+            val futures =
+                (1..threads).map {
+                    executor.submit<Boolean> {
+                        start.await()
+                        isAllowed()
+                    }
                 }
-            }
             start.countDown()
 
             assertThat(futures.count { it.get(10, TimeUnit.SECONDS) }).isEqualTo(5)

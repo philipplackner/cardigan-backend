@@ -36,14 +36,14 @@ class LabelController(
     private val labelService: LabelService,
     private val requestValidator: RequestValidator,
 ) {
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createLabel", summary = "Create a label")
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(409, ErrorCode.CONFLICT)
-    fun createLabel(@Valid @RequestBody request: CreateLabelRequest): LabelDto =
-        labelService.create(requestUserId, request.toLabelName(), request.toLabelColor()).toLabelDto()
+    fun createLabel(
+        @Valid @RequestBody request: CreateLabelRequest,
+    ): LabelDto = labelService.create(requestUserId, request.toLabelName(), request.toLabelColor()).toLabelDto()
 
     @GetMapping
     @Operation(operationId = "listLabels", summary = "List the signed-in user's labels")
@@ -54,7 +54,10 @@ class LabelController(
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(404, ErrorCode.NOT_FOUND)
     @ApiErrors(409, ErrorCode.CONFLICT)
-    fun updateLabel(@RequestBody request: UpdateLabelRequest, @PathVariable labelId: UUID): LabelDto {
+    fun updateLabel(
+        @RequestBody request: UpdateLabelRequest,
+        @PathVariable labelId: UUID,
+    ): LabelDto {
         val ownerId = requestUserId
         labelService.get(ownerId, labelId)
         requestValidator.validate(request)
@@ -65,7 +68,9 @@ class LabelController(
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(operationId = "deleteLabel", summary = "Delete a label")
     @ApiErrors(404, ErrorCode.NOT_FOUND)
-    fun deleteLabel(@PathVariable labelId: UUID) {
+    fun deleteLabel(
+        @PathVariable labelId: UUID,
+    ) {
         labelService.delete(requestUserId, labelId)
     }
 }

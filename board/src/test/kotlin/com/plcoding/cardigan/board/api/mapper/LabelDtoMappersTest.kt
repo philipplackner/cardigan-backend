@@ -16,12 +16,13 @@ import java.time.Instant
 import java.util.UUID
 
 class LabelDtoMappersTest {
-
     private val createdAt = Instant.parse("2026-11-15T09:15:30.123Z")
     private val updatedAt = Instant.parse("2026-11-15T09:16:30.123Z")
 
-    private fun label(name: String = "Bug", color: LabelColor = LabelColor.RED) =
-        Label(UUID.randomUUID(), UUID.randomUUID(), name, color, createdAt, updatedAt)
+    private fun label(
+        name: String = "Bug",
+        color: LabelColor = LabelColor.RED,
+    ) = Label(UUID.randomUUID(), UUID.randomUUID(), name, color, createdAt, updatedAt)
 
     @Test
     fun `domain and API palettes have the same constant names in the same order`() {
@@ -83,10 +84,11 @@ class LabelDtoMappersTest {
 
     @Test
     fun `update request with both fields normalizes the name`() {
-        val request = UpdateLabelRequest().apply {
-            name = " Äpfel "
-            color = "ROSE"
-        }
+        val request =
+            UpdateLabelRequest().apply {
+                name = " Äpfel "
+                color = "ROSE"
+            }
 
         assertThat(request.toLabelChanges()).isEqualTo(LabelChanges(name = "Äpfel", color = LabelColor.ROSE))
     }

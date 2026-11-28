@@ -11,7 +11,6 @@ import org.springframework.http.HttpMethod
 import java.util.UUID
 
 class ColumnE2eTest : BoardApiE2eTest() {
-
     private lateinit var token: String
 
     @BeforeEach
@@ -19,7 +18,10 @@ class ColumnE2eTest : BoardApiE2eTest() {
         token = signIn().token
     }
 
-    private fun columnPath(board: Json, name: String) = "/api/v1/boards/${board.id}/columns/${board.column(name).id}"
+    private fun columnPath(
+        board: Json,
+        name: String,
+    ) = "/api/v1/boards/${board.id}/columns/${board.column(name).id}"
 
     private fun bob(): String = signIn("bob@example.com").token
 
@@ -32,7 +34,12 @@ class ColumnE2eTest : BoardApiE2eTest() {
         assertThat(column.keys).isEqualTo(setOf("id", "name", "position", "createdAt", "updatedAt"))
         assertThat(column.id).matches(Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"))
         assertThat(column - "id").isEqualTo(
-            mapOf("name" to "Review", "position" to 3, "createdAt" to "2026-11-15T09:15:30.123Z", "updatedAt" to "2026-11-15T09:15:30.123Z"),
+            mapOf(
+                "name" to "Review",
+                "position" to 3,
+                "createdAt" to "2026-11-15T09:15:30.123Z",
+                "updatedAt" to "2026-11-15T09:15:30.123Z",
+            ),
         )
         assertThat(getBoard(token, board.id).columns.last()).isEqualTo(column)
     }
@@ -89,8 +96,9 @@ class ColumnE2eTest : BoardApiE2eTest() {
         val board = createBoard(token)
 
         assertThat(createColumn(token, board.id, "😀".repeat(30))["position"]).isEqualTo(3)
-        assertThat(post("/api/v1/boards/${board.id}/columns", token, """{"name":" ${"a".repeat(31)} "}""").singleFieldError())
-            .isEqualTo(mapOf("field" to "name", "code" to "TOO_LONG", "max" to 30))
+        assertThat(
+            post("/api/v1/boards/${board.id}/columns", token, """{"name":" ${"a".repeat(31)} "}""").singleFieldError(),
+        ).isEqualTo(mapOf("field" to "name", "code" to "TOO_LONG", "max" to 30))
     }
 
     @Test
@@ -345,7 +353,11 @@ class ColumnE2eTest : BoardApiE2eTest() {
         val y = boardAbc(token, "YY")
         oneMinuteLater()
 
-        patch("/api/v1/boards/${y.id}/columns/${x.column("B").id}", token, """{"name":"X"}""").assertProblem(ErrorCode.NOT_FOUND)
+        patch(
+            "/api/v1/boards/${y.id}/columns/${x.column("B").id}",
+            token,
+            """{"name":"X"}""",
+        ).assertProblem(ErrorCode.NOT_FOUND)
 
         assertThat(getBoard(token, x.id)).isEqualTo(x)
         assertThat(getBoard(token, y.id)).isEqualTo(y)
@@ -368,7 +380,10 @@ class ColumnE2eTest : BoardApiE2eTest() {
         val bobBoard = boardAbc(bob)
         oneMinuteLater()
 
-        delete("/api/v1/boards/${bobBoard.id}/columns/${annBoard.column("B").id}", bob).assertProblem(ErrorCode.NOT_FOUND)
+        delete(
+            "/api/v1/boards/${bobBoard.id}/columns/${annBoard.column("B").id}",
+            bob,
+        ).assertProblem(ErrorCode.NOT_FOUND)
 
         assertThat(getBoard(token, annBoard.id)).isEqualTo(annBoard)
         assertThat(getBoard(bob, bobBoard.id)).isEqualTo(bobBoard)
@@ -417,7 +432,11 @@ class ColumnE2eTest : BoardApiE2eTest() {
         val board = boardAbc(token)
 
         delete("/api/v1/boards/${board.id}/columns/abc", token).assertProblem(ErrorCode.NOT_FOUND)
-        patch("/api/v1/boards/${board.id}/columns/1-2-3-4-5", token, """{"name":"X"}""").assertProblem(ErrorCode.NOT_FOUND)
+        patch(
+            "/api/v1/boards/${board.id}/columns/1-2-3-4-5",
+            token,
+            """{"name":"X"}""",
+        ).assertProblem(ErrorCode.NOT_FOUND)
         post("/api/v1/boards/abc/columns", token, """{"name":"X"}""").assertProblem(ErrorCode.NOT_FOUND)
         move(token, "abc", board.column("A").id, 0).assertProblem(ErrorCode.NOT_FOUND)
     }
@@ -429,7 +448,11 @@ class ColumnE2eTest : BoardApiE2eTest() {
 
         move(token, board.id, unknown, -1).assertProblem(ErrorCode.NOT_FOUND)
         post("/api/v1/boards/${board.id}/columns/$unknown/move", token, "{}").assertProblem(ErrorCode.NOT_FOUND)
-        patch("/api/v1/boards/${board.id}/columns/$unknown", token, """{"name":null}""").assertProblem(ErrorCode.NOT_FOUND)
+        patch(
+            "/api/v1/boards/${board.id}/columns/$unknown",
+            token,
+            """{"name":null}""",
+        ).assertProblem(ErrorCode.NOT_FOUND)
         post("/api/v1/boards/$unknown/columns", token, "{}").assertProblem(ErrorCode.NOT_FOUND)
     }
 
@@ -445,11 +468,12 @@ class ColumnE2eTest : BoardApiE2eTest() {
     fun `uppercase board and column IDs are accepted`() {
         val board = boardAbc(token)
 
-        val result = patch(
-            "/api/v1/boards/${board.id.uppercase()}/columns/${board.column("A").id.uppercase()}",
-            token,
-            """{"name":"X"}""",
-        )
+        val result =
+            patch(
+                "/api/v1/boards/${board.id.uppercase()}/columns/${board.column("A").id.uppercase()}",
+                token,
+                """{"name":"X"}""",
+            )
 
         assertThat(result.status).isEqualTo(200)
         assertThat(result.json().id).isEqualTo(board.column("A").id)
@@ -461,7 +485,11 @@ class ColumnE2eTest : BoardApiE2eTest() {
 
         call(HttpMethod.POST, path, json = """{"name":"X"}""").assertProblem(ErrorCode.UNAUTHENTICATED)
         call(HttpMethod.PATCH, "$path/${UUID.randomUUID()}", json = "{}").assertProblem(ErrorCode.UNAUTHENTICATED)
-        call(HttpMethod.POST, "$path/${UUID.randomUUID()}/move", json = """{"position":0}""").assertProblem(ErrorCode.UNAUTHENTICATED)
+        call(
+            HttpMethod.POST,
+            "$path/${UUID.randomUUID()}/move",
+            json = """{"position":0}""",
+        ).assertProblem(ErrorCode.UNAUTHENTICATED)
         call(HttpMethod.DELETE, "$path/${UUID.randomUUID()}").assertProblem(ErrorCode.UNAUTHENTICATED)
     }
 }

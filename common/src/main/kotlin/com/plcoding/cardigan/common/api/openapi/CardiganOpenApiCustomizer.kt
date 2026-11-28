@@ -45,7 +45,6 @@ class CardiganOpenApiCustomizer(
     private val handlerMapping: ObjectProvider<RequestMappingHandlerMapping>,
     private val publicRoutes: PublicRouteRegistry,
 ) : OpenApiCustomizer {
-
     override fun customise(openApi: OpenAPI) {
         val handlers = handlersByRoute()
         openApi.components.addSchemas(PROBLEM_SCHEMA, problemSchema())
@@ -58,36 +57,47 @@ class CardiganOpenApiCustomizer(
         }
 
         val schemas = openApi.components.schemas
-        val requestClasses = handlers.values
-            .flatMap { handler -> handler.methodParameters.filter { it.hasParameterAnnotation(RequestBody::class.java) } }
-            .flatMap { appClasses(it.genericParameterType) }
-            .toSet()
-        val responseClasses = handlers.values
-            .flatMap { appClasses(it.returnType.genericParameterType) }
-            .toSet() - requestClasses
+        val requestClasses =
+            handlers.values
+                .flatMap { handler ->
+                    handler.methodParameters.filter { it.hasParameterAnnotation(RequestBody::class.java) }
+                }.flatMap { appClasses(it.genericParameterType) }
+                .toSet()
+        val responseClasses =
+            handlers.values
+                .flatMap { appClasses(it.returnType.genericParameterType) }
+                .toSet() - requestClasses
         requestClasses.forEach { type -> schemas[type.simpleName]?.let { customizeRequestSchema(type, it) } }
         responseClasses.forEach { type -> schemas[type.simpleName]?.let { customizeResponseSchema(type, it) } }
 
         openApi.tags = openApi.tags?.sortedBy { it.name }
     }
 
-    private fun handlersByRoute(): Map<String, HandlerMethod> = buildMap {
-        handlerMapping.getObject().handlerMethods.forEach { (info, handler) ->
-            info.patternValues.forEach { pattern ->
-                info.methodsCondition.methods.forEach { method -> put("${method.name} $pattern", handler) }
+    private fun handlersByRoute(): Map<String, HandlerMethod> =
+        buildMap {
+            handlerMapping.getObject().handlerMethods.forEach { (info, handler) ->
+                info.patternValues.forEach { pattern ->
+                    info.methodsCondition.methods.forEach { method -> put("${method.name} $pattern", handler) }
+                }
             }
         }
-    }
 
-    private fun customizeOperation(path: String, method: PathItem.HttpMethod, operation: Operation, handler: HandlerMethod?) {
+    private fun customizeOperation(
+        path: String,
+        method: PathItem.HttpMethod,
+        operation: Operation,
+        handler: HandlerMethod?,
+    ) {
         val errors = sortedMapOf<Int, MutableSet<ErrorCode>>()
+
         fun add(code: ErrorCode) {
             errors.getOrPut(code.status) { linkedSetOf() }.add(code)
         }
 
         add(ErrorCode.INTERNAL_ERROR)
-        val isProtected = (path == API_BASE_PATH || path.startsWith("$API_BASE_PATH/")) &&
-            PublicRoute(HttpMethod.valueOf(method.name), path) !in publicRoutes.routes
+        val isProtected =
+            (path == API_BASE_PATH || path.startsWith("$API_BASE_PATH/")) &&
+                PublicRoute(HttpMethod.valueOf(method.name), path) !in publicRoutes.routes
         if (isProtected) {
             add(ErrorCode.UNAUTHENTICATED)
             operation.security = listOf(SecurityRequirement().addList(OpenApiConfig.BEARER_AUTH))
@@ -120,7 +130,10 @@ class CardiganOpenApiCustomizer(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun customizeRequestSchema(requestClass: Class<*>, schema: Schema<*>) {
+    private fun customizeRequestSchema(
+        requestClass: Class<*>,
+        schema: Schema<*>,
+    ) {
         val fields = requestClass.declaredFields.filterNot { Modifier.isStatic(it.modifiers) }.associateBy { it.name }
         schema.required = fields.values.filter { it.isAnnotationPresent(Required::class.java) }.map { it.name }
         schema.properties.orEmpty().toMap().forEach { (name, property) ->
@@ -134,8 +147,10 @@ class CardiganOpenApiCustomizer(
             val field = fields[name] ?: return@forEach
             applyConstraintFormats(field, property as Schema<Any>)
             if (property is ArraySchema) {
-                val itemAnnotations = (field.annotatedType as? AnnotatedParameterizedType)
-                    ?.annotatedActualTypeArguments?.firstOrNull()
+                val itemAnnotations =
+                    (field.annotatedType as? AnnotatedParameterizedType)
+                        ?.annotatedActualTypeArguments
+                        ?.firstOrNull()
                 if (itemAnnotations?.isAnnotationPresent(ValidUuid::class.java) == true) {
                     property.items.format = "uuid"
                 }
@@ -147,7 +162,10 @@ class CardiganOpenApiCustomizer(
      * Response properties are required unless their Kotlin type is nullable. A nullable property is
      * `nullable` in the document, except one that `@JsonInclude(NON_NULL)` leaves out instead.
      */
-    private fun customizeResponseSchema(responseClass: Class<*>, schema: Schema<*>) {
+    private fun customizeResponseSchema(
+        responseClass: Class<*>,
+        schema: Schema<*>,
+    ) {
         val constructor = responseClass.kotlin.primaryConstructor ?: return
         schema.required = constructor.parameters.filterNot { it.type.isMarkedNullable }.mapNotNull { it.name }
         // A property that is left out when it has no value is never sent as null.
@@ -156,10 +174,15 @@ class CardiganOpenApiCustomizer(
             .forEach { field -> schema.properties?.get(field.name)?.nullable = null }
     }
 
-    private fun applyConstraintFormats(field: Field, property: Schema<Any>) {
+    private fun applyConstraintFormats(
+        field: Field,
+        property: Schema<Any>,
+    ) {
         if (field.isAnnotationPresent(ValidUuid::class.java)) property.format = "uuid"
         field.getAnnotation(ValidEnum::class.java)?.let { validEnum ->
-            property.enum = validEnum.value.java.enumConstants.map { it.name }
+            property.enum =
+                validEnum.value.java.enumConstants
+                    .map { it.name }
         }
         field.getAnnotation(ValidRange::class.java)?.let { range ->
             property.minimum = BigDecimal.valueOf(range.min)
@@ -173,13 +196,18 @@ class CardiganOpenApiCustomizer(
      */
     private fun appClasses(root: Type): Set<Class<*>> {
         val found = linkedSetOf<Class<*>>()
+
         fun visit(type: Type) {
             when (type) {
                 is ParameterizedType -> {
                     visit(type.rawType)
                     type.actualTypeArguments.forEach(::visit)
                 }
-                is WildcardType -> type.upperBounds.forEach(::visit)
+
+                is WildcardType -> {
+                    type.upperBounds.forEach(::visit)
+                }
+
                 is Class<*> -> {
                     if (!type.name.startsWith(APP_PACKAGE) || type.isEnum || !found.add(type)) return
                     type.declaredFields.filterNot { Modifier.isStatic(it.modifiers) }.forEach { visit(it.genericType) }
@@ -190,21 +218,23 @@ class CardiganOpenApiCustomizer(
         return found
     }
 
-    private fun problemSchema(): Schema<*> = ObjectSchema()
-        .addProperty("type", StringSchema())
-        .addProperty("title", StringSchema())
-        .addProperty("status", IntegerSchema().format("int32"))
-        .addProperty("detail", StringSchema())
-        .addProperty("code", StringSchema())
-        .addProperty("fieldErrors", ArraySchema().items(Schema<Any>().`$ref`(FIELD_ERROR_SCHEMA)))
-        .required(listOf("type", "title", "status", "detail", "code", "fieldErrors"))
+    private fun problemSchema(): Schema<*> =
+        ObjectSchema()
+            .addProperty("type", StringSchema())
+            .addProperty("title", StringSchema())
+            .addProperty("status", IntegerSchema().format("int32"))
+            .addProperty("detail", StringSchema())
+            .addProperty("code", StringSchema())
+            .addProperty("fieldErrors", ArraySchema().items(Schema<Any>().`$ref`(FIELD_ERROR_SCHEMA)))
+            .required(listOf("type", "title", "status", "detail", "code", "fieldErrors"))
 
-    private fun fieldErrorSchema(): Schema<*> = ObjectSchema()
-        .addProperty("field", StringSchema())
-        .addProperty("code", StringSchema())
-        .addProperty("min", IntegerSchema().format("int64"))
-        .addProperty("max", IntegerSchema().format("int64"))
-        .required(listOf("field", "code"))
+    private fun fieldErrorSchema(): Schema<*> =
+        ObjectSchema()
+            .addProperty("field", StringSchema())
+            .addProperty("code", StringSchema())
+            .addProperty("min", IntegerSchema().format("int64"))
+            .addProperty("max", IntegerSchema().format("int64"))
+            .required(listOf("field", "code"))
 
     private companion object {
         const val PROBLEM_SCHEMA = "Problem"

@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit
 class FailingColumnRepository(
     private val delegate: JpaColumnRepository,
 ) : ColumnRepository by delegate {
-
     /** The number of the next `save` call that throws, counted from 1. Null never throws. */
     @Volatile
     var failOnSave: Int? = null
@@ -57,7 +56,6 @@ class FailingColumnRepository(
 
 @TestConfiguration(proxyBeanMethods = false)
 class FailingColumnRepositoryConfig {
-
     @Bean
     @Primary
     fun failingColumnRepository(delegate: JpaColumnRepository) = FailingColumnRepository(delegate)
@@ -71,7 +69,6 @@ class FailingColumnRepositoryConfig {
 @ActiveProfiles("test")
 @Import(PostgresTestConfig::class, BoardTestConfig::class, FailingColumnRepositoryConfig::class)
 abstract class BoardIntegrationTest {
-
     @Autowired
     protected lateinit var boardService: BoardService
 
@@ -115,22 +112,24 @@ abstract class BoardIntegrationTest {
     }
 
     /** Moves the shared clock forward. Synchronized, so it never runs backwards between threads. */
-    protected fun tick(): Instant = synchronized(clock) {
-        clock.advanceBy(Duration.ofMillis(1))
-        clock.instant()
-    }
+    protected fun tick(): Instant =
+        synchronized(clock) {
+            clock.advanceBy(Duration.ofMillis(1))
+            clock.instant()
+        }
 
     /** Runs [tasks] at the same moment on separate threads and returns each outcome, in order. */
     protected fun <T> race(tasks: List<() -> T>): List<Result<T>> {
         val barrier = CyclicBarrier(tasks.size)
-        val futures = tasks.map { task ->
-            executor.submit(
-                Callable {
-                    barrier.await(10, TimeUnit.SECONDS)
-                    runCatching(task)
-                },
-            )
-        }
+        val futures =
+            tasks.map { task ->
+                executor.submit(
+                    Callable {
+                        barrier.await(10, TimeUnit.SECONDS)
+                        runCatching(task)
+                    },
+                )
+            }
         return futures.map { it.get(60, TimeUnit.SECONDS) }
     }
 
@@ -141,13 +140,14 @@ abstract class BoardIntegrationTest {
     protected fun holdBoardLock(boardId: UUID): HeldLock {
         val locked = CountDownLatch(1)
         val release = CountDownLatch(1)
-        val holder = executor.submit {
-            TransactionTemplate(transactionManager).executeWithoutResult {
-                checkNotNull(boardRepository.lockByIdAndOwner(boardId, owner))
-                locked.countDown()
-                release.await(60, TimeUnit.SECONDS)
+        val holder =
+            executor.submit {
+                TransactionTemplate(transactionManager).executeWithoutResult {
+                    checkNotNull(boardRepository.lockByIdAndOwner(boardId, owner))
+                    locked.countDown()
+                    release.await(60, TimeUnit.SECONDS)
+                }
             }
-        }
         check(locked.await(10, TimeUnit.SECONDS)) { "Board lock was not acquired" }
         return HeldLock(release, holder)
     }
@@ -156,7 +156,6 @@ abstract class BoardIntegrationTest {
         private val release: CountDownLatch,
         private val holder: Future<*>,
     ) {
-
         fun release() {
             release.countDown()
             holder.get(10, TimeUnit.SECONDS)

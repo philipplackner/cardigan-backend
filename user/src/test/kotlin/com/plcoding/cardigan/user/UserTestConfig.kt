@@ -14,7 +14,6 @@ import org.springframework.jdbc.core.JdbcTemplate
 @TestConfiguration(proxyBeanMethods = false)
 @Import(PostgresTestConfig::class, RequestValidator::class)
 class UserTestConfig {
-
     @Bean
     fun clock(): MutableClock = MutableClock()
 

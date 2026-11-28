@@ -21,17 +21,17 @@ import java.util.UUID
 import javax.crypto.spec.SecretKeySpec
 
 class JwtTokenTest {
-
     private val secret = ByteArray(64) { (it * 7 + 3).toByte() }
     private val key = SecretKeySpec(secret, "HmacSHA256")
     private val clock = MutableClock(Instant.parse("2026-11-15T09:15:30.789Z"))
     private val config = JwtConfig()
     private val decoder: JwtDecoder = config.jwtDecoder(key, clock)
-    private val issuer = JwtAccessTokenIssuer(
-        config.jwtEncoder(key),
-        clock,
-        JwtProperties(secret = null, accessTokenTtl = Duration.ofMinutes(15)),
-    )
+    private val issuer =
+        JwtAccessTokenIssuer(
+            config.jwtEncoder(key),
+            clock,
+            JwtProperties(secret = null, accessTokenTtl = Duration.ofMinutes(15)),
+        )
     private val userId = UUID.fromString("0b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10")
 
     private val now = Date.from(clock.instant())
@@ -47,12 +47,13 @@ class JwtTokenTest {
         return jwt.serialize()
     }
 
-    private fun validClaims(): JWTClaimsSet.Builder.() -> Unit = {
-        subject(userId.toString())
-        claim("type", "access")
-        issueTime(now)
-        expirationTime(inFiveMinutes)
-    }
+    private fun validClaims(): JWTClaimsSet.Builder.() -> Unit =
+        {
+            subject(userId.toString())
+            claim("type", "access")
+            issueTime(now)
+            expirationTime(inFiveMinutes)
+        }
 
     @Test
     fun `issued token has HS256 and exactly sub, type, iat and exp`() {
@@ -113,9 +114,11 @@ class JwtTokenTest {
     fun `alg none is rejected`() {
         val encoder = Base64.getUrlEncoder().withoutPadding()
         val header = encoder.encodeToString("""{"alg":"none"}""".toByteArray())
-        val payload = encoder.encodeToString(
-            """{"sub":"$userId","type":"access","iat":${now.time / 1000},"exp":${inFiveMinutes.time / 1000}}""".toByteArray(),
-        )
+        val payload =
+            encoder.encodeToString(
+                """{"sub":"$userId","type":"access","iat":${now.time / 1000},"exp":${inFiveMinutes.time / 1000}}"""
+                    .toByteArray(),
+            )
 
         assertFailure { decoder.decode("$header.$payload.") }.isInstanceOf<JwtException>()
     }
@@ -141,47 +144,58 @@ class JwtTokenTest {
 
     @Test
     fun `type refresh is rejected`() {
-        val token = signed({ validClaims()(); claim("type", "refresh") })
+        val token =
+            signed({
+                validClaims()()
+                claim("type", "refresh")
+            })
 
         assertFailure { decoder.decode(token) }.isInstanceOf<JwtException>()
     }
 
     @Test
     fun `missing type is rejected`() {
-        val token = signed({
-            subject(userId.toString())
-            issueTime(now)
-            expirationTime(inFiveMinutes)
-        })
+        val token =
+            signed({
+                subject(userId.toString())
+                issueTime(now)
+                expirationTime(inFiveMinutes)
+            })
 
         assertFailure { decoder.decode(token) }.isInstanceOf<JwtException>()
     }
 
     @Test
     fun `missing expiry is rejected`() {
-        val token = signed({
-            subject(userId.toString())
-            claim("type", "access")
-            issueTime(now)
-        })
+        val token =
+            signed({
+                subject(userId.toString())
+                claim("type", "access")
+                issueTime(now)
+            })
 
         assertFailure { decoder.decode(token) }.isInstanceOf<JwtException>()
     }
 
     @Test
     fun `non-UUID subject is rejected`() {
-        val token = signed({ validClaims()(); subject("admin") })
+        val token =
+            signed({
+                validClaims()()
+                subject("admin")
+            })
 
         assertFailure { decoder.decode(token) }.isInstanceOf<JwtException>()
     }
 
     @Test
     fun `missing subject is rejected`() {
-        val token = signed({
-            claim("type", "access")
-            issueTime(now)
-            expirationTime(inFiveMinutes)
-        })
+        val token =
+            signed({
+                claim("type", "access")
+                issueTime(now)
+                expirationTime(inFiveMinutes)
+            })
 
         assertFailure { decoder.decode(token) }.isInstanceOf<JwtException>()
     }

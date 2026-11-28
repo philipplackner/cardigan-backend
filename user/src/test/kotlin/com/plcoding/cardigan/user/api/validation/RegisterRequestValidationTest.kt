@@ -20,7 +20,6 @@ import org.junit.jupiter.params.provider.ValueSource
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RegisterRequestValidationTest {
-
     private val factory = Validation.buildDefaultValidatorFactory()
     private val validator = factory.validator
 
@@ -68,7 +67,9 @@ class RegisterRequestValidationTest {
 
     @Test
     fun `bad email and weak password are reported together`() {
-        assertThat(errorsOf(request(email = "ann@", password = "alllowercase12"))).containsExactly(invalidFormat, tooWeak)
+        assertThat(
+            errorsOf(request(email = "ann@", password = "alllowercase12")),
+        ).containsExactly(invalidFormat, tooWeak)
     }
 
     @ParameterizedTest
@@ -223,22 +224,24 @@ class RegisterRequestValidationTest {
 
     @Test
     fun `250KB near-matching email is validated within 100 ms`() {
-        val nearMatches = listOf(
-            "a".repeat(250_000) + "@",
-            "a.".repeat(125_000) + "@example.com.",
-            "\"" + "\\a".repeat(125_000) + "@example.com",
-            "ann@" + "a.".repeat(125_000),
-        )
+        val nearMatches =
+            listOf(
+                "a".repeat(250_000) + "@",
+                "a.".repeat(125_000) + "@example.com.",
+                "\"" + "\\a".repeat(125_000) + "@example.com",
+                "ann@" + "a.".repeat(125_000),
+            )
         nearMatches.forEach { emailErrors(it) }
 
         nearMatches.forEach { email ->
-            val fastest = (1..5).minOf {
-                val start = System.nanoTime()
-                val errors = emailErrors(email)
-                val elapsed = System.nanoTime() - start
-                assertThat(errors).containsExactly(ProblemFieldError("email", FieldErrorCode.TOO_LONG, max = 254))
-                elapsed
-            }
+            val fastest =
+                (1..5).minOf {
+                    val start = System.nanoTime()
+                    val errors = emailErrors(email)
+                    val elapsed = System.nanoTime() - start
+                    assertThat(errors).containsExactly(ProblemFieldError("email", FieldErrorCode.TOO_LONG, max = 254))
+                    elapsed
+                }
             assertThat(fastest / 1_000_000).isLessThan(100)
         }
     }
@@ -248,22 +251,24 @@ class RegisterRequestValidationTest {
         val nearMatch = "a@" + "a.".repeat(125_000) + "1"
         hasEmailFormat(nearMatch)
 
-        val fastest = (1..5).minOf {
-            val start = System.nanoTime()
-            assertThat(hasEmailFormat(nearMatch)).isFalse()
-            System.nanoTime() - start
-        }
+        val fastest =
+            (1..5).minOf {
+                val start = System.nanoTime()
+                assertThat(hasEmailFormat(nearMatch)).isFalse()
+                System.nanoTime() - start
+            }
         assertThat(fastest / 1_000_000).isLessThan(100)
     }
 
     @Test
     fun `near-matches at the length limit are checked within 100 ms`() {
-        val nearMatches = listOf(
-            "a".repeat(64) + "@" + "a.".repeat(94) + "1",
-            "a.".repeat(32) + "@example.com",
-            "a".repeat(64) + "@" + "a-".repeat(94) + "a",
-            "a".repeat(64) + "@" + "a".repeat(189),
-        )
+        val nearMatches =
+            listOf(
+                "a".repeat(64) + "@" + "a.".repeat(94) + "1",
+                "a.".repeat(32) + "@example.com",
+                "a".repeat(64) + "@" + "a-".repeat(94) + "a",
+                "a".repeat(64) + "@" + "a".repeat(189),
+            )
         nearMatches.forEach { hasEmailFormat(it) }
 
         nearMatches.forEach { email ->
@@ -321,7 +326,9 @@ class RegisterRequestValidationTest {
 
     @Test
     fun `INVALID_CHARACTER wins over the length`() {
-        assertThat(passwordErrors("a\u0000")).containsExactly(ProblemFieldError("password", FieldErrorCode.INVALID_CHARACTER))
+        assertThat(
+            passwordErrors("a\u0000"),
+        ).containsExactly(ProblemFieldError("password", FieldErrorCode.INVALID_CHARACTER))
     }
 
     @Test

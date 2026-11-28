@@ -17,7 +17,6 @@ class RequestValidationException(
 class RequestValidator(
     private val validator: Validator,
 ) {
-
     fun validate(request: Any) {
         val fieldErrors = fieldErrorsOf(validator.validate(request))
         if (fieldErrors.isNotEmpty()) {

@@ -9,6 +9,5 @@ data class Credentials(
     val password: String,
     val transport: RefreshTokenTransport,
 ) {
-
     override fun toString(): String = "Credentials(email=$email, transport=$transport)"
 }

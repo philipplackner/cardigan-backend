@@ -12,7 +12,6 @@ data class AuthRateLimitProperties(
     val login: Limit = Limit(),
     val register: Limit = Limit(),
 ) {
-
     init {
         require(maxTrackedEmails > 0) { "max-tracked-emails must be positive" }
     }
@@ -22,7 +21,6 @@ data class AuthRateLimitProperties(
         val capacity: Long = 5,
         val period: Duration = Duration.ofMinutes(1),
     ) {
-
         init {
             require(capacity > 0) { "capacity must be positive" }
             require(period.isPositive) { "period must be positive" }

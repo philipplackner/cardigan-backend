@@ -17,9 +17,11 @@ import java.time.Duration
 internal class RefreshTokenCookie(
     private val clock: Clock,
 ) {
-
     /** Sets the cookie when the session uses the `COOKIE` transport. It expires with the token. */
-    fun setFor(tokens: IssuedTokens, response: HttpServletResponse) {
+    fun setFor(
+        tokens: IssuedTokens,
+        response: HttpServletResponse,
+    ) {
         if (tokens.transport != RefreshTokenTransport.COOKIE) return
         val maxAge = Duration.between(clock.instant(), tokens.refreshTokenExpiresAt)
         response.addHeader(HttpHeaders.SET_COOKIE, cookie(tokens.refreshToken, maxAge).toString())
@@ -29,8 +31,12 @@ internal class RefreshTokenCookie(
         response.addHeader(HttpHeaders.SET_COOKIE, cookie("", Duration.ZERO).toString())
     }
 
-    private fun cookie(value: String, maxAge: Duration): ResponseCookie =
-        ResponseCookie.from(NAME, value)
+    private fun cookie(
+        value: String,
+        maxAge: Duration,
+    ): ResponseCookie =
+        ResponseCookie
+            .from(NAME, value)
             .httpOnly(true)
             .secure(true)
             .sameSite("Strict")

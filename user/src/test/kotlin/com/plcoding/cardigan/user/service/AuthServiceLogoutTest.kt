@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 
 class AuthServiceLogoutTest : AuthServiceTestBase() {
-
     @Test
     fun `current token revokes the session`() {
         val tokens = register().tokens

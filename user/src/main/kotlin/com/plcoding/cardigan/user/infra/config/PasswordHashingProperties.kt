@@ -14,7 +14,6 @@ data class PasswordHashingProperties(
     val maxConcurrentHashes: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1),
     val hashWaitTimeout: Duration = Duration.ofSeconds(5),
 ) {
-
     init {
         require(bcryptCost in 4..31) { "bcrypt-cost must be between 4 and 31" }
         require(maxConcurrentHashes > 0) { "max-concurrent-hashes must be positive" }

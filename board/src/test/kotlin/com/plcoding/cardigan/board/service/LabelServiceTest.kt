@@ -20,7 +20,6 @@ import java.time.Instant
 import java.util.UUID
 
 class LabelServiceTest {
-
     private val start = Instant.parse("2026-11-15T09:15:30.123Z")
     private val clock = MutableClock(start)
     private val repository = FakeLabelRepository()
@@ -29,8 +28,11 @@ class LabelServiceTest {
     private val owner = UUID.randomUUID()
     private val otherOwner = UUID.randomUUID()
 
-    private fun create(name: String, color: LabelColor = LabelColor.RED, ownerId: UUID = owner) =
-        service.create(ownerId, name, color)
+    private fun create(
+        name: String,
+        color: LabelColor = LabelColor.RED,
+        ownerId: UUID = owner,
+    ) = service.create(ownerId, name, color)
 
     private fun oneMinuteLater(): Instant {
         clock.advanceBy(Duration.ofMinutes(1))

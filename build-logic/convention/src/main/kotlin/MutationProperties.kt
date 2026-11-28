@@ -21,8 +21,10 @@ internal fun Gradle.isMutationRequested(): Boolean =
  * Whether module [name] is in the raw `mutation.modules` value. Lenient on purpose: the root
  * plugin validates the value and fails on anything invalid.
  */
-internal fun isSelectedForMutation(raw: String?, name: String): Boolean =
-    raw == null || raw.split(",").any { it.trim().removePrefix(":") == name }
+internal fun isSelectedForMutation(
+    raw: String?,
+    name: String,
+): Boolean = raw == null || raw.split(",").any { it.trim().removePrefix(":") == name }
 
 /** Parses `mutation.threads`. Returns null when the property is absent. */
 internal fun ProviderFactory.mutationThreads(): Int? {
@@ -33,4 +35,3 @@ internal fun ProviderFactory.mutationThreads(): Int? {
     }
     return value
 }
-

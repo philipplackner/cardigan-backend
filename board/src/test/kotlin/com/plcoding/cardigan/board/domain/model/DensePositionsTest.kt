@@ -10,8 +10,10 @@ import org.junit.jupiter.api.Test
 import java.math.BigInteger
 
 class DensePositionsTest {
-
-    private fun inRange(position: String, count: Int) = requireInRange("position", BigInteger(position), count)
+    private fun inRange(
+        position: String,
+        count: Int,
+    ) = requireInRange("position", BigInteger(position), count)
 
     @Test
     fun `single item accepts only position 0`() {
@@ -36,8 +38,18 @@ class DensePositionsTest {
 
     @Test
     fun `value beyond Long is out of range instead of overflowing`() {
-        assertFailure { inRange("99999999999999999999", count = 3) }.isInstanceOf<FieldOutOfRangeException>().all0(max = 2)
-        assertFailure { inRange("-99999999999999999999", count = 3) }.isInstanceOf<FieldOutOfRangeException>().all0(max = 2)
+        assertFailure {
+            inRange(
+                "99999999999999999999",
+                count = 3,
+            )
+        }.isInstanceOf<FieldOutOfRangeException>().all0(max = 2)
+        assertFailure {
+            inRange(
+                "-99999999999999999999",
+                count = 3,
+            )
+        }.isInstanceOf<FieldOutOfRangeException>().all0(max = 2)
     }
 
     @Test
@@ -52,7 +64,8 @@ class DensePositionsTest {
     fun `exception names the field`() {
         assertFailure { requireInRange("cards[2].position", BigInteger.TEN, 3) }
             .isInstanceOf<FieldOutOfRangeException>()
-            .prop(FieldOutOfRangeException::field).isEqualTo("cards[2].position")
+            .prop(FieldOutOfRangeException::field)
+            .isEqualTo("cards[2].position")
     }
 
     @Test

@@ -14,16 +14,18 @@ import org.junit.jupiter.api.TestInstance
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ValidBoardKeyTest {
-
     private val factory = Validation.buildDefaultValidatorFactory()
     private val validator = factory.validator
 
     @AfterAll
     fun close() = factory.close()
 
-    private class KeyOnly(@field:ValidBoardKey val key: String?)
+    private class KeyOnly(
+        @field:ValidBoardKey val key: String?,
+    )
 
-    private fun errorsOf(key: String?) = fieldErrorsOf(validator.validate(CreateBoardRequest(name = "Roadmap", key = key)))
+    private fun errorsOf(key: String?) =
+        fieldErrorsOf(validator.validate(CreateBoardRequest(name = "Roadmap", key = key)))
 
     @Test
     fun `valid keys pass, lowercase and surrounding whitespace included`() {

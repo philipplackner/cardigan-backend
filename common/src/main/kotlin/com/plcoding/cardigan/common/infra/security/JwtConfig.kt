@@ -19,7 +19,6 @@ import javax.crypto.spec.SecretKeySpec
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(JwtProperties::class)
 class JwtConfig {
-
     /**
      * Decodes and checks `JWT_SECRET`. Error messages name the problem and never the value.
      */
@@ -27,11 +26,12 @@ class JwtConfig {
     fun jwtSecretKey(properties: JwtProperties): SecretKey {
         val secret = properties.secret?.trim()
         check(!secret.isNullOrEmpty() && !secret.startsWith("\${")) { "JWT_SECRET is missing" }
-        val bytes = try {
-            Base64.getDecoder().decode(secret)
-        } catch (_: IllegalArgumentException) {
-            throw IllegalStateException("JWT_SECRET is not valid base64")
-        }
+        val bytes =
+            try {
+                Base64.getDecoder().decode(secret)
+            } catch (_: IllegalArgumentException) {
+                throw IllegalStateException("JWT_SECRET is not valid base64")
+            }
         check(bytes.size >= MIN_SECRET_BYTES) {
             "JWT_SECRET is too short: it must decode to at least $MIN_SECRET_BYTES bytes"
         }
@@ -39,8 +39,12 @@ class JwtConfig {
     }
 
     @Bean
-    fun jwtDecoder(jwtSecretKey: SecretKey, clock: Clock): JwtDecoder =
-        NimbusJwtDecoder.withSecretKey(jwtSecretKey)
+    fun jwtDecoder(
+        jwtSecretKey: SecretKey,
+        clock: Clock,
+    ): JwtDecoder =
+        NimbusJwtDecoder
+            .withSecretKey(jwtSecretKey)
             .macAlgorithm(MacAlgorithm.HS256)
             .build()
             .apply {

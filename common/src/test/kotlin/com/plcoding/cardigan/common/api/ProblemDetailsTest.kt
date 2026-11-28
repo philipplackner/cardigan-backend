@@ -18,7 +18,6 @@ import org.springframework.http.ProblemDetail
 import java.net.URI
 
 class ProblemDetailsTest {
-
     @ParameterizedTest
     @EnumSource(ErrorCode::class)
     fun `fields come from the error code`(code: ErrorCode) {

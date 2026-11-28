@@ -13,14 +13,14 @@
 - [x] 2.4 Verify the on-demand rule. `./gradlew check --dry-run` and `./gradlew build --dry-run` list no `ktlint` task. Also verify this with a temporary reorder in `:board` that lists `cardigan.ktlint` before its Kotlin convention plugin, then revert the reorder. No git hook is installed (`ls .git/hooks` shows no ktlint hook).
 - [x] 2.5 Verify the commands behave as the spec says. Run `./gradlew ktlintCheck --continue`: it fails on the current code, prints file:line:column, rule and message, leaves `git status` clean, and writes `.sarif` and Checkstyle `.xml` files under `build/reports/ktlint/` of each project and of `build-logic/convention`. Run it a second time and check the output says the configuration cache was reused.
 - [x] 2.6 Update `AGENTS.md`: Tech Stack row, `./gradlew ktlintCheck [--continue]` and `./gradlew ktlintFormat` in the Commands table, the "A new module in ktlint" row in "Where does X go?", and a note that nothing runs ktlint automatically. Verify that the commands work exactly as written.
-- [ ] 2.7 Run `./gradlew build` and `./gradlew -p build-logic test`. Both must pass. Then commit the setup on its own (`build: add ktlint with on-demand check and format tasks`).
+- [x] 2.7 Run `./gradlew build` and `./gradlew -p build-logic test`. Both must pass. Then commit the setup on its own (`build: add ktlint with on-demand check and format tasks`).
 
 ## 3. One-time reformat
 
-- [ ] 3.1 Run `./gradlew ktlintFormat`. Verify that `git diff` only contains formatting changes.
-- [ ] 3.2 Fix the remaining `./gradlew ktlintCheck --continue` violations by hand without changing behavior. Where a fix would change an API path, JSON name, enum constant or database name, add `@Suppress("ktlint:standard:<rule>")` on the narrowest declaration. If a rule clashes with a project convention (for example backticked test names or the `PatchRequest` property pattern), stop and ask the user whether to disable it in `.editorconfig`. Verify that `./gradlew ktlintCheck` passes.
-- [ ] 3.3 Verify that `./gradlew ktlintFormat` now changes no file (`git status` clean after a second run on the formatted tree).
-- [ ] 3.4 Run `./gradlew build` and `./gradlew -p build-logic test`. Both must pass, and `git diff` must show `app/src/test/resources/openapi/openapi.json` unchanged. Then commit the reformat on its own (`style: reformat code with ktlint`).
+- [x] 3.1 Run `./gradlew ktlintFormat`. Verify that `git diff` only contains formatting changes.
+- [x] 3.2 Fix the remaining `./gradlew ktlintCheck --continue` violations by hand without changing behavior. Where a fix would change an API path, JSON name, enum constant or database name, add `@Suppress("ktlint:standard:<rule>")` on the narrowest declaration. If a rule clashes with a project convention (for example backticked test names or the `PatchRequest` property pattern), stop and ask the user whether to disable it in `.editorconfig`. Verify that `./gradlew ktlintCheck` passes.
+- [x] 3.3 Verify that `./gradlew ktlintFormat` now changes no file (`git status` clean after a second run on the formatted tree).
+- [x] 3.4 Run `./gradlew build` and `./gradlew -p build-logic test`. Both must pass, and `git diff` must show `app/src/test/resources/openapi/openapi.json` unchanged. Then commit the reformat on its own (`style: reformat code with ktlint`).
 
 ## 4. Integration
 

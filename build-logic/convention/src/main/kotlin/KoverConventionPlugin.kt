@@ -10,7 +10,6 @@ import org.gradle.kotlin.dsl.withType
  * normal build runs no Kover task at all.
  */
 class KoverConventionPlugin : Plugin<Project> {
-
     override fun apply(target: Project) {
         with(target) {
             if (!gradle.isCoverageInstrumented()) return

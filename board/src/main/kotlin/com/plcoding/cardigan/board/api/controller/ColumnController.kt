@@ -37,13 +37,15 @@ class ColumnController(
     private val columnService: ColumnService,
     private val requestValidator: RequestValidator,
 ) {
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createColumn", summary = "Add a column at the end of a board")
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(404, ErrorCode.NOT_FOUND)
-    fun createColumn(@RequestBody request: CreateColumnRequest, @PathVariable boardId: UUID): ColumnDto {
+    fun createColumn(
+        @RequestBody request: CreateColumnRequest,
+        @PathVariable boardId: UUID,
+    ): ColumnDto {
         boardService.get(requestUserId, boardId)
         requestValidator.validate(request)
         return columnService.create(requestUserId, boardId, request.toColumnName()).toColumnDto()
@@ -81,7 +83,10 @@ class ColumnController(
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(operationId = "deleteColumn", summary = "Delete a column")
     @ApiErrors(404, ErrorCode.NOT_FOUND)
-    fun deleteColumn(@PathVariable boardId: UUID, @PathVariable columnId: UUID) {
+    fun deleteColumn(
+        @PathVariable boardId: UUID,
+        @PathVariable columnId: UUID,
+    ) {
         columnService.delete(requestUserId, boardId, columnId)
     }
 }

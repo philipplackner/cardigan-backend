@@ -20,7 +20,6 @@ import org.springframework.http.HttpMethod
 
 @ExtendWith(OutputCaptureExtension::class)
 class AuthLoggingE2eTest : AuthE2eTestBase() {
-
     @Autowired
     private lateinit var loggingSystem: LoggingSystem
 
@@ -57,19 +56,27 @@ class AuthLoggingE2eTest : AuthE2eTestBase() {
         call(HttpMethod.GET, "/api/v1/test/boom", registered.accessToken).assertProblem(ErrorCode.INTERNAL_ERROR)
         LoggerFactory.getLogger(PROJECT_LOGGER).debug("debug-marker of the log test")
 
-        val refreshTokens = listOf(
-            registered.refreshToken,
-            loggedIn.refreshToken,
-            refreshed.refreshToken,
-            webRegistered.refreshCookie,
-            webLoggedIn.refreshCookie,
-            webRefreshed.refreshCookie,
-        )
-        val accessTokens = listOf(registered, webRegistered, loggedIn, webLoggedIn, refreshed, webRefreshed).map { it.accessToken }
-        val passwordHashes = jdbcTemplate.queryForList("SELECT password_hash FROM user_service.users", String::class.java)
-            .filterNotNull()
-        val tokenHashes = jdbcTemplate.queryForList("SELECT token_hash FROM user_service.refresh_tokens", String::class.java)
-            .filterNotNull()
+        val refreshTokens =
+            listOf(
+                registered.refreshToken,
+                loggedIn.refreshToken,
+                refreshed.refreshToken,
+                webRegistered.refreshCookie,
+                webLoggedIn.refreshCookie,
+                webRefreshed.refreshCookie,
+            )
+        val accessTokens =
+            listOf(registered, webRegistered, loggedIn, webLoggedIn, refreshed, webRefreshed).map {
+                it.accessToken
+            }
+        val passwordHashes =
+            jdbcTemplate
+                .queryForList("SELECT password_hash FROM user_service.users", String::class.java)
+                .filterNotNull()
+        val tokenHashes =
+            jdbcTemplate
+                .queryForList("SELECT token_hash FROM user_service.refresh_tokens", String::class.java)
+                .filterNotNull()
         assertThat(passwordHashes).hasSize(2)
         assertThat(tokenHashes).hasSize(6)
         assertThat(tokenHashes.toSet()).contains(hashRefreshToken(registered.refreshToken))
@@ -77,7 +84,8 @@ class AuthLoggingE2eTest : AuthE2eTestBase() {
         val log = output.all
         assertThat(log).contains("debug-marker of the log test")
         assertThat(log).contains("boom-marker from the endpoint")
-        val secrets = listOf(password, weakPassword, wrongPassword) + passwordHashes + refreshTokens + tokenHashes + accessTokens
+        val secrets =
+            listOf(password, weakPassword, wrongPassword) + passwordHashes + refreshTokens + tokenHashes + accessTokens
         secrets.forEach { secret -> assertThat(log).doesNotContain(secret) }
     }
 

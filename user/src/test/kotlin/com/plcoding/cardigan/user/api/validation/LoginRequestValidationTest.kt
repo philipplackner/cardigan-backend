@@ -19,7 +19,6 @@ import org.junit.jupiter.params.provider.ValueSource
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class LoginRequestValidationTest {
-
     private val factory = Validation.buildDefaultValidatorFactory()
     private val validator = factory.validator
 
@@ -28,8 +27,11 @@ class LoginRequestValidationTest {
 
     private fun errorsOf(request: Any) = fieldErrorsOf(validator.validate(request))
 
-    private fun login(email: String? = "ann@example.com", password: String? = "pw", transport: String? = "COOKIE") =
-        LoginRequest(email, password, transport)
+    private fun login(
+        email: String? = "ann@example.com",
+        password: String? = "pw",
+        transport: String? = "COOKIE",
+    ) = LoginRequest(email, password, transport)
 
     @Test
     fun `all fields missing reports REQUIRED for each`() {
@@ -53,7 +55,9 @@ class LoginRequestValidationTest {
 
     @Test
     fun `empty password is REQUIRED`() {
-        assertThat(errorsOf(login(password = ""))).containsExactly(ProblemFieldError("password", FieldErrorCode.REQUIRED))
+        assertThat(
+            errorsOf(login(password = "")),
+        ).containsExactly(ProblemFieldError("password", FieldErrorCode.REQUIRED))
     }
 
     @Test

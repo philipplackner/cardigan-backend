@@ -25,7 +25,6 @@ import java.util.UUID
 class ColumnEntity(
     @Id
     var id: UUID,
-
     // Only carries the foreign key with ON DELETE CASCADE. It is set as a reference and never navigated.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
@@ -36,16 +35,12 @@ class ColumnEntity(
     )
     @OnDelete(action = OnDeleteAction.CASCADE)
     var board: BoardEntity,
-
     @Column(nullable = false, length = 30)
     var name: String,
-
     @Column(nullable = false)
     var position: Int,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     var createdAt: Instant,
-
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant,
 )

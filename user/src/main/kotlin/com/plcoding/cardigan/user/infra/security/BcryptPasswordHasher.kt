@@ -26,7 +26,6 @@ class BcryptPasswordHasher internal constructor(
     maxConcurrentHashes: Int,
     private val waitTimeout: Duration,
 ) : PasswordHasher {
-
     @Autowired
     constructor(properties: PasswordHashingProperties) : this(
         BCryptPasswordEncoder(properties.bcryptCost),
@@ -42,15 +41,21 @@ class BcryptPasswordHasher internal constructor(
 
     override fun hash(password: String): String = limited { encode(password) }
 
-    override fun matches(password: String, hash: String?): Boolean = limited {
-        val matches = encoder.matches(preHash(password), hash ?: dummyHash)
-        matches && hash != null
-    }
+    override fun matches(
+        password: String,
+        hash: String?,
+    ): Boolean =
+        limited {
+            val matches = encoder.matches(preHash(password), hash ?: dummyHash)
+            matches && hash != null
+        }
 
     private fun encode(password: String): String = checkNotNull(encoder.encode(preHash(password)))
 
     private fun preHash(password: String): String =
-        Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-256").digest(password.toByteArray(Charsets.UTF_8)))
+        Base64.getEncoder().encodeToString(
+            MessageDigest.getInstance("SHA-256").digest(password.toByteArray(Charsets.UTF_8)),
+        )
 
     private fun randomPassword(): String =
         Base64.getEncoder().encodeToString(ByteArray(32).also { SecureRandom().nextBytes(it) })

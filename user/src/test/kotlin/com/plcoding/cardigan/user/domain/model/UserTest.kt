@@ -10,7 +10,6 @@ import java.time.Instant
 import java.util.UUID
 
 class UserTest {
-
     private val now = Instant.parse("2026-11-15T09:15:30.123Z")
 
     private fun user(email: String) = User(UUID.randomUUID(), email, "hash", now, now)

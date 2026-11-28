@@ -35,7 +35,6 @@ class BoardController(
     private val boardService: BoardService,
     private val requestValidator: RequestValidator,
 ) {
-
     @GetMapping
     @Operation(operationId = "listBoards", summary = "List the signed-in user's boards, without their columns")
     fun listBoards(): BoardListDto = boardService.list(requestUserId).toBoardListDto()
@@ -45,19 +44,25 @@ class BoardController(
     @Operation(operationId = "createBoard", summary = "Create a board with its three default columns")
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(409, ErrorCode.CONFLICT)
-    fun createBoard(@Valid @RequestBody request: CreateBoardRequest): BoardDto =
-        boardService.create(requestUserId, request.toBoardName(), request.toBoardKey()).toBoardDto()
+    fun createBoard(
+        @Valid @RequestBody request: CreateBoardRequest,
+    ): BoardDto = boardService.create(requestUserId, request.toBoardName(), request.toBoardKey()).toBoardDto()
 
     @GetMapping("/{boardId}")
     @Operation(operationId = "getBoard", summary = "Get a board with its columns")
     @ApiErrors(404, ErrorCode.NOT_FOUND)
-    fun getBoard(@PathVariable boardId: UUID): BoardDto = boardService.get(requestUserId, boardId).toBoardDto()
+    fun getBoard(
+        @PathVariable boardId: UUID,
+    ): BoardDto = boardService.get(requestUserId, boardId).toBoardDto()
 
     @PatchMapping("/{boardId}")
     @Operation(operationId = "updateBoard", summary = "Rename a board")
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(404, ErrorCode.NOT_FOUND)
-    fun updateBoard(@RequestBody request: UpdateBoardRequest, @PathVariable boardId: UUID): BoardDto {
+    fun updateBoard(
+        @RequestBody request: UpdateBoardRequest,
+        @PathVariable boardId: UUID,
+    ): BoardDto {
         boardService.get(requestUserId, boardId)
         requestValidator.validate(request)
         return boardService.rename(requestUserId, boardId, request.toBoardName()).toBoardDto()
@@ -67,7 +72,9 @@ class BoardController(
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(operationId = "deleteBoard", summary = "Delete a board with its columns")
     @ApiErrors(404, ErrorCode.NOT_FOUND)
-    fun deleteBoard(@PathVariable boardId: UUID) {
+    fun deleteBoard(
+        @PathVariable boardId: UUID,
+    ) {
         boardService.delete(requestUserId, boardId)
     }
 }

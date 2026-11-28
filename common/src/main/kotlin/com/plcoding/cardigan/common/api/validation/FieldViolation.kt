@@ -34,21 +34,21 @@ fun fieldErrorsOf(violations: Collection<ConstraintViolation<*>>): List<ProblemF
         .map { (field, candidates) ->
             val first = candidates.minBy { it.code.ordinal }
             ProblemFieldError(field = field, code = first.code, min = first.min, max = first.max)
-        }
-        .sortedBy { it.field }
+        }.sortedBy { it.field }
 
 private fun ConstraintViolation<*>.fieldViolation(): FieldViolation =
     unwrap(HibernateConstraintViolation::class.java).getDynamicPayload(FieldViolation::class.java)
         ?: FieldViolation(FieldErrorCode.INVALID_VALUE)
 
-private fun ConstraintViolation<*>.jsonPath(): String = buildString {
-    for (node in propertyPath) {
-        if (node.isInIterable && node.index != null) {
-            append('[').append(node.index).append(']')
-        }
-        if (node.kind == ElementKind.PROPERTY) {
-            if (isNotEmpty()) append('.')
-            append(node.name)
+private fun ConstraintViolation<*>.jsonPath(): String =
+    buildString {
+        for (node in propertyPath) {
+            if (node.isInIterable && node.index != null) {
+                append('[').append(node.index).append(']')
+            }
+            if (node.kind == ElementKind.PROPERTY) {
+                if (isNotEmpty()) append('.')
+                append(node.name)
+            }
         }
     }
-}

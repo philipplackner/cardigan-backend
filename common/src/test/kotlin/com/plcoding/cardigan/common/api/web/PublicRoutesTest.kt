@@ -11,14 +11,16 @@ import org.springframework.http.HttpMethod
 import org.springframework.mock.web.MockHttpServletRequest
 
 class PublicRoutesTest {
-
     private val login = PublicRoute(HttpMethod.POST, "/api/v1/auth/login")
     private val register = PublicRoute(HttpMethod.POST, "/api/v1/auth/register")
     private val health = PublicRoute(HttpMethod.GET, "/api/v1/health")
     private val registry = publicRouteRegistryOf(PublicRoutes(login, register), PublicRoutes(health))
 
-    private fun request(method: String, uri: String, contextPath: String = "") =
-        MockHttpServletRequest(method, uri).apply { this.contextPath = contextPath }
+    private fun request(
+        method: String,
+        uri: String,
+        contextPath: String = "",
+    ) = MockHttpServletRequest(method, uri).apply { this.contextPath = contextPath }
 
     @Test
     fun `routes of every module are merged in bean order`() {

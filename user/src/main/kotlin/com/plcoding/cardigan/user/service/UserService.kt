@@ -11,7 +11,6 @@ import java.util.UUID
 class UserService(
     private val userRepository: UserRepository,
 ) {
-
     @Transactional(readOnly = true)
     fun getCurrentUser(userId: UUID): User =
         userRepository.findById(userId) ?: throw CurrentUserNotFoundException(userId)

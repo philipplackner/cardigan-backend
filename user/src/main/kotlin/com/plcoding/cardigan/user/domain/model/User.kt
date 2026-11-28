@@ -15,7 +15,6 @@ data class User(
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
-
     init {
         require(email == email.lowercase(Locale.ROOT)) { "Email must be lowercase" }
     }

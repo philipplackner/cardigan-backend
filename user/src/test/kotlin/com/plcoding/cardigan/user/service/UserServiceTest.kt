@@ -13,17 +13,17 @@ import java.time.Instant
 import java.util.UUID
 
 class UserServiceTest {
-
     private val users = FakeUserRepository()
     private val service = UserService(users)
 
-    private val user = User(
-        id = UUID.randomUUID(),
-        email = "ann@example.com",
-        passwordHash = "hash",
-        createdAt = Instant.parse("2026-11-15T09:15:30.123Z"),
-        updatedAt = Instant.parse("2026-11-15T09:15:30.123Z"),
-    )
+    private val user =
+        User(
+            id = UUID.randomUUID(),
+            email = "ann@example.com",
+            passwordHash = "hash",
+            createdAt = Instant.parse("2026-11-15T09:15:30.123Z"),
+            updatedAt = Instant.parse("2026-11-15T09:15:30.123Z"),
+        )
 
     @Test
     fun `known user is returned`() {

@@ -9,13 +9,14 @@ import com.plcoding.cardigan.board.domain.model.Column
 import com.plcoding.cardigan.common.domain.text.normalizeText
 import java.math.BigInteger
 
-fun Column.toColumnDto(): ColumnDto = ColumnDto(
-    id = id,
-    name = name,
-    position = position,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-)
+fun Column.toColumnDto(): ColumnDto =
+    ColumnDto(
+        id = id,
+        name = name,
+        position = position,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
 
 /** The columns in ascending position order. */
 fun List<Column>.toColumnDtos(): List<ColumnDto> = sortedBy { it.position }.map { it.toColumnDto() }

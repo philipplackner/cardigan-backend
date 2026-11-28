@@ -6,20 +6,20 @@ import org.springframework.jdbc.core.JdbcTemplate
 class DatabaseCleaner(
     private val jdbcTemplate: JdbcTemplate,
 ) {
-
     fun clean(vararg schemas: String) {
         val placeholders = schemas.joinToString { "?" }
-        val tables = jdbcTemplate.queryForList(
-            """
+        val tables =
+            jdbcTemplate.queryForList(
+                """
             SELECT quote_ident(table_schema) || '.' || quote_ident(table_name)
             FROM information_schema.tables
             WHERE table_schema IN ($placeholders)
             AND table_type = 'BASE TABLE'
             AND table_name <> 'flyway_schema_history'
             """,
-            String::class.java,
-            *schemas,
-        )
+                String::class.java,
+                *schemas,
+            )
         if (tables.isNotEmpty()) {
             jdbcTemplate.execute("TRUNCATE ${tables.joinToString()} CASCADE")
         }

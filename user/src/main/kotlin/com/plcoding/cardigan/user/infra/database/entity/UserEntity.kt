@@ -19,20 +19,15 @@ import java.util.UUID
 class UserEntity(
     @Id
     var id: UUID,
-
     @Column(nullable = false, length = 254)
     var email: String,
-
     @Column(name = "password_hash", nullable = false)
     var passwordHash: String,
-
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
-
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant,
 ) {
-
     companion object {
         const val EMAIL_UNIQUE_CONSTRAINT = "users_email_unique"
     }

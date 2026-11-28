@@ -17,7 +17,6 @@ import org.springframework.context.annotation.Import
 /** The shipped `application*.yaml` files hold no default secret. */
 @ExtendWith(OutputCaptureExtension::class)
 class MainConfigJwtSecretTest {
-
     @TestConfiguration(proxyBeanMethods = false)
     @Import(ApplicationConfig::class, JwtConfig::class)
     class JwtOnlyConfig

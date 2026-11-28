@@ -5,8 +5,10 @@ import java.util.UUID
 
 /** Every lookup takes the board, so a column under the wrong board looks exactly like a missing one. */
 interface ColumnRepository {
-
-    fun findByIdAndBoardId(id: UUID, boardId: UUID): Column?
+    fun findByIdAndBoardId(
+        id: UUID,
+        boardId: UUID,
+    ): Column?
 
     /** The board's columns in ascending position order. */
     fun findAllByBoardId(boardId: UUID): List<Column>
@@ -21,8 +23,16 @@ interface ColumnRepository {
      * Adds [delta] to the position of every column of the board from [first] to [last], both
      * included. `updatedAt` of the shifted columns stays as it is.
      */
-    fun shiftPositions(boardId: UUID, first: Int, last: Int, delta: Int)
+    fun shiftPositions(
+        boardId: UUID,
+        first: Int,
+        last: Int,
+        delta: Int,
+    )
 
     /** Moves every column of the board after [position] one position down, keeping `updatedAt`. */
-    fun closeGapAfter(boardId: UUID, position: Int)
+    fun closeGapAfter(
+        boardId: UUID,
+        position: Int,
+    )
 }

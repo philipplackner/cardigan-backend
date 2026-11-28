@@ -16,8 +16,10 @@ import org.junit.jupiter.api.Test
 import java.time.Duration
 
 class AuthServiceRefreshTest : AuthServiceTestBase() {
-
-    private fun assertRejected(token: String?, transport: RefreshTokenTransport = BODY) {
+    private fun assertRejected(
+        token: String?,
+        transport: RefreshTokenTransport = BODY,
+    ) {
         assertThat(service.refresh(transport, token)).isEqualTo(RefreshResult.Rejected)
     }
 

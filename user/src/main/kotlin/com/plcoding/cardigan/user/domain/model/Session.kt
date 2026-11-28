@@ -14,6 +14,5 @@ data class Session(
     val createdAt: Instant,
     val revokedAt: Instant? = null,
 ) {
-
     val isRevoked: Boolean get() = revokedAt != null
 }

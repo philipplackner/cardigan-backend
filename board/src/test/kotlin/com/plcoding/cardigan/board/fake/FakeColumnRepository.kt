@@ -5,7 +5,6 @@ import com.plcoding.cardigan.board.domain.repository.ColumnRepository
 import java.util.UUID
 
 class FakeColumnRepository : ColumnRepository {
-
     private val columns = linkedMapOf<UUID, Column>()
 
     var saveCount = 0
@@ -13,7 +12,10 @@ class FakeColumnRepository : ColumnRepository {
 
     val all: List<Column> get() = columns.values.toList()
 
-    override fun findByIdAndBoardId(id: UUID, boardId: UUID): Column? = columns[id]?.takeIf { it.boardId == boardId }
+    override fun findByIdAndBoardId(
+        id: UUID,
+        boardId: UUID,
+    ): Column? = columns[id]?.takeIf { it.boardId == boardId }
 
     override fun findAllByBoardId(boardId: UUID): List<Column> =
         columns.values.filter { it.boardId == boardId }.sortedBy { it.position }
@@ -30,7 +32,12 @@ class FakeColumnRepository : ColumnRepository {
         columns.remove(id)
     }
 
-    override fun shiftPositions(boardId: UUID, first: Int, last: Int, delta: Int) {
+    override fun shiftPositions(
+        boardId: UUID,
+        first: Int,
+        last: Int,
+        delta: Int,
+    ) {
         columns.replaceAll { _, column ->
             if (column.boardId == boardId && column.position in first..last) {
                 column.copy(position = column.position + delta)
@@ -40,7 +47,10 @@ class FakeColumnRepository : ColumnRepository {
         }
     }
 
-    override fun closeGapAfter(boardId: UUID, position: Int) {
+    override fun closeGapAfter(
+        boardId: UUID,
+        position: Int,
+    ) {
         shiftPositions(boardId, position + 1, Int.MAX_VALUE, -1)
     }
 

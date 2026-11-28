@@ -14,13 +14,14 @@ import java.io.File
  * Class annotations that mark a class as wiring, configuration or JPA persistence, not logic worth
  * mutating. `@Repository` marks the JPA adapters, which only persistence and E2E tests reach.
  */
-internal val NON_LOGIC_CLASS_ANNOTATIONS = setOf(
-    "org.springframework.context.annotation.Configuration",
-    "org.springframework.boot.context.properties.ConfigurationProperties",
-    "org.springframework.boot.autoconfigure.SpringBootApplication",
-    "org.springframework.stereotype.Repository",
-    "jakarta.persistence.Entity",
-)
+internal val NON_LOGIC_CLASS_ANNOTATIONS =
+    setOf(
+        "org.springframework.context.annotation.Configuration",
+        "org.springframework.boot.context.properties.ConfigurationProperties",
+        "org.springframework.boot.autoconfigure.SpringBootApplication",
+        "org.springframework.stereotype.Repository",
+        "jakarta.persistence.Entity",
+    )
 
 /**
  * Writes one PIT class pattern per line for every compiled class directly annotated with one of
@@ -28,7 +29,6 @@ internal val NON_LOGIC_CLASS_ANNOTATIONS = setOf(
  */
 @CacheableTask
 abstract class NonLogicClassScanTask : DefaultTask() {
-
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val classDirs: ConfigurableFileCollection
@@ -38,11 +38,12 @@ abstract class NonLogicClassScanTask : DefaultTask() {
 
     @TaskAction
     fun scan() {
-        val names = classDirs.files
-            .filter { it.isDirectory }
-            .flatMap { dir -> dir.walk().filter { it.isFile && it.name.endsWith(".class") }.toList() }
-            .mapNotNull { file -> readAnnotatedClassName(file) }
-            .sorted()
+        val names =
+            classDirs.files
+                .filter { it.isDirectory }
+                .flatMap { dir -> dir.walk().filter { it.isFile && it.name.endsWith(".class") }.toList() }
+                .mapNotNull { file -> readAnnotatedClassName(file) }
+                .sorted()
         patterns.get().asFile.writeText(names.flatMap { listOf(it, "$it$*") }.joinToString("\n"))
     }
 
@@ -58,8 +59,10 @@ abstract class NonLogicClassScanTask : DefaultTask() {
  * Reads only the class name and the runtime-visible class annotations of a class file
  * (JVMS chapter 4). Avoids a bytecode library on the build-logic classpath.
  */
-private class ClassFileHeader(val name: String, val annotationTypes: List<String>) {
-
+private class ClassFileHeader(
+    val name: String,
+    val annotationTypes: List<String>,
+) {
     companion object {
         fun read(input: DataInputStream): ClassFileHeader {
             require(input.readInt() == 0xCAFEBABE.toInt()) { "Not a class file" }
@@ -84,7 +87,10 @@ private class ClassFileHeader(val name: String, val annotationTypes: List<String
             return ClassFileHeader(name, annotationTypes)
         }
 
-        private class ConstantPool(val utf8: Map<Int, String>, val classNameIndex: Map<Int, Int>)
+        private class ConstantPool(
+            val utf8: Map<Int, String>,
+            val classNameIndex: Map<Int, Int>,
+        )
 
         private fun readConstantPool(input: DataInputStream): ConstantPool {
             val utf8 = mutableMapOf<Int, String>()
@@ -93,16 +99,34 @@ private class ClassFileHeader(val name: String, val annotationTypes: List<String
             var index = 1
             while (index < count) {
                 when (val tag = input.readUnsignedByte()) {
-                    1 -> utf8[index] = input.readUTF()
-                    7 -> classes[index] = input.readUnsignedShort()
-                    8, 16, 19, 20 -> input.skipBytes(2)
-                    15 -> input.skipBytes(3)
-                    3, 4, 9, 10, 11, 12, 17, 18 -> input.skipBytes(4)
+                    1 -> {
+                        utf8[index] = input.readUTF()
+                    }
+
+                    7 -> {
+                        classes[index] = input.readUnsignedShort()
+                    }
+
+                    8, 16, 19, 20 -> {
+                        input.skipBytes(2)
+                    }
+
+                    15 -> {
+                        input.skipBytes(3)
+                    }
+
+                    3, 4, 9, 10, 11, 12, 17, 18 -> {
+                        input.skipBytes(4)
+                    }
+
                     5, 6 -> {
                         input.skipBytes(8)
                         index++
                     }
-                    else -> error("Unknown constant pool tag $tag")
+
+                    else -> {
+                        error("Unknown constant pool tag $tag")
+                    }
                 }
                 index++
             }
@@ -119,10 +143,15 @@ private class ClassFileHeader(val name: String, val annotationTypes: List<String
             }
         }
 
-        private fun readAnnotationTypes(input: DataInputStream, utf8: Map<Int, String>): List<String> =
-            List(input.readUnsignedShort()) { readAnnotation(input, utf8) }
+        private fun readAnnotationTypes(
+            input: DataInputStream,
+            utf8: Map<Int, String>,
+        ): List<String> = List(input.readUnsignedShort()) { readAnnotation(input, utf8) }
 
-        private fun readAnnotation(input: DataInputStream, utf8: Map<Int, String>): String {
+        private fun readAnnotation(
+            input: DataInputStream,
+            utf8: Map<Int, String>,
+        ): String {
             val descriptor = utf8.getValue(input.readUnsignedShort())
             repeat(input.readUnsignedShort()) {
                 input.skipBytes(2)
@@ -131,7 +160,10 @@ private class ClassFileHeader(val name: String, val annotationTypes: List<String
             return descriptor.removePrefix("L").removeSuffix(";").replace('/', '.')
         }
 
-        private fun skipElementValue(input: DataInputStream, utf8: Map<Int, String>) {
+        private fun skipElementValue(
+            input: DataInputStream,
+            utf8: Map<Int, String>,
+        ) {
             when (input.readUnsignedByte().toChar()) {
                 'e' -> input.skipBytes(4)
                 '@' -> readAnnotation(input, utf8)

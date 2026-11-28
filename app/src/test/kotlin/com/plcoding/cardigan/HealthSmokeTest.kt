@@ -6,12 +6,14 @@ import org.springframework.http.HttpMethod
 import org.springframework.test.json.JsonCompareMode
 
 class HealthSmokeTest : E2eTest() {
-
     @Test
     fun `health returns only status UP`() {
-        client.get().uri("/actuator/health")
+        client
+            .get()
+            .uri("/actuator/health")
             .exchange()
-            .expectStatus().isOk
+            .expectStatus()
+            .isOk
             .expectBody()
             .json("""{"status":"UP"}""", JsonCompareMode.STRICT)
     }

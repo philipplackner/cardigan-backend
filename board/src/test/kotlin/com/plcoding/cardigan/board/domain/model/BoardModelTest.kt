@@ -10,7 +10,6 @@ import java.time.Instant
 import java.util.UUID
 
 class BoardModelTest {
-
     private val now = Instant.parse("2026-11-15T09:15:30.123Z")
 
     private fun board(key: String) = Board(UUID.randomUUID(), UUID.randomUUID(), "Roadmap", key, now, now)

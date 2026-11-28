@@ -13,6 +13,5 @@ data class JwtProperties(
     val secret: String? = null,
     val accessTokenTtl: Duration,
 ) {
-
     override fun toString(): String = "JwtProperties(secret=***, accessTokenTtl=$accessTokenTtl)"
 }

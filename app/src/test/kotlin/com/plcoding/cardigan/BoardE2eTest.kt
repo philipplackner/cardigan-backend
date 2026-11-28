@@ -17,7 +17,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class BoardE2eTest : BoardApiE2eTest() {
-
     private lateinit var token: String
 
     private val lowercaseUuid = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -27,13 +26,18 @@ class BoardE2eTest : BoardApiE2eTest() {
         token = signIn().token
     }
 
-    private fun createRaw(json: String, headers: Map<String, String> = emptyMap()) =
-        call(HttpMethod.POST, "/api/v1/boards", token, json = json, headers = headers)
+    private fun createRaw(
+        json: String,
+        headers: Map<String, String> = emptyMap(),
+    ) = call(HttpMethod.POST, "/api/v1/boards", token, json = json, headers = headers)
 
     private fun keyError(keyJson: String): Json = createRaw("""{"name":"Roadmap","key":$keyJson}""").singleFieldError()
 
-    private fun patchBoard(boardId: String, json: String, token: String = this.token) =
-        patch("/api/v1/boards/$boardId", token, json)
+    private fun patchBoard(
+        boardId: String,
+        json: String,
+        token: String = this.token,
+    ) = patch("/api/v1/boards/$boardId", token, json)
 
     @Test
     fun `full board has exactly id, name, key, createdAt, updatedAt and columns`() {
@@ -44,7 +48,12 @@ class BoardE2eTest : BoardApiE2eTest() {
         assertThat(board.keys).isEqualTo(setOf("id", "name", "key", "createdAt", "updatedAt", "columns"))
         assertThat(board.id).matches(lowercaseUuid)
         assertThat(board - "id" - "columns").isEqualTo(
-            mapOf("name" to "Roadmap", "key" to "CRD", "createdAt" to "2026-11-15T09:15:30.123Z", "updatedAt" to "2026-11-15T09:15:30.123Z"),
+            mapOf(
+                "name" to "Roadmap",
+                "key" to "CRD",
+                "createdAt" to "2026-11-15T09:15:30.123Z",
+                "updatedAt" to "2026-11-15T09:15:30.123Z",
+            ),
         )
         assertThat(board).isEqualTo(created)
     }
@@ -121,7 +130,12 @@ class BoardE2eTest : BoardApiE2eTest() {
         val board = createBoard(token)
 
         assertThat(board.columns.namesAndPositions()).containsExactly("To do" to 0, "In progress" to 1, "Done" to 2)
-        assertThat(board.columns.map { it.id }.toSet().size).isEqualTo(3)
+        assertThat(
+            board.columns
+                .map { it.id }
+                .toSet()
+                .size,
+        ).isEqualTo(3)
         board.columns.forEach { column ->
             assertThat(column.id).matches(lowercaseUuid)
             assertThat(column["createdAt"]).isEqualTo(board["createdAt"])
@@ -144,7 +158,9 @@ class BoardE2eTest : BoardApiE2eTest() {
 
         assertThat(body.fieldErrors).containsExactly(mapOf("field" to "key", "code" to "ALREADY_USED"))
         assertThat(storedBoards()).isEqualTo(1)
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM board_service.columns", Int::class.java)).isEqualTo(3)
+        assertThat(
+            jdbcTemplate.queryForObject("SELECT count(*) FROM board_service.columns", Int::class.java),
+        ).isEqualTo(3)
         assertThat(listBoards(token)).containsExactly(first - "columns")
     }
 
@@ -206,14 +222,16 @@ class BoardE2eTest : BoardApiE2eTest() {
             repeat(5) { round ->
                 val key = "CR" + ('A' + round)
                 val barrier = CyclicBarrier(2)
-                val results = listOf(key, key.lowercase()).map { sent ->
-                    executor.submit(
-                        Callable {
-                            barrier.await(10, TimeUnit.SECONDS)
-                            createRaw("""{"name":"Roadmap","key":"$sent"}""")
-                        },
-                    )
-                }.map { it.get(30, TimeUnit.SECONDS) }
+                val results =
+                    listOf(key, key.lowercase())
+                        .map { sent ->
+                            executor.submit(
+                                Callable {
+                                    barrier.await(10, TimeUnit.SECONDS)
+                                    createRaw("""{"name":"Roadmap","key":"$sent"}""")
+                                },
+                            )
+                        }.map { it.get(30, TimeUnit.SECONDS) }
 
                 assertThat(results.map { it.status }.sorted()).containsExactly(201, 409)
                 val conflict = results.single { it.status == 409 }.assertProblem(ErrorCode.CONFLICT)
@@ -283,7 +301,11 @@ class BoardE2eTest : BoardApiE2eTest() {
         val result = call(HttpMethod.GET, "/api/v1/boards/${board.id}", token)
 
         assertThat(result.status).isEqualTo(200)
-        assertThat(result.json().columns.namesAndPositions()).containsExactly("Done" to 0, "To do" to 1, "In progress" to 2)
+        assertThat(result.json().columns.namesAndPositions()).containsExactly(
+            "Done" to 0,
+            "To do" to 1,
+            "In progress" to 2,
+        )
     }
 
     @Test
@@ -473,8 +495,9 @@ class BoardE2eTest : BoardApiE2eTest() {
     @Test
     fun `own board ID without the leading zeros of a group is NOT_FOUND`() {
         val keys = ('A'..'Z').flatMap { first -> ('A'..'Z').map { second -> "$first$second" } }.iterator()
-        val board = generateSequence { createBoard(token, key = keys.next()) }
-            .first { board -> board.id.split('-').any { it.startsWith('0') } }
+        val board =
+            generateSequence { createBoard(token, key = keys.next()) }
+                .first { board -> board.id.split('-').any { it.startsWith('0') } }
         val shortForm = board.id.split('-').joinToString("-") { it.trimStart('0').ifEmpty { "0" } }
 
         assertThat(UUID.fromString(shortForm).toString()).isEqualTo(board.id)

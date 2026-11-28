@@ -24,15 +24,17 @@ class Bucket4jAuthRateLimiter(
     private val properties: AuthRateLimitProperties,
     private val clock: Clock,
 ) : AuthRateLimiter {
+    private val timeMeter =
+        object : TimeMeter {
+            override fun currentTimeNanos(): Long = clockNanos()
 
-    private val timeMeter = object : TimeMeter {
-        override fun currentTimeNanos(): Long = clockNanos()
-        override fun isWallClockBased(): Boolean = true
-    }
+            override fun isWallClockBased(): Boolean = true
+        }
 
     private val buckets: Map<AuthAction, Cache<String, Bucket>> =
         AuthAction.entries.associateWith { action ->
-            Caffeine.newBuilder()
+            Caffeine
+                .newBuilder()
                 .maximumSize(properties.maxTrackedEmails)
                 // A bucket that was idle for a full period is full again, so dropping it changes nothing.
                 .expireAfterAccess(limitOf(action).period)
@@ -42,7 +44,10 @@ class Bucket4jAuthRateLimiter(
                 .build()
         }
 
-    override fun check(action: AuthAction, email: String) {
+    override fun check(
+        action: AuthAction,
+        email: String,
+    ) {
         val bucket = buckets.getValue(action).get(keyOf(email)) { newBucket(action) }
         val probe = bucket.tryConsumeAndReturnRemaining(1)
         if (!probe.isConsumed) {
@@ -62,16 +67,23 @@ class Bucket4jAuthRateLimiter(
         buckets.values.forEach { it.invalidateAll() }
     }
 
-    private fun limitOf(action: AuthAction): AuthRateLimitProperties.Limit = when (action) {
-        AuthAction.LOGIN -> properties.login
-        AuthAction.REGISTER -> properties.register
-    }
+    private fun limitOf(action: AuthAction): AuthRateLimitProperties.Limit =
+        when (action) {
+            AuthAction.LOGIN -> properties.login
+            AuthAction.REGISTER -> properties.register
+        }
 
     private fun newBucket(action: AuthAction): Bucket {
         val limit = limitOf(action)
-        return Bucket.builder()
-            .addLimit(Bandwidth.builder().capacity(limit.capacity).refillGreedy(limit.capacity, limit.period).build())
-            .withCustomTimePrecision(timeMeter)
+        return Bucket
+            .builder()
+            .addLimit(
+                Bandwidth
+                    .builder()
+                    .capacity(limit.capacity)
+                    .refillGreedy(limit.capacity, limit.period)
+                    .build(),
+            ).withCustomTimePrecision(timeMeter)
             .build()
     }
 

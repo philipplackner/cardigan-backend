@@ -7,14 +7,18 @@ import org.junit.jupiter.api.Test
 import org.springframework.http.HttpMethod
 
 class UserE2eTest : E2eTest() {
-
     @Test
     fun `current user gets exactly id, email and createdAt`() {
         val (user, token) = signIn("ann@example.com")
 
-        val result = authenticatedClient(token).get().uri("/api/v1/users/me").exchange()
-            .expectStatus().isOk
-            .returnResult(String::class.java)
+        val result =
+            authenticatedClient(token)
+                .get()
+                .uri("/api/v1/users/me")
+                .exchange()
+                .expectStatus()
+                .isOk
+                .returnResult(String::class.java)
         val body = HttpResult(200, result.responseHeaders, result.responseBody!!).json()
 
         assertThat(body).isEqualTo(

@@ -9,7 +9,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 
 class ApplicationConfigTest {
-
     private val clock = ApplicationConfig().clock()
 
     @Test

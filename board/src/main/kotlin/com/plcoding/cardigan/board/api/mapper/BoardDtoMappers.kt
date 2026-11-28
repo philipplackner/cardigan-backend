@@ -10,22 +10,24 @@ import com.plcoding.cardigan.board.domain.model.BoardWithColumns
 import com.plcoding.cardigan.board.domain.model.normalizeBoardKey
 import com.plcoding.cardigan.common.domain.text.normalizeText
 
-fun BoardWithColumns.toBoardDto(): BoardDto = BoardDto(
-    id = board.id,
-    name = board.name,
-    key = board.key,
-    createdAt = board.createdAt,
-    updatedAt = board.updatedAt,
-    columns = columns.toColumnDtos(),
-)
+fun BoardWithColumns.toBoardDto(): BoardDto =
+    BoardDto(
+        id = board.id,
+        name = board.name,
+        key = board.key,
+        createdAt = board.createdAt,
+        updatedAt = board.updatedAt,
+        columns = columns.toColumnDtos(),
+    )
 
-fun Board.toBoardSummaryDto(): BoardSummaryDto = BoardSummaryDto(
-    id = id,
-    name = name,
-    key = key,
-    createdAt = createdAt,
-    updatedAt = updatedAt,
-)
+fun Board.toBoardSummaryDto(): BoardSummaryDto =
+    BoardSummaryDto(
+        id = id,
+        name = name,
+        key = key,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+    )
 
 fun List<Board>.toBoardListDto(): BoardListDto = BoardListDto(map { it.toBoardSummaryDto() })
 

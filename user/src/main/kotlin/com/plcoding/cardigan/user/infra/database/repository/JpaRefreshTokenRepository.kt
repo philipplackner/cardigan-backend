@@ -13,7 +13,6 @@ class JpaRefreshTokenRepository(
     private val springDataRefreshTokenRepository: SpringDataRefreshTokenRepository,
     private val springDataSessionRepository: SpringDataSessionRepository,
 ) : RefreshTokenRepository {
-
     override fun save(refreshToken: RefreshToken): RefreshToken {
         val session = springDataSessionRepository.getReferenceById(refreshToken.sessionId)
         springDataRefreshTokenRepository.save(refreshToken.toRefreshTokenEntity(session))
@@ -23,5 +22,8 @@ class JpaRefreshTokenRepository(
     override fun findByTokenHash(tokenHash: String): RefreshToken? =
         springDataRefreshTokenRepository.findByTokenHash(tokenHash)?.toRefreshToken()
 
-    override fun markRotated(id: UUID, at: Instant): Boolean = springDataRefreshTokenRepository.markRotated(id, at) == 1
+    override fun markRotated(
+        id: UUID,
+        at: Instant,
+    ): Boolean = springDataRefreshTokenRepository.markRotated(id, at) == 1
 }

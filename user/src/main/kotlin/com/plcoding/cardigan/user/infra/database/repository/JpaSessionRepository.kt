@@ -14,7 +14,6 @@ class JpaSessionRepository(
     private val springDataSessionRepository: SpringDataSessionRepository,
     private val springDataUserRepository: SpringDataUserRepository,
 ) : SessionRepository {
-
     override fun save(session: Session): Session {
         val user = springDataUserRepository.getReferenceById(session.userId)
         springDataSessionRepository.save(session.toSessionEntity(user))
@@ -23,7 +22,10 @@ class JpaSessionRepository(
 
     override fun findById(id: UUID): Session? = springDataSessionRepository.findByIdOrNull(id)?.toSession()
 
-    override fun revoke(id: UUID, at: Instant): Boolean = springDataSessionRepository.revoke(id, at) == 1
+    override fun revoke(
+        id: UUID,
+        at: Instant,
+    ): Boolean = springDataSessionRepository.revoke(id, at) == 1
 
     override fun deleteEnded(now: Instant): Int = springDataSessionRepository.deleteEnded(now)
 }

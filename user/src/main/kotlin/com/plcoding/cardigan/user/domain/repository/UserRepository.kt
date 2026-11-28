@@ -4,7 +4,6 @@ import com.plcoding.cardigan.user.domain.model.User
 import java.util.UUID
 
 interface UserRepository {
-
     fun findById(id: UUID): User?
 
     fun findByEmail(email: String): User?

@@ -9,7 +9,6 @@ import org.springframework.security.web.firewall.RequestRejectedHandler
 
 @Configuration(proxyBeanMethods = false)
 class SecurityWebConfig {
-
     /** Answers every authentication failure with 401 `UNAUTHENTICATED` and `WWW-Authenticate: Bearer`. */
     @Bean
     fun bearerAuthenticationEntryPoint(writer: ProblemResponseWriter): AuthenticationEntryPoint =

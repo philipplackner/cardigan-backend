@@ -14,21 +14,21 @@ import java.sql.Timestamp
 import java.time.Duration
 
 class AuthRefreshLogoutE2eTest : AuthE2eTestBase() {
-
     private fun bodySession(email: String = "ann@example.com"): HttpResult = register(email = email).assertStatus(201)
 
     private fun cookieSession(email: String = "ann@example.com"): String =
         register(email = email, transport = "COOKIE").assertStatus(201).refreshCookie
 
-    private fun revokedAtOf(refreshToken: String): Timestamp? = jdbcTemplate.queryForObject(
-        """
+    private fun revokedAtOf(refreshToken: String): Timestamp? =
+        jdbcTemplate.queryForObject(
+            """
         SELECT s.revoked_at FROM user_service.sessions s
         JOIN user_service.refresh_tokens t ON t.session_id = s.id
         WHERE t.token_hash = ?
         """,
-        Timestamp::class.java,
-        hashRefreshToken(refreshToken),
-    )
+            Timestamp::class.java,
+            hashRefreshToken(refreshToken),
+        )
 
     @Test
     fun `refresh with the body transport returns exactly the three token fields`() {
@@ -212,10 +212,11 @@ class AuthRefreshLogoutE2eTest : AuthE2eTestBase() {
     @Test
     fun `20 logins one minute apart leave the first session usable`() {
         bodySession()
-        val logins = (1..20).map {
-            clock.advanceBy(Duration.ofMinutes(1))
-            login().assertStatus(200).refreshToken
-        }
+        val logins =
+            (1..20).map {
+                clock.advanceBy(Duration.ofMinutes(1))
+                login().assertStatus(200).refreshToken
+            }
 
         refreshWithBody(logins.first()).assertStatus(200)
         assertThat(count("sessions")).isEqualTo(21)

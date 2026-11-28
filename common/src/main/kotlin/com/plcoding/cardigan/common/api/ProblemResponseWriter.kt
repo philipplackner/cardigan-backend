@@ -15,8 +15,10 @@ import tools.jackson.databind.json.JsonMapper
 class ProblemResponseWriter(
     private val jsonMapper: JsonMapper,
 ) {
-
-    fun write(response: HttpServletResponse, code: ErrorCode) {
+    fun write(
+        response: HttpServletResponse,
+        code: ErrorCode,
+    ) {
         response.resetBuffer()
         response.status = code.status
         response.contentType = MediaType.APPLICATION_PROBLEM_JSON_VALUE

@@ -25,12 +25,14 @@ import java.time.Instant
 import java.util.UUID
 
 class BoardDtoMappersTest {
-
     private val created = Instant.parse("2026-11-15T09:15:30.123Z")
     private val updated = Instant.parse("2026-11-15T09:16:30.123Z")
     private val board = Board(UUID.randomUUID(), UUID.randomUUID(), "Roadmap", "CRD", created, updated)
 
-    private fun column(name: String, position: Int) = Column(UUID.randomUUID(), board.id, name, position, created, updated)
+    private fun column(
+        name: String,
+        position: Int,
+    ) = Column(UUID.randomUUID(), board.id, name, position, created, updated)
 
     @Test
     fun `create board request gives a normalized name`() {
@@ -93,8 +95,12 @@ class BoardDtoMappersTest {
     @Test
     fun `list item has the board's fields and no columns`() {
         assertThat(board.toBoardSummaryDto()).isEqualTo(BoardSummaryDto(board.id, "Roadmap", "CRD", created, updated))
-        assertThat(BoardSummaryDto::class.java.declaredFields.filterNot { it.isSynthetic }.map { it.name }.toSet())
-            .isEqualTo(setOf("id", "name", "key", "createdAt", "updatedAt"))
+        assertThat(
+            BoardSummaryDto::class.java.declaredFields
+                .filterNot { it.isSynthetic }
+                .map { it.name }
+                .toSet(),
+        ).isEqualTo(setOf("id", "name", "key", "createdAt", "updatedAt"))
     }
 
     @Test
@@ -110,8 +116,12 @@ class BoardDtoMappersTest {
         val column = column("Review", 3)
 
         assertThat(column.toColumnDto()).isEqualTo(ColumnDto(column.id, "Review", 3, created, updated))
-        assertThat(ColumnDto::class.java.declaredFields.filterNot { it.isSynthetic }.map { it.name }.toSet())
-            .isEqualTo(setOf("id", "name", "position", "createdAt", "updatedAt"))
+        assertThat(
+            ColumnDto::class.java.declaredFields
+                .filterNot { it.isSynthetic }
+                .map { it.name }
+                .toSet(),
+        ).isEqualTo(setOf("id", "name", "position", "createdAt", "updatedAt"))
     }
 
     @Test

@@ -39,20 +39,23 @@ internal class AuthController(
     private val requestValidator: RequestValidator,
     private val refreshTokenCookie: RefreshTokenCookie,
 ) {
-
     // No @Valid on register and login: the rate limit is checked first, so 429 wins over 400.
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
         operationId = "register",
         summary = "Create an account and start a session",
-        description = "With the `COOKIE` transport the refresh token is set in the `$COOKIE_NAME` cookie and left " +
-            "out of the body. With `BODY` it is in the body.",
+        description =
+            "With the `COOKIE` transport the refresh token is set in the `$COOKIE_NAME` cookie and left " +
+                "out of the body. With `BODY` it is in the body.",
     )
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(409, ErrorCode.CONFLICT)
     @ApiErrors(429, ErrorCode.RATE_LIMITED)
-    fun register(@RequestBody request: RegisterRequest, response: HttpServletResponse): AuthSessionDto {
+    fun register(
+        @RequestBody request: RegisterRequest,
+        response: HttpServletResponse,
+    ): AuthSessionDto {
         authService.checkRateLimit(AuthAction.REGISTER, request.email)
         requestValidator.validate(request)
         val session = authService.register(request.toCredentials())
@@ -64,13 +67,17 @@ internal class AuthController(
     @Operation(
         operationId = "login",
         summary = "Start a session with an email and a password",
-        description = "With the `COOKIE` transport the refresh token is set in the `$COOKIE_NAME` cookie and left " +
-            "out of the body. With `BODY` it is in the body.",
+        description =
+            "With the `COOKIE` transport the refresh token is set in the `$COOKIE_NAME` cookie and left " +
+                "out of the body. With `BODY` it is in the body.",
     )
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(401, ErrorCode.INVALID_CREDENTIALS)
     @ApiErrors(429, ErrorCode.RATE_LIMITED)
-    fun login(@RequestBody request: LoginRequest, response: HttpServletResponse): AuthSessionDto {
+    fun login(
+        @RequestBody request: LoginRequest,
+        response: HttpServletResponse,
+    ): AuthSessionDto {
         authService.checkRateLimit(AuthAction.LOGIN, request.email)
         requestValidator.validate(request)
         val session = authService.login(request.toCredentials())
@@ -82,9 +89,10 @@ internal class AuthController(
     @Operation(
         operationId = "refresh",
         summary = "Exchange the refresh token for new tokens",
-        description = "With the `COOKIE` transport the refresh token is read from the `$COOKIE_NAME` cookie, " +
-            "`refreshToken` in the body is ignored, and the new refresh token is set in that cookie. A failed " +
-            "refresh clears the cookie. With `BODY` the refresh token is read from and returned in the body.",
+        description =
+            "With the `COOKIE` transport the refresh token is read from the `$COOKIE_NAME` cookie, " +
+                "`refreshToken` in the body is ignored, and the new refresh token is set in that cookie. A failed " +
+                "refresh clears the cookie. With `BODY` the refresh token is read from and returned in the body.",
     )
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     @ApiErrors(401, ErrorCode.INVALID_REFRESH_TOKEN)
@@ -99,6 +107,7 @@ internal class AuthController(
                 refreshTokenCookie.setFor(result.tokens, response)
                 result.tokens.toAuthTokensDto()
             }
+
             RefreshResult.Rejected -> {
                 if (transport == RefreshTokenTransport.COOKIE) refreshTokenCookie.clear(response)
                 throw InvalidRefreshTokenException()
@@ -111,9 +120,10 @@ internal class AuthController(
     @Operation(
         operationId = "logout",
         summary = "End the session of the refresh token",
-        description = "Always answers 204 for a valid request, whether or not a session was ended. With the " +
-            "`COOKIE` transport the refresh token is read from the `$COOKIE_NAME` cookie, `refreshToken` in the " +
-            "body is ignored, and the cookie is cleared. With `BODY` the refresh token is read from the body.",
+        description =
+            "Always answers 204 for a valid request, whether or not a session was ended. With the " +
+                "`COOKIE` transport the refresh token is read from the `$COOKIE_NAME` cookie, `refreshToken` in the " +
+                "body is ignored, and the cookie is cleared. With `BODY` the refresh token is read from the body.",
     )
     @ApiErrors(400, ErrorCode.VALIDATION_FAILED)
     fun logout(
@@ -126,7 +136,11 @@ internal class AuthController(
         if (transport == RefreshTokenTransport.COOKIE) refreshTokenCookie.clear(response)
     }
 
-    private fun tokenFor(transport: RefreshTokenTransport, bodyToken: String?, cookieToken: String?): String? =
+    private fun tokenFor(
+        transport: RefreshTokenTransport,
+        bodyToken: String?,
+        cookieToken: String?,
+    ): String? =
         when (transport) {
             RefreshTokenTransport.COOKIE -> cookieToken
             RefreshTokenTransport.BODY -> bodyToken

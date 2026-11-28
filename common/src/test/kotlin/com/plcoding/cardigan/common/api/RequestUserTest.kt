@@ -14,14 +14,18 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import java.util.UUID
 
 class RequestUserTest {
-
     @AfterEach
     fun clear() = SecurityContextHolder.clearContext()
 
     @Test
     fun `request user is the token subject`() {
         val userId = UUID.fromString("0b6a1f43-58c2-4d0e-9a35-3f1c9e2b7d10")
-        val jwt = Jwt.withTokenValue("token").header("alg", "HS256").subject(userId.toString()).build()
+        val jwt =
+            Jwt
+                .withTokenValue("token")
+                .header("alg", "HS256")
+                .subject(userId.toString())
+                .build()
         SecurityContextHolder.getContext().authentication = JwtAuthenticationToken(jwt)
 
         assertThat(requestUserId).isEqualTo(userId)

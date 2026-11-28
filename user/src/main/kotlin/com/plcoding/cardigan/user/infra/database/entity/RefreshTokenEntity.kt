@@ -24,21 +24,16 @@ import java.util.UUID
 class RefreshTokenEntity(
     @Id
     var id: UUID,
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "session_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     var session: SessionEntity,
-
     @Column(name = "token_hash", nullable = false, length = 64)
     var tokenHash: String,
-
     @Column(name = "created_at", nullable = false)
     var createdAt: Instant,
-
     @Column(name = "expires_at", nullable = false)
     var expiresAt: Instant,
-
     @Column(name = "rotated_at")
     var rotatedAt: Instant?,
 )

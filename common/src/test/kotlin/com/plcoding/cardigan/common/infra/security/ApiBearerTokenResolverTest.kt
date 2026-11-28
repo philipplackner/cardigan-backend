@@ -12,12 +12,15 @@ import org.springframework.http.HttpMethod
 import org.springframework.mock.web.MockHttpServletRequest
 
 class ApiBearerTokenResolverTest {
+    private val resolver =
+        ApiBearerTokenResolver(
+            publicRouteRegistryOf(PublicRoutes(PublicRoute(HttpMethod.POST, "/api/v1/auth/login"))),
+        )
 
-    private val resolver = ApiBearerTokenResolver(
-        publicRouteRegistryOf(PublicRoutes(PublicRoute(HttpMethod.POST, "/api/v1/auth/login"))),
-    )
-
-    private fun requestWithToken(method: String, uri: String) = MockHttpServletRequest(method, uri).apply {
+    private fun requestWithToken(
+        method: String,
+        uri: String,
+    ) = MockHttpServletRequest(method, uri).apply {
         addHeader(HttpHeaders.AUTHORIZATION, "Bearer token-123")
     }
 

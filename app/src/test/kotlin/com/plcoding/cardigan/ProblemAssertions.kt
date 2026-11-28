@@ -15,7 +15,10 @@ fun HttpResult.assertProblem(code: ErrorCode): Map<String, Any?> {
     assertThat(status, "status").isEqualTo(code.status)
     assertThat(contentType, "content type").isNotNull().startsWith("application/problem+json")
     val body = json()
-    assertThat(body.keys, "fields").containsExactlyInAnyOrder("type", "title", "status", "detail", "code", "fieldErrors")
+    assertThat(
+        body.keys,
+        "fields",
+    ).containsExactlyInAnyOrder("type", "title", "status", "detail", "code", "fieldErrors")
     assertThat(body["code"], "code").isEqualTo(code.name)
     assertThat(body["status"], "status field").isEqualTo(code.status)
     assertThat(body["type"], "type").isEqualTo(code.type)

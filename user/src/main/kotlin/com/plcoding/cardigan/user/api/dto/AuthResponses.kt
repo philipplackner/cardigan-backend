@@ -14,7 +14,6 @@ data class AuthSessionDto(
     val refreshToken: String?,
     val user: CurrentUserDto,
 ) {
-
     override fun toString(): String = "AuthSessionDto(accessTokenExpiresAt=$accessTokenExpiresAt, user=$user)"
 }
 
@@ -25,6 +24,5 @@ data class AuthTokensDto(
     @field:JsonInclude(JsonInclude.Include.NON_NULL)
     val refreshToken: String?,
 ) {
-
     override fun toString(): String = "AuthTokensDto(accessTokenExpiresAt=$accessTokenExpiresAt)"
 }

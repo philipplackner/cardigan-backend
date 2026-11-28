@@ -11,7 +11,6 @@ import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
  * called: `check` and `build` never run it. On the root project, both tasks also cover build-logic.
  */
 class KtlintConventionPlugin : Plugin<Project> {
-
     override fun apply(target: Project) {
         with(target) {
             pluginManager.apply("org.jlleitschuh.gradle.ktlint")

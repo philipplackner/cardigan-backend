@@ -11,7 +11,6 @@ import java.time.Instant
 import java.util.UUID
 
 class FakeUserRepository : UserRepository {
-
     val users = linkedMapOf<UUID, User>()
     var emailLookups = 0
 
@@ -38,7 +37,6 @@ class FakeUserRepository : UserRepository {
 class FakeSessionRepository(
     private val refreshTokens: FakeRefreshTokenRepository? = null,
 ) : SessionRepository {
-
     val sessions = linkedMapOf<UUID, Session>()
     val deleteEndedCalls = mutableListOf<Instant>()
 
@@ -51,7 +49,10 @@ class FakeSessionRepository(
 
     override fun findById(id: UUID): Session? = sessions[id]
 
-    override fun revoke(id: UUID, at: Instant): Boolean {
+    override fun revoke(
+        id: UUID,
+        at: Instant,
+    ): Boolean {
         val session = sessions[id]?.takeUnless { it.isRevoked } ?: return false
         sessions[id] = session.copy(revokedAt = at)
         return true
@@ -60,9 +61,10 @@ class FakeSessionRepository(
     override fun deleteEnded(now: Instant): Int {
         deleteEndedCalls += now
         val tokens = checkNotNull(refreshTokens) { "deleteEnded needs the token repository" }
-        val ended = sessions.values.filter { session ->
-            session.isRevoked || tokens.ofSession(session.id).none { !it.isRotated && !it.isExpiredAt(now) }
-        }
+        val ended =
+            sessions.values.filter { session ->
+                session.isRevoked || tokens.ofSession(session.id).none { !it.isRotated && !it.isExpiredAt(now) }
+            }
         ended.forEach { session ->
             sessions.remove(session.id)
             tokens.tokens.values.removeIf { it.sessionId == session.id }
@@ -72,7 +74,6 @@ class FakeSessionRepository(
 }
 
 class FakeRefreshTokenRepository : RefreshTokenRepository {
-
     val tokens = linkedMapOf<UUID, RefreshToken>()
 
     /** When set, the next claim fails as if another request rotated the token first. */
@@ -88,9 +89,16 @@ class FakeRefreshTokenRepository : RefreshTokenRepository {
         return refreshToken
     }
 
-    override fun findByTokenHash(tokenHash: String): RefreshToken? = tokens.values.firstOrNull { it.tokenHash == tokenHash }
+    override fun findByTokenHash(tokenHash: String): RefreshToken? =
+        tokens.values.firstOrNull {
+            it.tokenHash ==
+                tokenHash
+        }
 
-    override fun markRotated(id: UUID, at: Instant): Boolean {
+    override fun markRotated(
+        id: UUID,
+        at: Instant,
+    ): Boolean {
         val token = tokens[id]?.takeUnless { it.isRotated } ?: return false
         if (nextClaimIsLost) {
             nextClaimIsLost = false

@@ -7,7 +7,6 @@ data class IssuedRefreshToken(
     val value: String,
     val expiresAt: Instant,
 ) {
-
     override fun toString(): String = "IssuedRefreshToken(expiresAt=$expiresAt)"
 }
 
@@ -19,7 +18,6 @@ data class IssuedTokens(
     val refreshTokenExpiresAt: Instant,
     val transport: RefreshTokenTransport,
 ) {
-
     override fun toString(): String =
         "IssuedTokens(accessTokenExpiresAt=$accessTokenExpiresAt, refreshTokenExpiresAt=$refreshTokenExpiresAt, " +
             "transport=$transport)"
@@ -30,7 +28,6 @@ data class IssuedSession(
     val user: User,
     val tokens: IssuedTokens,
 ) {
-
     override fun toString(): String = "IssuedSession(user=$user, tokens=$tokens)"
 }
 
@@ -39,8 +36,9 @@ data class IssuedSession(
  * revocation after token reuse is committed with the transaction.
  */
 sealed interface RefreshResult {
-
-    data class Refreshed(val tokens: IssuedTokens) : RefreshResult
+    data class Refreshed(
+        val tokens: IssuedTokens,
+    ) : RefreshResult
 
     data object Rejected : RefreshResult
 }
