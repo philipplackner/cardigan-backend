@@ -33,7 +33,7 @@
 - [x] 4.4 [plain] Apply `alias(libs.plugins.convention.detekt)` in `:app`, `:common`, `:user`, `:board` and `:tooling`. If `:tooling` loading its own rules creates a cycle, use the fallback in design.md Risks. Verify with `./gradlew build --dry-run` showing no detekt task, and `./gradlew :tooling:detekt` running.
 - [x] 4.5 [plain] Apply `dev.detekt` directly in `build-logic/convention/build.gradle.kts` (design decision 4): same config, HTML and SARIF reports, type-resolution wiring, no `detektPlugins`, off `check`. Verify with `./gradlew -p build-logic test` not running detekt, and `./gradlew -p build-logic detekt` running it.
 - [x] 4.6 [plain] In the root `build.gradle.kts`, register the root `detekt` task (runs build-logic's `:convention:detekt`) and `detektReportMerge` writing `build/reports/detekt/merge.sarif`. Every module's `detekt<SourceSet>` task and the root `detekt` task are finalized by the merge; build-logic's SARIF is added by file path (design decision 5). Verify that `./gradlew detekt` runs every module and build-logic and writes per-module HTML and SARIF plus the merged SARIF, also when it fails on findings. Verify that `./gradlew :user:detekt` runs only `:user`.
-- [ ] 4.7 [plain] Manually check the spec scenarios for detekt, using a temporary sample file and deleting it afterwards:
+- [x] 4.7 [plain] Manually check the spec scenarios for detekt, using a temporary sample file and deleting it afterwards:
   - a finding in test code;
   - a type-resolution rule (`UnnecessarySafeCall` on a safe call on a non-null receiver; first confirm it is active by default in alpha.6, otherwise use another default-active rule that needs type resolution and update the spec scenario);
   - a long line not reported;
