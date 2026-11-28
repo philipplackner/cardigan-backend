@@ -49,7 +49,7 @@
 
 ## 6. Docs
 
-- [ ] 6.1 [plain] Add a "Static analysis" section to `AGENTS.md` (`CLAUDE.md` is a symlink to it), next to the coverage and mutation sections:
+- [x] 6.1 [plain] Add a "Static analysis" section to `AGENTS.md` (`CLAUDE.md` is a symlink to it), next to the coverage and mutation sections:
   - the commands `detekt`, `:<module>:detekt`, `konsist`, `staticAnalysis` and `:tooling:test`;
   - that nothing runs in build or CI, and that full task names are needed;
   - the report paths;

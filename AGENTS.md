@@ -45,6 +45,7 @@ cardigan/
 ├── common/                   :common    – shared kernel (IDs, cross-module events, error contract, JWT decoding)
 ├── user/                     :user      – users and everything auth-related (schema user_service)
 ├── board/                    :board     – boards, columns, cards, labels, import/export (schema board_service)
+├── tooling/                  :tooling   – custom detekt rules, their tests and the Konsist checks (not deployed)
 ├── build-logic/              convention plugins (cardigan.kotlin.jvm, cardigan.spring.module, ...)
 ├── gradle/libs.versions.toml every version, library, and plugin
 └── settings.gradle.kts
@@ -172,6 +173,9 @@ app/src/
 | A new module in mutation reports | Apply `alias(libs.plugins.convention.pitest)` (`cardigan.pitest`) in its `build.gradle.kts`. Nothing else |
 | A new module in ktlint | Apply `alias(libs.plugins.convention.ktlint)` (`cardigan.ktlint`) in its `build.gradle.kts`. Nothing else |
 | A test class that starts a Spring context or a container | Annotate it (or its base class) with `@Tag("integration")`, so mutation testing leaves it out |
+| A new module in detekt | Apply `alias(libs.plugins.convention.detekt)` (`cardigan.detekt`) in its `build.gradle.kts`. Nothing else |
+| A custom detekt rule | `:tooling` `src/main/kotlin/com/plcoding/cardigan/tooling/detekt`, added to `CardiganRuleSetProvider` and activated under `cardigan` in `config/detekt/detekt.yml`. Its tests go in `:tooling` `src/test` |
+| An architecture check | A Konsist test in `:tooling` `src/test/kotlin/com/plcoding/cardigan/tooling/konsist` |
 
 ---
 
@@ -335,6 +339,25 @@ Mutation testing:
 - `mutationReport` prints the same summary as mobile: one line per module with mutants (mutation score, test strength, killed, survived, no coverage, total), a total line with the summed counts, and the combined report path. Score = killed / all mutants, test strength = killed / mutants with coverage (`n/a` when none is covered); mutants with status `KILLED`, `TIMED_OUT`, `MEMORY_ERROR`, `RUN_ERROR` or `NON_VIABLE` count as killed, as in PIT's own report. Modules are listed by path, or in the order given in `mutation.modules`. When no selected module has mutants, it prints only a message and writes no combined report.
 - `mutation.minScore` (0 to 100, decimals allowed) makes the run fail after the summary when the selection's unrounded mutation score is below it. Nothing sets it by default.
 - The application class, `@Configuration`, `@ConfigurationProperties`, `@SpringBootApplication`, `@Repository` and `@Entity` classes, Kotlin null-check intrinsics and the generated data-class methods (`componentN`, `copy`, `equals`, `hashCode`, `toString`) are not mutated.
+
+Static analysis:
+
+| Scope | Command |
+|---|---|
+| detekt, every module and build-logic | `./gradlew detekt` |
+| detekt, one module | `./gradlew :<module>:detekt` |
+| Konsist architecture checks | `./gradlew konsist` |
+| detekt and Konsist together | `./gradlew staticAnalysis` |
+| Tests of the custom detekt rules | `./gradlew :tooling:test` |
+
+- Static analysis runs only on demand. `build`, `check`, `test` and CI never run detekt, the Konsist checks or the `:tooling` tests.
+- Use the full task names. The `:tooling` tests and the Konsist checks run only when `:tooling:test` (or `tooling:test`), `konsist`, `:tooling:konsist` or `staticAnalysis` is requested literally. An abbreviation such as `./gradlew tooling:tes` skips them.
+- detekt uses its default rules plus the `cardigan` rule set from `:tooling`, with one shared config, `config/detekt/detekt.yml`, which holds only overrides. Rules that duplicate ktlint are off there. There is no baseline, so existing findings are reported, and any finding fails the run. `detekt` runs the type-resolution task of every source set (`detektMain`, `detektTest`, `detektTestFixtures`).
+- `cardigan:NoMockingLibraries` reports every import from `org.mockito` or `io.mockk` in test and test-fixture sources. Suppress it with `@Suppress("cardigan:NoMockingLibraries")`.
+- The Konsist check fails when a file in a `domain` package in the main or test-fixture sources of `:common`, `:user` or `:board` imports from `org.springframework` or `jakarta.persistence`.
+- `staticAnalysis` runs detekt and the Konsist checks even when one of them fails, and fails at the end with one message when either found something. It doesn't run ktlint.
+- Reports: HTML and SARIF per source set in `<module>/build/reports/detekt/` (build-logic: `build-logic/convention/build/reports/detekt/`), the merged SARIF in `build/reports/detekt/merge.sarif`, and the Konsist results in `tooling/build/reports/tests/konsist/`. They are also written when detekt fails.
+- New modules opt in to detekt with `alias(libs.plugins.convention.detekt)`. `:tooling` doesn't take part in coverage or mutation testing.
 
 ---
 
