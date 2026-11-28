@@ -45,7 +45,7 @@
 ## 5. Konsist and staticAnalysis
 
 - [x] 5.1 [plain] Test-writer task (D20, the path guard reserves `src/test`): write `DomainLayerTest` in `tooling/src/test/kotlin/com/plcoding/cardigan/tooling/konsist/` from design decision 9 and the two "Domain packages are checked for framework imports" scenarios. Verify that `./gradlew konsist` passes on the current code and fails, naming the file, with a temporary Spring import in a `board` domain file (then remove it). Run `./gradlew konsist` once clean, then add the temporary import and run it again without `--rerun`.
-- [ ] 5.2 [plain] Register the root `staticAnalysis` task (design decision 6): depends on `detekt` and `:tooling:konsist`, reads the merged SARIF and the Konsist JUnit XML, fails at the end with one message when either has findings, and is configuration-cache safe. Verify that with a temporary detekt finding and clean Konsist checks, `./gradlew staticAnalysis` runs Konsist and fails, and that it succeeds when both are clean, or report that detekt has existing findings (D6).
+- [x] 5.2 [plain] Register the root `staticAnalysis` task (design decision 6): depends on `detekt` and `:tooling:konsist`, reads the merged SARIF and the Konsist JUnit XML, fails at the end with one message when either has findings, and is configuration-cache safe. Verify that with a temporary detekt finding and clean Konsist checks, `./gradlew staticAnalysis` runs Konsist and fails, and that it succeeds when both are clean, or report that detekt has existing findings (D6).
 
 ## 6. Docs
 

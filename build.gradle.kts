@@ -34,8 +34,17 @@ val detekt = tasks.register("detekt") {
 }
 detektReportMerge.configure { mustRunAfter(detekt) }
 
+val staticAnalysis = tasks.register<StaticAnalysisTask>("staticAnalysis") {
+    description = "Runs detekt and the Konsist checks, and fails at the end when either found something."
+    group = "verification"
+    dependsOn(detekt, detektReportMerge, ":tooling:konsist")
+    detektReport = detektReportMerge.flatMap { it.output }
+    konsistResults.from(fileTree("tooling/build/test-results/konsist") { include("*.xml") })
+}
+
 subprojects {
     pluginManager.withPlugin("dev.detekt") {
+        staticAnalysis.configure { dependsOn(tasks.named("detekt")) }
         tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
             if (!name.startsWith("detekt") || name == "detekt" || name.endsWith("SourceSet")) return@configureEach
             val task = this

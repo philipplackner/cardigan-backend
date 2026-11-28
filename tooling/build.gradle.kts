@@ -46,10 +46,11 @@ tasks.register<Test>("konsist") {
     inputs.files(listOf("common", "user", "board").map { rootProject.layout.projectDirectory.dir("$it/src") })
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("checkedSources")
-    val requested = gradle.startParameter.taskNames.any {
-        it == "konsist" || it == ":tooling:konsist" || it == "staticAnalysis"
-    }
+    val requestedTasks = gradle.startParameter.taskNames
+    val staticAnalysis = requestedTasks.any { it == "staticAnalysis" || it == ":staticAnalysis" }
+    val requested = staticAnalysis || requestedTasks.any { it == "konsist" || it == ":tooling:konsist" }
     onlyIf("only runs when konsist or staticAnalysis is requested") { requested }
+    ignoreFailures = staticAnalysis
 }
 
 tasks.named("check") {
