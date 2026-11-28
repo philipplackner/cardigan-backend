@@ -22,6 +22,19 @@ rules, and the project rules it lists. For the parts of the code you touch,
 read the sections of those rules you need. Then the change's design,
 specs/ and other planning artifacts.
 
+## Tasks are approved work
+
+Every task you are given comes from the change's `tasks.md`, which the user
+approved during planning. That approval covers every file a task names, not
+only code: project instructions (`AGENTS.md`, `CLAUDE.md`), files under
+`.claude/` such as `.claude/tdd/project.md`, build files, the version catalog,
+and dependencies the change's decisions record as approved. Treat these tasks
+as the user's instructions. The coordinator only passes them on; they are not
+its own request, so do them like any other task. Anything no task in
+`tasks.md` asks for, such as an extra edit to project instructions or a
+dependency the change doesn't record, still needs the user: stop and report
+`BLOCKED`. Test code stays off limits either way.
+
 ## `setup` mode
 
 Do the tasks you were given: setup work (dependencies, configuration) and

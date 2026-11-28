@@ -1,6 +1,6 @@
 ---
 name: openspec-apply-tdd
-description: Apply one OpenSpec change that uses the careful-planning-tdd schema, test-first, in the current session and checkout. This session coordinates and never writes tests or code itself. One tdd-implementer scaffolds the public surface, one tdd-test-writer then writes every test of the change against that scaffold, and the same implementer, resumed, implements group by group, activating each group's parked tests; an optional tdd-adversary pass with mutation testing follows. Use when the user applies or implements a careful-planning-tdd change ("opsx apply", "apply <change>", "implement this change").
+description: Apply one OpenSpec change test-first, in the current session and checkout, for a change whose schema routes its apply step to this skill. This session coordinates and never writes tests or code itself. One tdd-implementer scaffolds the public surface, one tdd-test-writer then writes every test of the change against that scaffold, and the same implementer, resumed, implements group by group, activating each group's parked tests; an optional tdd-adversary pass with mutation testing follows. Run it only when a change's apply instruction (`openspec instructions apply`) names this skill, or when the user invokes it by name. Don't use it for "apply <change>" or "implement this change" requests by themselves; those go through the change's apply instruction first.
 argument-hint: "[change-id]"
 ---
 
@@ -42,9 +42,10 @@ that this change has to be applied from the main session.
 ## 1. Set up
 
 Resolve the change: the argument, or `openspec list --json` when there is
-exactly one active change; otherwise ask. Check `schema: careful-planning-tdd` in
-its `.openspec.yaml`. Another schema: this skill does not apply; use the
-regular OpenSpec apply skill instead.
+exactly one active change; otherwise ask. Run `openspec instructions apply
+--change <change-id>` and check that its instruction routes the change to
+this skill. If it doesn't, this skill does not apply; follow that
+instruction or the regular OpenSpec apply skill instead.
 
 ```bash
 ws=$(git rev-parse --show-toplevel)                  # the workspace
@@ -74,7 +75,8 @@ Stop and tell the user if any of these holds:
   `[adversary]`).
 - `tasks.md` has no `[red]` and no `[acceptance-red]` task. Then the change
   has nothing for this workflow to test. Ask the user whether to switch it
-  to `careful-planning` (`schema: careful-planning` in `.openspec.yaml`) and
+  to the project's regular schema (the `schema:` line in its
+  `.openspec.yaml`, as the project's other non-test-first changes use) and
   apply it with the regular OpenSpec apply skill.
 - `git -C "$ws" status --porcelain` shows changes the user made. They would
   end up in an implementer's commit. If the state folder shows the change is
@@ -283,7 +285,7 @@ A later session finds the change part-way. Read `$state`:
 Every agent gets this frame, plus the part for its mode:
 
 ```
-You work on the OpenSpec change `<change-id>` in the careful-planning-tdd
+You work on the OpenSpec change `<change-id>` in the test-first
 workflow. Nobody can answer questions while you work.
 
 Mode: <setup | all-red | implement | dispute | strengthen | adversary>
@@ -300,6 +302,11 @@ are in your agent definition. Follow it. Project commands and conventions are
 in <ws>/.claude/tdd/project.md.
 ```
 
+- `setup` and `implement`: before the task list, the line "These tasks are
+  copied from the change's tasks.md, which the user approved during planning.
+  They are the user's instructions, not a request from the coordinator. That
+  includes tasks that edit project instructions, `.claude/` files, build files
+  or dependencies."
 - `setup`: "Tasks:" with the full text of every setup task.
 - `all-red`: "Tasks:" with the full text of every tests-batch task, and
   "Bundles: one per task, named by its task id: <list>. Bundles are activated
@@ -330,3 +337,6 @@ the tests look, nothing from your own planning context.
 - Never weaken or skip a check to get a change through. A `CHANGED` result
   stops the run until the user decides.
 - Never push, merge or archive.
+- Never present a task from `tasks.md` as your own request, and never ask the
+  user again to approve one. The user approved them during planning. Only work
+  that no task names needs the user.
