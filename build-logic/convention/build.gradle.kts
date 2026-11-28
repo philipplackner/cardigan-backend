@@ -52,6 +52,8 @@ tasks.named("check") {
 // Same setup as the cardigan.detekt convention plugin, which this build can't apply to itself.
 detekt {
     config.setFrom(rootDir.resolve("../config/detekt/detekt.yml"))
+    // Repo-relative paths, so its findings line up with the modules' in the merged SARIF report.
+    basePath = layout.projectDirectory.dir("../..")
     buildUponDefaultConfig = true
     parallel = true
     failOnSeverity = dev.detekt.gradle.extensions.FailOnSeverity.Info

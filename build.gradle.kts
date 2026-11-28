@@ -16,3 +16,35 @@ allprojects {
     group = "com.plcoding"
     version = "0.0.1-SNAPSHOT"
 }
+
+val detektReportMerge = tasks.register<dev.detekt.gradle.report.ReportMergeTask>("detektReportMerge") {
+    description = "Merges the SARIF reports of every analyzed module and build-logic."
+    output = layout.buildDirectory.file("reports/detekt/merge.sarif")
+    input.from(
+        file("build-logic/convention/build/reports/detekt/main.sarif"),
+        file("build-logic/convention/build/reports/detekt/test.sarif"),
+    )
+}
+
+val detekt = tasks.register("detekt") {
+    description = "Runs detekt on build-logic. Every module's own detekt task runs next to it."
+    group = "verification"
+    dependsOn(gradle.includedBuild("build-logic").task(":convention:detekt"))
+    finalizedBy(detektReportMerge)
+}
+detektReportMerge.configure { mustRunAfter(detekt) }
+
+subprojects {
+    pluginManager.withPlugin("dev.detekt") {
+        tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
+            if (!name.startsWith("detekt") || name == "detekt" || name.endsWith("SourceSet")) return@configureEach
+            val task = this
+            finalizedBy(detektReportMerge)
+            // A plain provider adds the file without a task dependency, so `:user:detekt` doesn't run every module.
+            detektReportMerge.configure {
+                input.from(provider { task.reports.sarif.outputLocation.get().asFile })
+                mustRunAfter(task)
+            }
+        }
+    }
+}
