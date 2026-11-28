@@ -1,6 +1,6 @@
 ---
 name: openspec-orchestrate
-description: Work through the open OpenSpec changes in parallel, in any codebase and with any build system. Builds the dependency graph of all open changes, then acts as orchestrator - one sub-agent per change implements it in its own git worktree, in the order the graph allows. Use when the user asks to orchestrate, apply or implement all open changes or a list of changes, to run changes in parallel, or to continue an orchestration after changes were merged. Also use when the user only asks for the order of the open changes, a dependency graph, or what can be parallelized; then it stops after the graph. When orchestrating, it starts sub-agents that write code and commit it on local branches, and it deletes the worktree of every change that has been merged.
+description: Work through the open OpenSpec changes in parallel, in any codebase and with any build system. Builds the dependency graph of all open changes, then acts as orchestrator - one sub-agent per change implements it in its own git worktree, in the order the graph allows. Changes that use the careful-planning-tdd schema are applied test-first, by running the openspec-apply-tdd procedure per worktree. When the user says "headless", every change instead runs in its own headless Claude Code session (claude -p) in its worktree, which applies it and starts any sub-agents its apply procedure needs. For a single change applied in the current checkout, use openspec-apply-tdd directly. Use when the user asks to orchestrate, apply or implement all open changes or a list of changes, to run changes in parallel, or to continue an orchestration after changes were merged. Also use when the user only asks for the order of the open changes, a dependency graph, or what can be parallelized; then it stops after the graph. When orchestrating, it starts sub-agents that write code and commit it on local branches, and it deletes the worktree of every change that has been merged.
 ---
 
 # OpenSpec orchestrate
@@ -25,11 +25,29 @@ The unit is the **change**, not the task group. One change is applied in one
 worktree by one sub-agent at a time. The order of groups inside a change
 comes from its `tasks.md` and is the sub-agent's job.
 
+**Two modes.** A change whose `.openspec.yaml` says `schema:
+careful-planning-tdd` runs in **TDD mode** (Part 3): you follow the
+`openspec-apply-tdd` procedure for it in its worktree: one implementer,
+one test-writer and the same implementer resumed, instead of one sub-agent
+for the whole change. Every other change runs in the
+**standard mode** of Steps 10 and 11. Both modes share Part 1 and Steps 6
+to 9 and 12, and one run can mix them.
+
+**Sub-agents or headless sessions.** By default you start every change's
+sub-agents yourself, as described above. Only when the user says "headless"
+(in the arguments or the request), every change of the run gets its own
+headless Claude Code session in its worktree instead (Part 4). That session
+applies the change as a single-change apply in that checkout would, and
+starts the sub-agents its apply procedure needs. You only start, resume and
+check the sessions. Never pick headless on your own. Say in the graph header
+which one the run uses.
+
 This skill does not depend on a language, framework or build system. Whatever
 the project builds and tests with comes from the project's own instructions
 (`CLAUDE.md`, `AGENTS.md`, the README) and from the OpenSpec apply
 instruction. The only build-system-specific rule is the one for Gradle in
-Step 9.
+Step 9. TDD mode's rules come from the `openspec-apply-tdd` skill and
+this project's `AGENTS.md`.
 
 ---
 
@@ -174,6 +192,7 @@ lists, no group numbers, no copies of the proposals.
 ## Dependency graph: <n> open changes (<m> merged, <i> implemented, <p> in progress)
 
 Integration branch: `<branch>`
+Changes run: <as sub-agents | in headless sessions>
 
 ### Order
 | Wave | Change | Waits for | Unblocks | Status |
@@ -221,7 +240,9 @@ From here on you are the **orchestrator**. Your job is to start sub-agents,
 watch their results, and keep the user informed.
 
 - You do not implement tasks, edit change documents, or fix code yourself.
-  All of that happens in sub-agents inside worktrees.
+  All of that happens in sub-agents inside worktrees. The exception is TDD
+  mode's scripts in `.claude/tdd/` (snapshot, check, park, activate): you
+  run those yourself, as `openspec-apply-tdd` describes.
 - You do not merge, push, rebase or archive.
 - You do not answer product or design questions for a sub-agent. Those go to
   the user.
@@ -253,6 +274,18 @@ Leave out a single change, and say why, if one of these holds:
 - `openspec instructions apply --change <change-id> --json` reports the state
   `blocked` (a required artifact is missing).
 - The graph has a gap or an undeclared missing prerequisite for it.
+- TDD mode only: one of the stop conditions in section 1 of
+  `openspec-apply-tdd` holds for it (missing skill, agents or scripts, or a
+  task without a role tag).
+
+Headless mode, checked once for the whole run. If one fails, stop before
+any change starts and tell the user:
+
+- `claude --version` works.
+- `git status --short .claude` in the main checkout prints nothing. A
+  headless session started in a worktree loads its settings, permissions,
+  hooks, agents and skills from that worktree, so it only sees what is
+  committed on the integration branch.
 
 ## Step 7: Delete the worktrees of merged changes
 
@@ -275,7 +308,7 @@ leave them alone. Delete the worktree when all of these hold:
 - The change is merged: on the integration branch its `tasks.md` has no
   unchecked task, or its folder is in `openspec/changes/archive/` there.
 - `git -C "$wt" status --porcelain` prints nothing.
-- No sub-agent is working in it.
+- No sub-agent and no headless session is working in it.
 
 ```bash
 git worktree remove "$wt"
@@ -286,7 +319,10 @@ If the worktree has its own Gradle home (Step 9), stop its daemons first:
 `GRADLE_USER_HOME="$wt/.gradle-home" "$wt/gradlew" --stop`.
 
 Then run `git worktree list` and confirm the path is gone. The branches of
-the change stay, so no commit is lost.
+the change stay, so no commit is lost. For a TDD-mode change, also delete its
+state folder `<git common dir>/tdd-state/<change-id>` (Part 3, T1). In
+headless mode, also delete `<git common dir>/orchestrate/<change-id>`
+(Part 4).
 
 Never use `--force`. If the change is merged but its worktree has uncommitted
 files, or `git worktree remove` refuses, keep the worktree and list it under
@@ -299,7 +335,7 @@ A change is **ready** when all of these hold:
 
 - it is in scope (Scope, above) and was not left out in Step 6,
 - its status is `not started` or `in progress`,
-- no sub-agent is working on it,
+- no sub-agent or headless session is working on it,
 - every change it waits for (`declared`, `needs` and `order` edges) is
   **merged**. `implemented` is not enough: every change branches from the
   integration branch.
@@ -344,7 +380,15 @@ The worktree starts detached. The sub-agent creates the branch or branches
 of the change. If the apply instruction defines a branch scheme, that scheme
 applies. Otherwise the change gets one branch named `<change-id>`.
 
+TDD mode: several sub-agents work in the worktree one after another, so you
+create the branch yourself before the first one starts:
+`git -C "$wt" switch -c <change-id>`, or `git -C "$wt" switch <change-id>`
+if it already exists.
+
 ## Step 10: Start the sub-agents
+
+Standard mode only. For a TDD-mode change, follow Part 3 instead of Steps 10
+and 11.
 
 Start one general-purpose sub-agent per ready change with the Agent tool.
 Send all launches of one round in a single message so they run at the same
@@ -409,6 +453,8 @@ and "Assumptions made" (what, why, the alternative) or "none".
 
 ## Step 11: Handle each result
 
+Standard mode only; TDD mode handles its results in Part 3.
+
 Don't take a report at face value. Check the state yourself first:
 
 ```bash
@@ -459,6 +505,17 @@ the final report, run Step 7 one more time.
 ### Assumptions made
 <Per change, the assumptions its sub-agents reported. "None" if none.>
 
+### Test-first results
+<TDD-mode changes only. Omit the section if there were none.>
+| Change | Disputes | Snapshot checks | Mutation | Adversary |
+|---|---|---|---|---|
+| `<change-id>` | <n upheld / n rejected / n to user> | <all OK, or the failed check> | <killed/total per module, or "not run: reason"> | <tests added, bugs found, questions> |
+
+- Artifact updates needed: every answer the user gave to a dispute or an
+  adversary question, with the artifact (spec, design.md) that should now
+  say it. The answer is already in the tests; the artifact is not updated.
+- Adversary questions still open, word for word.
+
 ### Worktrees
 | Change | Worktree | State |
 |---|---|---|
@@ -466,6 +523,10 @@ the final report, run Step 7 one more time.
 | `<change-id>` | `<path>` | kept, waiting to be merged |
 | `<change-id>` | `<path>` | NOT deleted: <reason>. Run `<command>` |
 ```
+
+In headless mode, add a "Session" column to the Worktrees table with each
+change's session id, so the user can open it with
+`cd <worktree> && claude --resume <session-id>`.
 
 The Worktrees table lists every worktree that existed during the run. A
 merged change may only appear there as `deleted` or `NOT deleted` with a
@@ -493,3 +554,200 @@ ready.
 - One sub-agent per change at a time, one worktree per change.
 - Don't fix the plan. Missing prerequisites, cycles and problems inside a
   change's `tasks.md` are reported, not edited.
+
+---
+
+# Part 3: TDD mode
+
+For changes with `schema: careful-planning-tdd`. The procedure for applying
+one such change lives in the `openspec-apply-tdd` skill: read its
+`SKILL.md` and follow sections 2 to 9 for every TDD-mode change, as the
+coordinator. This part only lists what differs when you run it for several
+changes in worktrees. Steps 6 to 9 still apply; this part replaces Steps 10
+and 11.
+
+## T1: Per change
+
+- **Workspace**: the change's worktree (`$wt`), not the main checkout. Its
+  branch is `<change-id>` (Step 9).
+- **State folder**: `$(git rev-parse --path-format=absolute
+  --git-common-dir)/tdd-state/<change-id>`, the same path
+  `openspec-apply-tdd` uses, shared by all worktrees of the repository.
+  Write `start` there before the first step if it does not exist:
+  `git -C "$wt" rev-parse HEAD`.
+- **Scripts**: `$root/.claude/tdd/` of the main checkout.
+- **Gradle**: the worktree's own Gradle home from Step 9. Add its line to
+  every step prompt.
+
+## T2: Running several changes
+
+- One change's steps run strictly one after another. Steps of different
+  changes run in parallel, up to the parallel limit counted in changes.
+  Start each change's agents in the background and handle each result as it
+  comes; resume a change's implementer with SendMessage, as
+  `openspec-apply-tdd` describes.
+- A change waiting for the user (a dispute or a question) doesn't stop the
+  others.
+- Questions from a change's agents go to the user word for word, with the change
+  id in front.
+
+## T3: Results
+
+A TDD-mode change is `implemented` when every task is checked (the
+optional `[adversary]` task included) and its final `tdd-check-tests.sh`
+reports `OK`. A `CHANGED` check stops only
+that change; list it under "Needs you" in Step 12 with the script's output.
+Fill the "Test-first results" section of Step 12 from each change's final
+report (section 7 of `openspec-apply-tdd`).
+
+---
+
+# Part 4: Headless sessions
+
+Only when the user asked for headless mode. Every change of the run gets its
+own headless Claude Code session in its worktree. That session applies the
+change exactly as a single-change apply in that checkout would, and starts
+whatever sub-agents its apply procedure calls for. You don't start
+sub-agents for a change or run its per-change procedure yourself; you
+start, resume and check sessions. This part replaces Steps 10 and 11 and
+Part 3. Steps 6 to 9 and 12 still apply.
+
+## H1: Start a session
+
+One session per change at a time; the parallel limit counts sessions. Pick
+the session id yourself, so the session can be resumed even if it dies
+before it writes a result. Keep it outside the working tree, in a folder
+shared by all worktrees:
+
+```bash
+run="$(git rev-parse --path-format=absolute --git-common-dir)/orchestrate/<change-id>"
+mkdir -p "$run"
+[ -f "$run/session-id" ] || uuidgen | tr 'A-Z' 'a-z' > "$run/session-id"
+```
+
+If `$run/session-id` already exists from an earlier run, resume that session
+(H3) instead of starting a new one.
+
+Start it with the Bash tool in the background (`run_in_background`), so you
+are notified when it exits:
+
+```bash
+cd "$wt" && <Gradle only: GRADLE_USER_HOME="$wt/.gradle-home"> claude -p "<prompt>" \
+  --session-id "$(cat "$run/session-id")" \
+  --output-format json \
+  --permission-mode auto \
+  --permission-prompts none \
+  > "$run/session.json" 2> "$run/session.err"
+```
+
+`--permission-mode auto` lets the auto-mode classifier approve tool calls,
+so the session doesn't depend on an allow list for every command. What the
+classifier would still ask about, `--permission-prompts none` denies instead
+of waiting for an approval nobody can give. Deny rules and hooks in the
+worktree's `.claude/settings.json` still apply.
+
+The prompt, with every placeholder filled in and absolute paths:
+
+```
+You implement one OpenSpec change on your own: `<change-id>`. You run
+headless: nobody can answer questions or approve permissions while you work.
+
+Workspace: <worktree path>
+This is a git worktree of the repository, created from
+`<integration-branch>`. Work only there. Start every shell command with
+`cd <worktree path> &&` and use absolute paths under it. The main checkout
+at <main checkout path> and the other worktrees belong to other sessions.
+Do not change anything in them.
+
+What to do:
+1. Read the project's instructions in the workspace (CLAUDE.md, AGENTS.md)
+   and follow them.
+2. Apply the change the way it is applied in a single checkout: run
+   `openspec instructions apply --change <change-id>` in the workspace and
+   follow it. If it or the project's instructions route this change to an
+   apply skill, use that skill, with this workspace as its workspace. Its
+   instruction section is mandatory, including its branch scheme and its
+   gates. If it defines no branch scheme and no branch is checked out,
+   create one branch named `<change-id>` before the first commit.
+3. You are a full session, not a sub-agent. If the procedure starts
+   sub-agents, start them yourself with the Agent tool, in the foreground,
+   and wait for each result. Never end your turn while a sub-agent is still
+   running.
+4. <Fresh start: "Nothing has been done yet.">
+   <Continuation: "An earlier session already worked on this change. Check
+   `git status`, the branches and the checked tasks first, and continue
+   the way the procedure says to resume."> <Plus the user's answer if this
+   continues after a question.>
+
+Headless rules:
+- Wherever the procedure says to ask the user, don't guess. Stop and end
+  with `NEEDS-USER`, the question word for word and the options it names.
+- If a tool call is denied for lack of permission, don't try a different
+  command that does the same. Stop and end with `BLOCKED`, naming the exact
+  command or tool call that was denied.
+- If the procedure says to stop and hand over to the user for any other
+  reason (a failed check, a guard that fired), end with `STOPPED`.
+- Never stop or kill processes you did not start. If a port is taken, use
+  another one.
+- <Gradle projects only: "Put `GRADLE_USER_HOME=<worktree path>/.gradle-home`
+  in front of every Gradle command and into every sub-agent prompt. Never
+  run `./gradlew --stop`.">
+- Do not decide open product or design questions yourself and do not add a
+  dependency that still needs approval.
+- Commit locally. Do not push, do not merge anything, do not commit to
+  `<integration-branch>`, do not touch branches of other changes, do not
+  archive.
+- <One line per overlap note of this change, as in Step 10.>
+
+Your final message starts with exactly one of these lines:
+- `DONE <change-id>`: every task checked, all gates pass, everything
+  committed. List the branches in the order they have to be merged.
+- `PARTIAL <change-id>`: you stopped without a blocker. Name the last
+  finished group and whether the group in progress is committed.
+- `NEEDS-USER <change-id>`: the question, as above.
+- `BLOCKED <change-id>`: what blocks it, the exact error or denied call.
+- `STOPPED <change-id>`: why the procedure stopped, and the output of the
+  check that failed.
+After that line, in every case: the gate results of the last finished
+group, "Assumptions made" (what, why, the alternative) or "none", and the
+final report the procedure defines, if it defines one.
+```
+
+## H2: Handle each result
+
+When the background command exits, read `$run/session.json`: `result` is the
+session's final message, `is_error` and the exit code tell whether the
+session ended normally, and `permission_denials` (if present) lists the
+calls that were denied. Then check the state yourself, as in Step 11. If
+this skill sets an extra condition for when a change counts as
+implemented, check that too.
+
+| What you find | What to do |
+|---|---|
+| `DONE`, and the state checks pass | The change is `implemented`. Keep its report for Step 12. |
+| `DONE` reported but a state check fails | Resume (H3) and name exactly what is missing. |
+| `NEEDS-USER` | Pass the question to the user word for word, with the change id in front, while the other sessions keep running. Resume with the answer. |
+| `BLOCKED` on a denied permission, or `permission_denials` is not empty | Show the user the denied calls and ask: add an allow rule to `.claude/settings.json` (it then has to be committed on the integration branch and brought into the change's branch, or the worktree won't see it), allow it for this session only (resume with `--allowedTools "<rule>"`), or stop the change. Never decide this yourself and never switch to `bypassPermissions`. |
+| `BLOCKED` on the environment | As in Step 11, then resume. |
+| `STOPPED` | Stop this change. List it under "Needs you" in Step 12 with the reason and the output. |
+| `PARTIAL`, no clear first line, `is_error`, or no `session.json` | Resume with "Continue where you stopped." Two sessions in a row without a new checked task: treat it as blocked. |
+
+After every result, redo Step 8 and fill free slots.
+
+## H3: Resume a session
+
+Same worktree, same flags, the same session, so it keeps its context:
+
+```bash
+cd "$wt" && <Gradle prefix> claude -p "<message>" \
+  --resume "$(cat "$run/session-id")" \
+  --output-format json \
+  --permission-mode auto \
+  --permission-prompts none \
+  <--allowedTools "<rule>" if the user allowed one for this session> \
+  > "$run/session.json" 2> "$run/session.err"
+```
+
+Again in the background. If the resume itself fails (the session can't be
+found), delete `$run/session-id` and start a fresh session with the
+continuation prompt from H1.
