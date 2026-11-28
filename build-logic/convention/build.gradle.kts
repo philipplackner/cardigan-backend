@@ -86,5 +86,9 @@ gradlePlugin {
             id = "cardigan.ktlint"
             implementationClass = "KtlintConventionPlugin"
         }
+        register("detekt") {
+            id = "cardigan.detekt"
+            implementationClass = "DetektConventionPlugin"
+        }
     }
 }

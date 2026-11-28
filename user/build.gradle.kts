@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.convention.kover)
     alias(libs.plugins.convention.pitest)
     alias(libs.plugins.convention.ktlint)
+    alias(libs.plugins.convention.detekt)
 }
 
 dependencies {

@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.convention.spring.jpa)
     alias(libs.plugins.convention.kover)
     alias(libs.plugins.convention.ktlint)
+    alias(libs.plugins.convention.detekt)
 }
 
 dependencies {

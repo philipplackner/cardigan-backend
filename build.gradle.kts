@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kover) apply false
     alias(libs.plugins.pitest) apply false
     alias(libs.plugins.ktlint) apply false
+    alias(libs.plugins.detekt) apply false
     alias(libs.plugins.convention.kover.report)
     alias(libs.plugins.convention.pitest.report)
     alias(libs.plugins.convention.ktlint)
