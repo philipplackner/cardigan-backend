@@ -13,6 +13,7 @@ dependencies {
     compileOnly(libs.kover.gradlePlugin)
     compileOnly(libs.pitest.gradlePlugin)
     compileOnly(libs.ktlint.gradlePlugin)
+    compileOnly(libs.detekt.gradlePlugin)
 
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation(libs.junit.jupiter)

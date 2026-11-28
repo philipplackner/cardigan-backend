@@ -14,6 +14,8 @@ pitest = "1.30.2"
 pitest-junit5 = "1.2.2"
 ktlint-gradle = "14.2.0"
 ktlint = "1.8.0"
+detekt = "2.0.0-alpha.6"
+konsist = "1.0.0-beta.1"
 
 [libraries]
 # Gradle plugin artifacts for build-logic
@@ -24,6 +26,13 @@ spring-boot-gradlePlugin = { module = "org.springframework.boot:spring-boot-grad
 kover-gradlePlugin = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
 pitest-gradlePlugin = { module = "info.solidsoft.gradle.pitest:gradle-pitest-plugin", version.ref = "pitest-gradle" }
 ktlint-gradlePlugin = { module = "org.jlleitschuh.gradle:ktlint-gradle", version.ref = "ktlint-gradle" }
+detekt-gradlePlugin = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+
+# detekt rule API, test support and engine (engine for tests only)
+detekt-api = { module = "dev.detekt:detekt-api", version.ref = "detekt" }
+detekt-test = { module = "dev.detekt:detekt-test", version.ref = "detekt" }
+detekt-core = { module = "dev.detekt:detekt-core", version.ref = "detekt" }
+konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 
 # BOM
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -75,6 +84,7 @@ spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 pitest = { id = "info.solidsoft.pitest", version.ref = "pitest-gradle" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
 
 convention-kotlin-jvm = { id = "cardigan.kotlin.jvm" }
 convention-spring-module = { id = "cardigan.spring.module" }
@@ -85,3 +95,4 @@ convention-kover-report = { id = "cardigan.kover.report" }
 convention-pitest = { id = "cardigan.pitest" }
 convention-pitest-report = { id = "cardigan.pitest.report" }
 convention-ktlint = { id = "cardigan.ktlint" }
+convention-detekt = { id = "cardigan.detekt" }

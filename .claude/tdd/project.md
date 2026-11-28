@@ -41,7 +41,7 @@ files) on their own: the normal test tasks never write expected values. `OpenApi
 
 ## Areas
 
-An area is one Gradle module: `app`, `common`, `user` or `board`. A changed file belongs to the module named by its first path segment (`board/src/...` → `board`). `build-logic/` is a separate included build with its own test command (above). `:app` holds only assembly and E2E tests; business code lives in `user` and `board`, shared code in `common`.
+An area is one Gradle module: `app`, `common`, `user`, `board` or `tooling`. A changed file belongs to the module named by its first path segment (`board/src/...` → `board`). `build-logic/` is a separate included build with its own test command (above). `:app` holds only assembly and E2E tests; business code lives in `user` and `board`, shared code in `common`. `tooling` holds the custom detekt rules and, in `src/test`, their tests and the Konsist checks (package `com.plcoding.cardigan.tooling.konsist`). Its test command is `./gradlew :tooling:test` (full name required; `./gradlew test` and `./gradlew build` skip it), and it never runs the Konsist checks; those run with `./gradlew konsist`. It takes no part in coverage or mutation testing.
 
 ## Scaffold
 
@@ -54,6 +54,7 @@ An area is one Gradle module: `app`, `common`, `user` or `board`. A changed file
 - How they are written: Kotlin test classes in `app/src/test/kotlin/com/plcoding/cardigan/`, one `<Feature>E2eTest` per feature, extending the `E2eTest` base class (`@SpringBootTest(RANDOM_PORT)`, `RestTestClient`, Testcontainers Postgres, `@Tag("integration")`). Sign in with `E2eTest.signIn` (register then login over HTTP). Assert problem responses with the helpers in `ProblemAssertions.kt`. Requests and responses are written as JSON against the documented `/api/v1/...` routes, not with the change's DTO classes. Run with `./gradlew :app:test --tests 'com.plcoding.cardigan.<Name>E2eTest'`.
 - They use only the public interface of that level, never types or
   functions the change adds.
+- `:tooling` (custom detekt rules) has its own acceptance level: detekt's engine (`detekt-core`, test-only) run in-process from tests in `tooling/src/test/kotlin/com/plcoding/cardigan/tooling/detekt/`. The run uses the real `config/detekt/detekt.yml`, loads the `cardigan` rule set only through detekt's plugin mechanism (the `META-INF/services/dev.detekt.api.RuleSetProvider` registration on the classpath), and analyzes files at `src/main/...`, `src/test/...` and `src/testFixtures/...` paths. Component tests use detekt-test's `lint(code)` against the rule directly. Run with `./gradlew :tooling:test`, narrowed with `--tests` where useful.
 
 ## Mutation testing
 
