@@ -13,7 +13,7 @@
 
 ## 3. NoMockingLibraries rule
 
-- [ ] 3.1 [scaffold] Add `CardiganRuleSetProvider` and `NoMockingLibraries(config: Config)` in `tooling/src/main/kotlin/com/plcoding/cardigan/tooling/detekt/` with the signatures from design decision 8 and `TODO()` bodies where logic goes. Register the provider in `src/main/resources/META-INF/services/dev.detekt.api.RuleSetProvider`. Verify with `./gradlew :tooling:testClasses`.
+- [x] 3.1 [scaffold] Add `CardiganRuleSetProvider` and `NoMockingLibraries(config: Config)` in `tooling/src/main/kotlin/com/plcoding/cardigan/tooling/detekt/` with the signatures from design decision 8 and `TODO()` bodies where logic goes. Register the provider in `src/main/resources/META-INF/services/dev.detekt.api.RuleSetProvider`. Verify with `./gradlew :tooling:testClasses`.
 - [ ] 3.2 [red] Write C01-C13 from tests.md as `NoMockingLibrariesTest` (and the provider test it names) in `tooling/src/test/kotlin/com/plcoding/cardigan/tooling/detekt/`.
 - [ ] 3.3 [green] Implement `NoMockingLibraries` and `CardiganRuleSetProvider` as design decision 8 describes: case-sensitive matching, the exact message, one finding per import, off unless configured. Verify with the tests of 3.2 passing (`./gradlew :tooling:test`).
 
