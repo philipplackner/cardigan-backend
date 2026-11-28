@@ -60,7 +60,7 @@
 
 ## 7. Integration
 
-- [ ] 7.1 [plain] Run `openspec validate be-detekt-konsist --strict`, `./gradlew build`, `./gradlew -p build-logic test`, `./gradlew :tooling:test` and `./gradlew konsist`. Verify all pass, and that `./gradlew build` ran no detekt task, Konsist check or `:tooling` test.
+- [x] 7.1 [plain] Run `openspec validate be-detekt-konsist --strict`, `./gradlew build`, `./gradlew -p build-logic test`, `./gradlew :tooling:test` and `./gradlew konsist`. Verify all pass, and that `./gradlew build` ran no detekt task, Konsist check or `:tooling` test.
 
 ## Workflow follow-up
 
