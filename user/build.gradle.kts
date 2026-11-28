@@ -4,6 +4,7 @@ plugins {
     `java-test-fixtures`
     alias(libs.plugins.convention.kover)
     alias(libs.plugins.convention.pitest)
+    alias(libs.plugins.convention.ktlint)
 }
 
 dependencies {

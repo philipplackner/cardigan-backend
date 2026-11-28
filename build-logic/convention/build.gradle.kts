@@ -1,5 +1,8 @@
+import org.jlleitschuh.gradle.ktlint.reporter.ReporterType
+
 plugins {
     `kotlin-dsl`
+    alias(libs.plugins.ktlint)
 }
 
 dependencies {
@@ -9,6 +12,7 @@ dependencies {
     compileOnly(libs.spring.boot.gradlePlugin)
     compileOnly(libs.kover.gradlePlugin)
     compileOnly(libs.pitest.gradlePlugin)
+    compileOnly(libs.ktlint.gradlePlugin)
 
     testImplementation(platform(libs.spring.boot.bom))
     testImplementation(libs.junit.jupiter)
@@ -18,6 +22,29 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// Same settings as KtlintConventionPlugin, which build-logic can't apply to itself.
+ktlint {
+    version.set(libs.versions.ktlint.asProvider())
+    outputToConsole.set(true)
+    verbose.set(true)
+    ignoreFailures.set(false)
+    reporters {
+        reporter(ReporterType.SARIF)
+        reporter(ReporterType.CHECKSTYLE)
+    }
+    kotlinScriptAdditionalPaths {
+        include(fileTree(rootDir) { include("settings.gradle.kts") })
+    }
+    val buildDir = layout.buildDirectory.get().asFile
+    filter {
+        exclude { it.file.startsWith(buildDir) }
+    }
+}
+
+tasks.named("check") {
+    setDependsOn(dependsOn.filterNot { it is TaskProvider<*> && it.name.startsWith("ktlint") })
 }
 
 gradlePlugin {
@@ -53,6 +80,10 @@ gradlePlugin {
         register("pitestReport") {
             id = "cardigan.pitest.report"
             implementationClass = "PitestReportConventionPlugin"
+        }
+        register("ktlint") {
+            id = "cardigan.ktlint"
+            implementationClass = "KtlintConventionPlugin"
         }
     }
 }

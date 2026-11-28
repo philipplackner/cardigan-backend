@@ -5,8 +5,10 @@ plugins {
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.kover) apply false
     alias(libs.plugins.pitest) apply false
+    alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.convention.kover.report)
     alias(libs.plugins.convention.pitest.report)
+    alias(libs.plugins.convention.ktlint)
 }
 
 allprojects {

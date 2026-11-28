@@ -21,6 +21,7 @@ This file is the project's system prompt. The `spring-*` skills in `.claude/skil
 | Tests | JUnit 5, AssertK, hand-written fakes, Testcontainers (Postgres), WireMock, Awaitility |
 | Coverage | Kover (on demand only), diff-cover through `uvx` for changed lines |
 | Mutation testing | PIT through the `info.solidsoft.pitest` Gradle plugin (on demand only, unit tests only) |
+| Formatting | ktlint through the `org.jlleitschuh.gradle.ktlint` Gradle plugin, `ktlint_official` style, 120 columns, rules in the root `.editorconfig` (on demand only) |
 
 **Current state:** the modules `:app`, `:common`, `:user` and `:board` exist. Security (JWT access-token verification and issuing), the shared error model, request validation, the wire conventions and springdoc are wired in. `:user` has the `users`, `sessions` and `refresh_tokens` tables, `GET /api/v1/users/me`, register, login, refresh and logout under `/api/v1/auth`, the per-email rate limit on login and register, and the daily cleanup of ended sessions. `:board` has the `boards`, `columns` and `labels` tables, the board and column endpoints under `/api/v1/boards` and the label endpoints under `/api/v1/labels`. Label colors are upper-case constants such as `RED`. There are no migration files yet. The Modulith event registry is described below but not wired in. It arrives with the first event.
 
@@ -169,6 +170,7 @@ app/src/
 | An E2E test | `:app` `src/test`, extending the `E2eTest` base class |
 | A new module in coverage reports | Apply `alias(libs.plugins.convention.kover)` (`cardigan.kover`) in its `build.gradle.kts`. Nothing else |
 | A new module in mutation reports | Apply `alias(libs.plugins.convention.pitest)` (`cardigan.pitest`) in its `build.gradle.kts`. Nothing else |
+| A new module in ktlint | Apply `alias(libs.plugins.convention.ktlint)` (`cardigan.ktlint`) in its `build.gradle.kts`. Nothing else |
 | A test class that starts a Spring context or a container | Annotate it (or its base class) with `@Tag("integration")`, so mutation testing leaves it out |
 
 ---
@@ -301,6 +303,8 @@ Commands:
 | Coverage report | `./gradlew coverageReport [-Pcoverage.modules=user,board] [-Pcoverage.minLine=80] [-Pcoverage.minBranch=70]` |
 | Coverage of changed lines | `./gradlew coverageDiff [-Pcoverage.modules=user] [-Pcoverage.compareBranch=origin/master]` |
 | Mutation report | `./gradlew mutationReport [-Pmutation.modules=user,board] [-Pmutation.threads=4] [-Pmutation.minScore=60]` |
+| Check formatting | `./gradlew ktlintCheck [--continue]` |
+| Fix formatting | `./gradlew ktlintFormat` |
 
 Coverage:
 
@@ -311,6 +315,14 @@ Coverage:
 - `coverageReport` writes `build/reports/kover/report.xml` and `build/reports/kover/html/index.html` and prints line and branch coverage. `coverage.minLine` and `coverage.minBranch` (0 to 100, decimals allowed) make it fail when the selection misses them. Nothing sets them by default.
 - `coverageDiff` needs `uv` (https://docs.astral.sh/uv/). It runs diff-cover at the version pinned in `libs.versions.toml` and writes `build/reports/diff-coverage/index.html`. It compares against the merge base with `coverage.compareBranch` (default `origin/master`), counts staged, unstaged and untracked files, and never fails on low coverage.
 - `coverageDiff` never fetches. Run `git fetch` first for a fresh `origin/master`. If you install `uv` while a Gradle daemon is running, run `./gradlew --stop` so the daemon sees it.
+
+Formatting:
+
+- Nothing runs ktlint automatically. `build`, `check`, CI and git hooks never run it, and no task formats files as a side effect.
+- `ktlintCheck` checks main, test and testFixtures sources, every `*.gradle.kts` file and build-logic, prints each violation with file, line, column and rule, and changes no file. Without `--continue` it stops at the first project with violations.
+- `ktlintFormat` fixes what ktlint can fix in the same files and prints the rest.
+- Reports: SARIF and Checkstyle files in `build/reports/ktlint/` of each project and of `build-logic/convention`.
+- A violation that can't be fixed without changing a client-visible name (API path, JSON name, enum constant, database name) gets `@Suppress("ktlint:standard:<rule>")` on the narrowest declaration.
 
 Mutation testing:
 
