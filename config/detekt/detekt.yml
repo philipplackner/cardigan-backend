@@ -1,0 +1,26 @@
+# Overrides of detekt's default config only. Every rule not listed here keeps its default.
+
+config:
+  # The cardigan rule set isn't loaded for build-logic, so its section would fail validation there.
+  excludes: ['cardigan.*']
+
+empty-blocks:
+  # duplicates ktlint
+  EmptyClassBlock:
+    active: false
+
+style:
+  # duplicates ktlint
+  MaxLineLength:
+    active: false
+  ModifierOrder:
+    active: false
+  NewLineAtEndOfFile:
+    active: false
+  WildcardImport:
+    active: false
+
+cardigan:
+  NoMockingLibraries:
+    active: true
+    includes: ['**/src/test/**', '**/src/testFixtures/**']

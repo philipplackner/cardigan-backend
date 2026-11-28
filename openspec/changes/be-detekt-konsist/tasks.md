@@ -19,8 +19,8 @@
 
 ## 4. detekt wiring and config
 
-- [ ] 4.1 [plain] Create `config/detekt/detekt.yml` (design decision 3): only overrides; the rules that duplicate ktlint off under a `# duplicates ktlint` comment; `cardigan.NoMockingLibraries` with `active: true` and `includes` for `src/test` and `src/testFixtures`; config validation that accepts the `cardigan` section where the rule set isn't loaded. Verify by reading the file against detekt's default config.
-- [ ] 4.2 [acceptance-green] Make the acceptance tests of 1.1 pass. Verify with `./gradlew :tooling:test` passing.
+- [x] 4.1 [plain] Create `config/detekt/detekt.yml` (design decision 3): only overrides; the rules that duplicate ktlint off under a `# duplicates ktlint` comment; `cardigan.NoMockingLibraries` with `active: true` and `includes` for `src/test` and `src/testFixtures`; config validation that accepts the `cardigan` section where the rule set isn't loaded. Verify by reading the file against detekt's default config.
+- [x] 4.2 [acceptance-green] Make the acceptance tests of 1.1 pass. Verify with `./gradlew :tooling:test` passing.
 - [ ] 4.3 [plain] Add `DetektConventionPlugin` (`cardigan.detekt`) in build-logic (design decision 2):
   - shared config, `buildUponDefaultConfig`, no baseline;
   - HTML and SARIF reports only, fail on any finding;
