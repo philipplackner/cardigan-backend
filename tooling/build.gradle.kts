@@ -12,6 +12,20 @@ dependencies {
     testImplementation(libs.konsist)
 }
 
+// detekt brings kotlin-compiler and Konsist kotlin-compiler-embeddable; Konsist fails when it sees both.
+val konsistRuntimeClasspath = configurations.create("konsistRuntimeClasspath") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
+dependencies {
+    konsistRuntimeClasspath(platform(libs.spring.boot.bom))
+    konsistRuntimeClasspath(libs.konsist)
+    konsistRuntimeClasspath(libs.junit.jupiter)
+    konsistRuntimeClasspath(libs.assertk)
+    konsistRuntimeClasspath(libs.junit.platform.launcher)
+}
+
 val konsistPackage = "com.plcoding.cardigan.tooling.konsist.*"
 
 tasks.test {
@@ -27,7 +41,7 @@ tasks.register<Test>("konsist") {
     description = "Runs the Konsist architecture checks."
     group = "verification"
     testClassesDirs = sourceSets.test.get().output.classesDirs
-    classpath = sourceSets.test.get().runtimeClasspath
+    classpath = sourceSets.test.get().output + konsistRuntimeClasspath
     filter.includeTestsMatching(konsistPackage)
     inputs.files(listOf("common", "user", "board").map { rootProject.layout.projectDirectory.dir("$it/src") })
         .withPathSensitivity(PathSensitivity.RELATIVE)
