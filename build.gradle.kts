@@ -17,30 +17,33 @@ allprojects {
     version = "0.0.1-SNAPSHOT"
 }
 
-val detektReportMerge = tasks.register<dev.detekt.gradle.report.ReportMergeTask>("detektReportMerge") {
-    description = "Merges the SARIF reports of every analyzed module and build-logic."
-    output = layout.buildDirectory.file("reports/detekt/merge.sarif")
-    input.from(
-        file("build-logic/convention/build/reports/detekt/main.sarif"),
-        file("build-logic/convention/build/reports/detekt/test.sarif"),
-    )
-}
+val detektReportMerge =
+    tasks.register<dev.detekt.gradle.report.ReportMergeTask>("detektReportMerge") {
+        description = "Merges the SARIF reports of every analyzed module and build-logic."
+        output = layout.buildDirectory.file("reports/detekt/merge.sarif")
+        input.from(
+            file("build-logic/convention/build/reports/detekt/main.sarif"),
+            file("build-logic/convention/build/reports/detekt/test.sarif"),
+        )
+    }
 
-val detekt = tasks.register("detekt") {
-    description = "Runs detekt on build-logic. Every module's own detekt task runs next to it."
-    group = "verification"
-    dependsOn(gradle.includedBuild("build-logic").task(":convention:detekt"))
-    finalizedBy(detektReportMerge)
-}
+val detekt =
+    tasks.register("detekt") {
+        description = "Runs detekt on build-logic. Every module's own detekt task runs next to it."
+        group = "verification"
+        dependsOn(gradle.includedBuild("build-logic").task(":convention:detekt"))
+        finalizedBy(detektReportMerge)
+    }
 detektReportMerge.configure { mustRunAfter(detekt) }
 
-val staticAnalysis = tasks.register<StaticAnalysisTask>("staticAnalysis") {
-    description = "Runs detekt and the Konsist checks, and fails at the end when either found something."
-    group = "verification"
-    dependsOn(detekt, detektReportMerge, ":tooling:konsist")
-    detektReport = detektReportMerge.flatMap { it.output }
-    konsistResults.from(fileTree("tooling/build/test-results/konsist") { include("*.xml") })
-}
+val staticAnalysis =
+    tasks.register<StaticAnalysisTask>("staticAnalysis") {
+        description = "Runs detekt and the Konsist checks, and fails at the end when either found something."
+        group = "verification"
+        dependsOn(detekt, detektReportMerge, ":tooling:konsist")
+        detektReport = detektReportMerge.flatMap { it.output }
+        konsistResults.from(fileTree("tooling/build/test-results/konsist") { include("*.xml") })
+    }
 
 subprojects {
     pluginManager.withPlugin("dev.detekt") {
@@ -51,7 +54,13 @@ subprojects {
             finalizedBy(detektReportMerge)
             // A plain provider adds the file without a task dependency, so `:user:detekt` doesn't run every module.
             detektReportMerge.configure {
-                input.from(provider { task.reports.sarif.outputLocation.get().asFile })
+                input.from(
+                    provider {
+                        task.reports.sarif.outputLocation
+                            .get()
+                            .asFile
+                    },
+                )
                 mustRunAfter(task)
             }
         }

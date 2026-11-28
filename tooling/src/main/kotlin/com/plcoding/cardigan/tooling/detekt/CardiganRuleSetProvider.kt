@@ -6,7 +6,6 @@ import dev.detekt.api.RuleSetProvider
 
 /** Provides the `cardigan` rule set with the project's custom detekt rules. */
 class CardiganRuleSetProvider : RuleSetProvider {
-
     override val ruleSetId: RuleSetId = RuleSetId("cardigan")
 
     override fun instance(): RuleSet = RuleSet(ruleSetId, listOf(::NoMockingLibraries))

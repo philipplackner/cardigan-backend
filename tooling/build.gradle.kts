@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.convention.kotlin.jvm)
     alias(libs.plugins.convention.detekt)
+    alias(libs.plugins.convention.ktlint)
 }
 
 dependencies {
@@ -13,10 +14,11 @@ dependencies {
 }
 
 // detekt brings kotlin-compiler and Konsist kotlin-compiler-embeddable; Konsist fails when it sees both.
-val konsistRuntimeClasspath = configurations.create("konsistRuntimeClasspath") {
-    isCanBeConsumed = false
-    isCanBeResolved = true
-}
+val konsistRuntimeClasspath =
+    configurations.create("konsistRuntimeClasspath") {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+    }
 
 dependencies {
     konsistRuntimeClasspath(platform(libs.spring.boot.bom))
@@ -30,7 +32,8 @@ val konsistPackage = "com.plcoding.cardigan.tooling.konsist.*"
 
 tasks.test {
     filter.excludeTestsMatching(konsistPackage)
-    inputs.files(rootProject.layout.projectDirectory.file("config/detekt/detekt.yml"))
+    inputs
+        .files(rootProject.layout.projectDirectory.file("config/detekt/detekt.yml"))
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("detektConfig")
     val requested = gradle.startParameter.taskNames.any { it == ":tooling:test" || it == "tooling:test" }
@@ -40,10 +43,14 @@ tasks.test {
 tasks.register<Test>("konsist") {
     description = "Runs the Konsist architecture checks."
     group = "verification"
-    testClassesDirs = sourceSets.test.get().output.classesDirs
+    testClassesDirs =
+        sourceSets.test
+            .get()
+            .output.classesDirs
     classpath = sourceSets.test.get().output + konsistRuntimeClasspath
     filter.includeTestsMatching(konsistPackage)
-    inputs.files(listOf("common", "user", "board").map { rootProject.layout.projectDirectory.dir("$it/src") })
+    inputs
+        .files(listOf("common", "user", "board").map { rootProject.layout.projectDirectory.dir("$it/src") })
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("checkedSources")
     val requestedTasks = gradle.startParameter.taskNames

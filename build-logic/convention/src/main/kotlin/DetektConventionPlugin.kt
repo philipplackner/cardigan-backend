@@ -16,7 +16,6 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
  * type-resolution tasks of every source set (`detektMain`, `detektTest`, ...). No detekt task is part of `check`.
  */
 class DetektConventionPlugin : Plugin<Project> {
-
     override fun apply(target: Project) {
         with(target) {
             pluginManager.apply("dev.detekt")

@@ -22,7 +22,6 @@ import kotlin.io.path.writeText
  * is never referenced here; the engine loads it through its `META-INF/services` registration.
  */
 class NoMockingLibrariesDetektRunTest {
-
     @TempDir
     lateinit var root: Path
 
@@ -212,7 +211,9 @@ class NoMockingLibrariesDetektRunTest {
 
         val findings = runDetekt(root)
 
-        assertThat(findings).single().transform { it.message }
+        assertThat(findings)
+            .single()
+            .transform { it.message }
             .isEqualTo("Import of 'org.mockito.Mockito' is not allowed. Use fakes instead of mocking libraries.")
     }
 
@@ -232,7 +233,9 @@ class NoMockingLibrariesDetektRunTest {
 
         val findings = runDetekt(root)
 
-        assertThat(findings).single().transform { it.message }
+        assertThat(findings)
+            .single()
+            .transform { it.message }
             .isEqualTo("Import of 'io.mockk.*' is not allowed. Use fakes instead of mocking libraries.")
     }
 
@@ -240,14 +243,15 @@ class NoMockingLibrariesDetektRunTest {
     @Test
     fun `without a cardigan section in the config the rule reports nothing`() {
         writeMockkImportTest()
-        val configWithoutCardigan = write(
-            "detekt.yml",
-            """
+        val configWithoutCardigan =
+            write(
+                "detekt.yml",
+                """
             style:
               MaxLineLength:
                 active: false
             """,
-        )
+            )
 
         val findings = runDetekt(root.resolve("sample"), config = configWithoutCardigan)
 
@@ -277,29 +281,37 @@ class NoMockingLibrariesDetektRunTest {
         )
     }
 
-    private fun write(relativePath: String, content: String): Path {
+    private fun write(
+        relativePath: String,
+        content: String,
+    ): Path {
         val file = root.resolve(relativePath)
         file.parent.createDirectories()
         file.writeText(content.trimIndent() + "\n")
         return file
     }
 
-    private fun runDetekt(input: Path, config: Path = sharedConfig): List<Issue> {
+    private fun runDetekt(
+        input: Path,
+        config: Path = sharedConfig,
+    ): List<Issue> {
         val log = StringBuilder()
-        val spec = ProcessingSpecBuilder().apply {
-            project {
-                inputPaths = listOf(input)
-                basePath = input
-            }
-            config {
-                configPaths = listOf(config)
-                useDefaultConfig = true
-            }
-            logging {
-                outputChannel = log
-                errorChannel = log
-            }
-        }.build()
+        val spec =
+            ProcessingSpecBuilder()
+                .apply {
+                    project {
+                        inputPaths = listOf(input)
+                        basePath = input
+                    }
+                    config {
+                        configPaths = listOf(config)
+                        useDefaultConfig = true
+                    }
+                    logging {
+                        outputChannel = log
+                        errorChannel = log
+                    }
+                }.build()
 
         val result = DetektProvider.load().get(spec).run()
 

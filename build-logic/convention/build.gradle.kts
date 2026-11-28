@@ -72,9 +72,10 @@ tasks.withType<dev.detekt.gradle.Detekt>().configureEach {
     }
 }
 
-val detektTypeResolutionTasks = tasks.withType<dev.detekt.gradle.Detekt>().matching {
-    it.name.startsWith("detekt") && it.name != "detekt" && !it.name.endsWith("SourceSet")
-}
+val detektTypeResolutionTasks =
+    tasks.withType<dev.detekt.gradle.Detekt>().matching {
+        it.name.startsWith("detekt") && it.name != "detekt" && !it.name.endsWith("SourceSet")
+    }
 tasks.named<dev.detekt.gradle.Detekt>("detekt") {
     description = "Runs detekt with type resolution on every source set of build-logic."
     setSource(emptyList<Any>())

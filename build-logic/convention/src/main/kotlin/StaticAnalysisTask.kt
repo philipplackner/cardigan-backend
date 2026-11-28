@@ -18,7 +18,6 @@ import javax.xml.parsers.DocumentBuilderFactory
  * `ignoreFailures`, and fails with one message when either found something.
  */
 abstract class StaticAnalysisTask : DefaultTask() {
-
     @get:Internal
     abstract val detektReport: RegularFileProperty
 
@@ -35,17 +34,22 @@ abstract class StaticAnalysisTask : DefaultTask() {
         val sarif = detektReport.get().asFile
         if (!sarif.exists()) throw GradleException("detekt wrote no merged report at ${sarif.absolutePath}.")
         val detektFindings = countSarifResults(sarif)
-        val konsistFailures = konsistResults.files.filter { it.extension == "xml" }.flatMap(::failedTestCases).sorted()
+        val konsistFailures =
+            konsistResults.files
+                .filter { it.extension == "xml" }
+                .flatMap(::failedTestCases)
+                .sorted()
 
         logger.lifecycle("detekt findings: $detektFindings (${sarif.absolutePath})")
         logger.lifecycle("Konsist failures: ${konsistFailures.size}")
 
-        val problems = buildList {
-            if (detektFindings > 0) add("detekt found $detektFindings finding(s). Report: ${sarif.absolutePath}")
-            if (konsistFailures.isNotEmpty()) {
-                add("Konsist checks failed:\n" + konsistFailures.joinToString("\n") { "  - $it" })
+        val problems =
+            buildList {
+                if (detektFindings > 0) add("detekt found $detektFindings finding(s). Report: ${sarif.absolutePath}")
+                if (konsistFailures.isNotEmpty()) {
+                    add("Konsist checks failed:\n" + konsistFailures.joinToString("\n") { "  - $it" })
+                }
             }
-        }
         if (problems.isNotEmpty()) throw GradleException("Static analysis failed.\n" + problems.joinToString("\n"))
     }
 
@@ -56,13 +60,19 @@ abstract class StaticAnalysisTask : DefaultTask() {
     }
 
     private fun failedTestCases(file: File): List<String> {
-        val factory = DocumentBuilderFactory.newInstance().apply {
-            isValidating = false
-            isNamespaceAware = false
-            setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
-            setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
-        }
-        val testCases = factory.newDocumentBuilder().parse(file).documentElement.getElementsByTagName("testcase")
+        val factory =
+            DocumentBuilderFactory.newInstance().apply {
+                isValidating = false
+                isNamespaceAware = false
+                setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+                setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+            }
+        val testCases =
+            factory
+                .newDocumentBuilder()
+                .parse(file)
+                .documentElement
+                .getElementsByTagName("testcase")
         return (0 until testCases.length)
             .map { testCases.item(it) as Element }
             .filter { it.getElementsByTagName("failure").length > 0 || it.getElementsByTagName("error").length > 0 }

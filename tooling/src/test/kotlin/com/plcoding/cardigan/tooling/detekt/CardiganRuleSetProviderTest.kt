@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test
 import java.util.ServiceLoader
 
 class CardiganRuleSetProviderTest {
-
     // tests.md: be-detekt-konsist C11
     @Test
     fun `the provider exposes rule set cardigan with exactly NoMockingLibraries`() {
