@@ -1,6 +1,8 @@
 package com.plcoding.cardigan.tooling.detekt
 
 import dev.detekt.api.Config
+import dev.detekt.api.Entity
+import dev.detekt.api.Finding
 import dev.detekt.api.Rule
 import org.jetbrains.kotlin.psi.KtImportDirective
 
@@ -11,6 +13,19 @@ class NoMockingLibraries(config: Config) : Rule(
 ) {
 
     override fun visitImportDirective(importDirective: KtImportDirective) {
-        TODO()
+        super.visitImportDirective(importDirective)
+        val fqName = importDirective.importedFqName?.asString() ?: return
+        if (MOCKING_PACKAGES.none { fqName == it || fqName.startsWith("$it.") }) return
+        val path = if (importDirective.isAllUnder) "$fqName.*" else fqName
+        report(
+            Finding(
+                Entity.from(importDirective),
+                "Import of '$path' is not allowed. Use fakes instead of mocking libraries.",
+            ),
+        )
+    }
+
+    private companion object {
+        val MOCKING_PACKAGES = listOf("org.mockito", "io.mockk")
     }
 }

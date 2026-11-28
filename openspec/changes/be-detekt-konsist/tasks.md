@@ -2,7 +2,7 @@
 
 ## 1. Acceptance tests
 
-- [ ] 1.1 [acceptance-red] Write A01-A12 from tests.md as engine tests in `tooling/src/test/kotlin/com/plcoding/cardigan/tooling/detekt/` (acceptance level from design.md decision 8: detekt-core in-process, shared `config/detekt/detekt.yml`, rule set loaded only through `META-INF/services`).
+- [x] 1.1 [acceptance-red] Write A01-A12 from tests.md as engine tests in `tooling/src/test/kotlin/com/plcoding/cardigan/tooling/detekt/` (acceptance level from design.md decision 8: detekt-core in-process, shared `config/detekt/detekt.yml`, rule set loaded only through `META-INF/services`).
 
 ## 2. Build setup
 
@@ -14,8 +14,8 @@
 ## 3. NoMockingLibraries rule
 
 - [x] 3.1 [scaffold] Add `CardiganRuleSetProvider` and `NoMockingLibraries(config: Config)` in `tooling/src/main/kotlin/com/plcoding/cardigan/tooling/detekt/` with the signatures from design decision 8 and `TODO()` bodies where logic goes. Register the provider in `src/main/resources/META-INF/services/dev.detekt.api.RuleSetProvider`. Verify with `./gradlew :tooling:testClasses`.
-- [ ] 3.2 [red] Write C01-C13 from tests.md as `NoMockingLibrariesTest` (and the provider test it names) in `tooling/src/test/kotlin/com/plcoding/cardigan/tooling/detekt/`.
-- [ ] 3.3 [green] Implement `NoMockingLibraries` and `CardiganRuleSetProvider` as design decision 8 describes: case-sensitive matching, the exact message, one finding per import, off unless configured. Verify with the tests of 3.2 passing (`./gradlew :tooling:test`).
+- [x] 3.2 [red] Write C01-C13 from tests.md as `NoMockingLibrariesTest` (and the provider test it names) in `tooling/src/test/kotlin/com/plcoding/cardigan/tooling/detekt/`.
+- [x] 3.3 [green] Implement `NoMockingLibraries` and `CardiganRuleSetProvider` as design decision 8 describes: case-sensitive matching, the exact message, one finding per import, off unless configured. Verify with the tests of 3.2 passing (`./gradlew :tooling:test`).
 
 ## 4. detekt wiring and config
 
